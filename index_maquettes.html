@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maquettes — Masterclass Médical</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #C8102E; --black: #0F0F0F; --off-white: #F9F7F4;
+      --gray: #6A6A6A; --border: #E0E0E0; --light-gray: #EBEBEB;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    body { font-family: var(--sans); background: var(--off-white); color: var(--black); min-height: 100vh; }
+
+    /* HEADER */
+    header { background: var(--black); padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; }
+    .logo-name { font-size: 1rem; font-weight: 800; color: white; }
+    .header-badge { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #080810, #1a0408); padding: 48px 40px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .hero-title { font-size: 1.8rem; font-weight: 800; color: white; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .hero-sub { font-size: 14px; color: rgba(255,255,255,0.45); margin-bottom: 24px; }
+    .stats-row { display: flex; gap: 24px; }
+    .stat { text-align: center; background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 20px; }
+    .stat-val { font-size: 20px; font-weight: 800; color: white; }
+    .stat-label { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* CONTENT */
+    .content { max-width: 1100px; margin: 0 auto; padding: 40px 40px 80px; }
+
+    /* SECTION */
+    .section { margin-bottom: 40px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .section-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    .section-title { font-size: 15px; font-weight: 800; color: var(--black); }
+    .section-count { font-size: 11px; font-weight: 600; background: var(--light-gray); color: var(--gray); padding: 2px 8px; border-radius: 100px; }
+
+    /* GRID */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+    /* PAGE CARD */
+    .page-card {
+      background: white; border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 16px 18px; text-decoration: none; color: var(--black);
+      display: flex; align-items: flex-start; gap: 12px;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .page-card:hover { border-color: var(--red); box-shadow: 0 4px 16px rgba(200,16,46,0.1); transform: translateY(-1px); }
+    .page-card-icon { font-size: 20px; flex-shrink: 0; }
+    .page-card-body { flex: 1; min-width: 0; }
+    .page-card-title { font-size: 13px; font-weight: 700; color: var(--black); margin-bottom: 3px; }
+    .page-card-desc { font-size: 11px; color: var(--gray); line-height: 1.5; }
+    .page-card-file { font-size: 10px; font-family: monospace; color: var(--red); margin-top: 6px; opacity: 0.8; }
+    .page-card-arrow { font-size: 14px; color: var(--border); flex-shrink: 0; align-self: center; }
+    .page-card:hover .page-card-arrow { color: var(--red); }
+
+    /* COLORS BY SECTION */
+    .sec-public .section-icon { background: #fff0f2; }
+    .sec-auth .section-icon { background: #e3f2fd; }
+    .sec-formateur .section-icon { background: #f3e5f5; }
+    .sec-participant .section-icon { background: #e8f5e9; }
+    .sec-admin .section-icon { background: #fff3e0; }
+
+    .sec-public .page-card:hover { border-color: var(--red); }
+    .sec-auth .page-card:hover { border-color: #1565c0; box-shadow: 0 4px 16px rgba(21,101,192,0.1); }
+    .sec-formateur .page-card:hover { border-color: #6a1b9a; box-shadow: 0 4px 16px rgba(106,27,154,0.1); }
+    .sec-participant .page-card:hover { border-color: #2e7d32; box-shadow: 0 4px 16px rgba(46,125,50,0.1); }
+    .sec-admin .page-card:hover { border-color: #e65100; box-shadow: 0 4px 16px rgba(230,81,0,0.1); }
+
+    .sec-auth .page-card:hover .page-card-arrow { color: #1565c0; }
+    .sec-formateur .page-card:hover .page-card-arrow { color: #6a1b9a; }
+    .sec-participant .page-card:hover .page-card-arrow { color: #2e7d32; }
+    .sec-admin .page-card:hover .page-card-arrow { color: #e65100; }
+
+    /* DIVIDER */
+    .section-divider { height: 1px; background: var(--border); margin: 8px 0 40px; }
+
+    /* NOTE */
+    .dev-note { background: #e3f2fd; border: 1.5px solid #90caf9; border-radius: 12px; padding: 14px 18px; font-size: 13px; color: #1565c0; line-height: 1.7; margin-bottom: 36px; }
+    .dev-note strong { font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <span class="logo-name">Masterclass Médical</span>
+  </div>
+  <span class="header-badge">Maquettes UI · Référence dev</span>
+</header>
+
+<div class="hero">
+  <div class="hero-title">📐 Index des maquettes</div>
+  <div class="hero-sub">Toutes les pages de la plateforme — cliquez pour ouvrir.</div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val">26</div><div class="stat-label">Pages</div></div>
+    <div class="stat"><div class="stat-val">5</div><div class="stat-label">Espaces</div></div>
+    <div class="stat"><div class="stat-val">100%</div><div class="stat-label">Complètes</div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="dev-note">
+    ℹ️ <strong>Pour les développeurs</strong> — Ces maquettes sont des fichiers HTML statiques servant de référence visuelle. Chaque page correspond à une route Next.js à implémenter. Les interactions JS (boutons, modales) sont simulées. Les données sont fictives.
+  </div>
+
+  <!-- PUBLIC -->
+  <div class="section sec-public">
+    <div class="section-header">
+      <div class="section-icon">🌐</div>
+      <span class="section-title">Pages publiques</span>
+      <span class="section-count">3 pages</span>
+    </div>
+    <div class="grid">
+      <a href="index.html" class="page-card">
+        <span class="page-card-icon">🏠</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Landing vitrine</div>
+          <div class="page-card-desc">Hero, fonctionnalités, parcours, témoignages, CTA</div>
+          <div class="page-card-file">index.html → app/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="catalogue_formations.html" class="page-card">
+        <span class="page-card-icon">🔍</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Catalogue formations</div>
+          <div class="page-card-desc">Recherche, filtres (spécialité, durée, format), cards formations</div>
+          <div class="page-card-file">catalogue_formations.html → app/formations/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="landing_formation.html" class="page-card">
+        <span class="page-card-icon">📋</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Page formation (participant)</div>
+          <div class="page-card-desc">Programme, formateur, lieu, inscription + paiement Stripe</div>
+          <div class="page-card-file">landing_formation.html → app/formations/[slug]/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- AUTH -->
+  <div class="section sec-auth">
+    <div class="section-header">
+      <div class="section-icon">🔐</div>
+      <span class="section-title">Authentification</span>
+      <span class="section-count">3 pages</span>
+    </div>
+    <div class="grid">
+      <a href="login.html" class="page-card">
+        <span class="page-card-icon">🔑</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Connexion</div>
+          <div class="page-card-desc">Split layout, tabs formateur/participant, Google OAuth</div>
+          <div class="page-card-file">login.html → app/auth/login/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="inscription_formateur.html" class="page-card">
+        <span class="page-card-icon">🎓</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Inscription formateur</div>
+          <div class="page-card-desc">4 étapes : identité, profil médical, abonnement, confirmation</div>
+          <div class="page-card-file">inscription_formateur.html → app/auth/inscription/formateur/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="inscription_participant.html" class="page-card">
+        <span class="page-card-icon">👤</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Inscription participant</div>
+          <div class="page-card-desc">2 étapes : profil + RPPS, confirmation</div>
+          <div class="page-card-file">inscription_participant.html → app/auth/inscription/participant/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- FORMATEUR -->
+  <div class="section sec-formateur">
+    <div class="section-header">
+      <div class="section-icon">🎓</div>
+      <span class="section-title">Espace formateur</span>
+      <span class="section-count">9 pages</span>
+    </div>
+    <div class="grid">
+      <a href="dashboard_formateur.html" class="page-card">
+        <span class="page-card-icon">📊</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Dashboard</div>
+          <div class="page-card-desc">Métriques, formations actives, notifications, actions prioritaires</div>
+          <div class="page-card-file">dashboard_formateur.html → app/formateur/dashboard/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_mes_formations.html" class="page-card">
+        <span class="page-card-icon">📚</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Mes formations</div>
+          <div class="page-card-desc">Liste complète avec filtres, jauges, badges statut, actions</div>
+          <div class="page-card-file">formateur_mes_formations.html → app/formateur/formations/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="form_creation_masterclass.html" class="page-card">
+        <span class="page-card-icon">➕</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Créer une formation</div>
+          <div class="page-card-desc">Formulaire 6 étapes : infos, lieu, contenu IA, réglementaire, docs, récap</div>
+          <div class="page-card-file">form_creation_masterclass.html → app/formateur/formations/new/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_detail_formation.html" class="page-card">
+        <span class="page-card-icon">🔎</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Détail formation</div>
+          <div class="page-card-desc">5 onglets : inscrits, documents, émargement, évaluations, infos</div>
+          <div class="page-card-file">formateur_detail_formation.html → app/formateur/formations/[id]/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_emargement.html" class="page-card">
+        <span class="page-card-icon">✍️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Émargement jour J</div>
+          <div class="page-card-desc">Session live, présences temps réel, matin/après-midi, clôture</div>
+          <div class="page-card-file">formateur_emargement.html → app/formateur/emargement/[id]/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_participants.html" class="page-card">
+        <span class="page-card-icon">👥</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Participants</div>
+          <div class="page-card-desc">Tableau complet, filtres par formation, statuts paiement/convention</div>
+          <div class="page-card-file">formateur_participants.html → app/formateur/participants/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_paiements.html" class="page-card">
+        <span class="page-card-icon">💳</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Paiements</div>
+          <div class="page-card-desc">4 onglets : revenus, frais salle, abonnement, factures</div>
+          <div class="page-card-file">formateur_paiements.html → app/formateur/paiements/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_portfolio.html" class="page-card">
+        <span class="page-card-icon">🏆</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Portfolio</div>
+          <div class="page-card-desc">Archive des formations passées, notes, toggle public/masqué</div>
+          <div class="page-card-file">formateur_portfolio.html → app/formateur/portfolio/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="formateur_profil.html" class="page-card">
+        <span class="page-card-icon">⚙️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Mon profil</div>
+          <div class="page-card-desc">4 onglets : identité, CV scientifique, infos légales/IBAN, sécurité</div>
+          <div class="page-card-file">formateur_profil.html → app/formateur/profil/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- PARTICIPANT -->
+  <div class="section sec-participant">
+    <div class="section-header">
+      <div class="section-icon">👤</div>
+      <span class="section-title">Espace participant</span>
+      <span class="section-count">4 pages</span>
+    </div>
+    <div class="grid">
+      <a href="participant_dashboard.html" class="page-card">
+        <span class="page-card-icon">🏠</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Dashboard participant</div>
+          <div class="page-card-desc">Inscriptions à venir/passées, attestations, formations recommandées</div>
+          <div class="page-card-file">participant_dashboard.html → app/participant/dashboard/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="participant_confirmation.html" class="page-card">
+        <span class="page-card-icon">✅</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Confirmation inscription</div>
+          <div class="page-card-desc">Post-paiement : récap, timeline 6 étapes, lieu, documents</div>
+          <div class="page-card-file">participant_confirmation.html → app/participant/confirmation/[id]/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="participant_profil.html" class="page-card">
+        <span class="page-card-icon">⚙️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Mon profil</div>
+          <div class="page-card-desc">Identité, RPPS, adresse facturation, notifications, mot de passe</div>
+          <div class="page-card-file">participant_profil.html → app/participant/profil/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="emarger.html" class="page-card">
+        <span class="page-card-icon">✍️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Émargement participant</div>
+          <div class="page-card-desc">Page token unique — confirmer sa présence le jour J</div>
+          <div class="page-card-file">emarger.html → app/emarger/[token]/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ADMIN -->
+  <div class="section sec-admin">
+    <div class="section-header">
+      <div class="section-icon">🛡️</div>
+      <span class="section-title">Back-office admin</span>
+      <span class="section-count">7 pages</span>
+    </div>
+    <div class="grid">
+      <a href="dashboard_admin.html" class="page-card">
+        <span class="page-card-icon">📊</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Dashboard admin</div>
+          <div class="page-card-desc">Vue globale, SLA demandes salle, activité, revenus mensuels</div>
+          <div class="page-card-file">dashboard_admin.html → app/admin/dashboard/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="admin_demande_salle.html" class="page-card">
+        <span class="page-card-icon">🏨</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Traitement demande salle</div>
+          <div class="page-card-desc">Workflow complet : contact hôtel, email pré-rempli, devis, validation, transmission</div>
+          <div class="page-card-file">admin_demande_salle.html → app/admin/demandes/[id]/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="admin_formations.html" class="page-card">
+        <span class="page-card-icon">🎓</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Supervision formations</div>
+          <div class="page-card-desc">Toutes les formations, filtres, revenus par formation</div>
+          <div class="page-card-file">admin_formations.html → app/admin/formations/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="admin_formateurs.html" class="page-card">
+        <span class="page-card-icon">👨‍⚕️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Gestion formateurs</div>
+          <div class="page-card-desc">Liste formateurs, statut abonnements, badge impayé, relance</div>
+          <div class="page-card-file">admin_formateurs.html → app/admin/formateurs/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="admin_paiements.html" class="page-card">
+        <span class="page-card-icon">💳</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Paiements & commissions</div>
+          <div class="page-card-desc">4 onglets : inscriptions, commissions, abonnements, virements</div>
+          <div class="page-card-file">admin_paiements.html → app/admin/paiements/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="admin_remboursements.html" class="page-card">
+        <span class="page-card-icon">↩️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Remboursements</div>
+          <div class="page-card-desc">Workflow remboursement, vérification délai J-14, approuver/refuser</div>
+          <div class="page-card-file">admin_remboursements.html → app/admin/remboursements/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+      <a href="admin_services_devis.html" class="page-card">
+        <span class="page-card-icon">🛠️</span>
+        <div class="page-card-body">
+          <div class="page-card-title">Services complémentaires</div>
+          <div class="page-card-desc">Captation vidéo, design, impression, traduction — devis sur mesure</div>
+          <div class="page-card-file">admin_services_devis.html → app/admin/services/page.tsx</div>
+        </div>
+        <span class="page-card-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
