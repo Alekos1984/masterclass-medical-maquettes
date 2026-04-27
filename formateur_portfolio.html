@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;--serif:'Instrument Serif',serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0F0F0F;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .slgo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .slm{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sln{font-size:12px;font-weight:700;color:white;}.sls{font-size:10px;color:rgba(255,255,255,0.28);margin-top:1px;}
+    .snav{padding:14px 10px;flex:1;}
+    .nl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.18);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:4px;margin-top:14px;display:block;}
+    .nl:first-child{margin-top:0;}
+    .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:1px;text-decoration:none;transition:background 0.15s;}
+    .ni:hover{background:rgba(255,255,255,0.05);}
+    .ni.active{background:rgba(200,16,46,0.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .ni .ic{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+    .ni .lb{font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);}
+    .ni.active .lb{color:white;font-weight:600;}
+    .nb{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sft{padding:14px;border-top:1px solid rgba(255,255,255,0.06);}
+    .su{display:flex;align-items:center;gap:10px;}
+    .sav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .sun{font-size:12px;font-weight:600;color:white;}.sur{font-size:10px;color:rgba(255,255,255,0.3);}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-title{font-size:15px;font-weight:700;}
+    .btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;}
+    .btn-ghost{background:white;color:var(--gray);border:1.5px solid var(--border);}.btn-ghost:hover{border-color:var(--red);color:var(--red);}
+    .content{padding:24px 28px;}
+    /* HERO PORTFOLIO */
+    .portfolio-hero{background:linear-gradient(135deg,#080810,#1a0408);border-radius:16px;padding:28px 32px;margin-bottom:24px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;position:relative;overflow:hidden;}
+    .portfolio-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(200,16,46,0.15) 0%,transparent 65%);}
+    .portfolio-hero-title{font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;margin-bottom:4px;}
+    .portfolio-hero-title .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:#ff8a96;}
+    .portfolio-hero-sub{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:16px;}
+    .portfolio-stats{display:flex;gap:20px;}
+    .pstat{text-align:center;}
+    .pstat-val{font-size:24px;font-weight:800;color:white;letter-spacing:-0.8px;}
+    .pstat-label{font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px;}
+    .portfolio-public-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 18px;text-align:center;min-width:180px;position:relative;z-index:1;}
+    .portfolio-public-title{font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px;}
+    .portfolio-public-url{font-size:11px;color:#ff8a96;font-family:monospace;margin-bottom:10px;}
+    .btn-public{background:var(--red);color:white;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+    /* FILTERS */
+    .filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+    .filter-tab{padding:6px 14px;border-radius:100px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;border:1.5px solid var(--border);background:white;transition:border-color 0.15s,color 0.15s,background 0.15s;}
+    .filter-tab.active{background:var(--red);color:white;border-color:var(--red);}
+    .filter-year{border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-family:var(--sans);color:var(--black);outline:none;background:white;margin-left:auto;}
+    /* ARCHIVE CARDS */
+    .archive-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .acard{background:white;border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color 0.15s,box-shadow 0.15s;}
+    .acard:hover{border-color:var(--red);box-shadow:0 4px 16px rgba(200,16,46,0.08);}
+    .acard-header{padding:16px 18px 12px;border-bottom:1px solid var(--light-gray);}
+    .acard-date{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--red);margin-bottom:4px;}
+    .acard-title{font-size:14px;font-weight:800;color:var(--black);letter-spacing:-0.2px;margin-bottom:3px;}
+    .acard-meta{font-size:12px;color:var(--gray);}
+    .acard-body{padding:14px 18px;}
+    .acard-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+    .acs{text-align:center;background:var(--off-white);border-radius:8px;padding:8px 4px;}
+    .acs-val{font-size:16px;font-weight:800;color:var(--black);}
+    .acs-label{font-size:10px;color:var(--gray);margin-top:1px;}
+    .acard-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+    .atag{font-size:10px;background:var(--off-white);border:1px solid var(--light-gray);border-radius:5px;padding:2px 7px;color:var(--gray);}
+    .acard-footer{display:flex;gap:6px;}
+    .acard-btn{flex:1;text-align:center;padding:7px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;font-weight:600;color:var(--gray);cursor:pointer;background:white;font-family:var(--sans);transition:border-color 0.15s,color 0.15s;}
+    .acard-btn:hover{border-color:var(--red);color:var(--red);}
+    /* NOTE STARS */
+    .stars{color:#ffc107;font-size:12px;}
+    .visible-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray);margin-bottom:12px;}
+    .visible-toggle input{accent-color:var(--red);}
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="slgo"><div class="slm">M</div><div><div class="sln">Masterclass Médical</div><div class="sls">Espace formateur</div></div></div>
+  <div class="snav">
+    <span class="nl">Principal</span>
+    <a href="dashboard_formateur.html" class="ni"><span class="ic">📊</span><span class="lb">Dashboard</span></a>
+    <a href="formateur_mes_formations.html" class="ni"><span class="ic">🎓</span><span class="lb">Mes formations</span></a>
+    <a href="#" class="ni"><span class="ic">➕</span><span class="lb">Nouvelle formation</span></a>
+    <span class="nl">Gestion</span>
+    <a href="#" class="ni"><span class="ic">👥</span><span class="lb">Participants</span></a>
+    <a href="formateur_emargement.html" class="ni"><span class="ic">✍️</span><span class="lb">Émargement</span><span class="nb">1</span></a>
+    <a href="#" class="ni"><span class="ic">📄</span><span class="lb">Documents</span></a>
+    <a href="formateur_paiements.html" class="ni"><span class="ic">💳</span><span class="lb">Paiements</span></a>
+    <span class="nl">Profil</span>
+    <a href="#" class="ni active"><span class="ic">🏆</span><span class="lb">Portfolio</span></a>
+    <a href="formateur_profil.html" class="ni"><span class="ic">⚙️</span><span class="lb">Mon profil</span></a>
+  </div>
+  <div class="sft"><div class="su"><div class="sav">PD</div><div><div class="sun">Dr. Pierre Dumont</div><div class="sur">Cardiologue · Lyon</div></div></div></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Portfolio pédagogique</div>
+    <button class="btn btn-ghost">📤 Exporter PDF</button>
+  </div>
+
+  <div class="content">
+
+    <div class="portfolio-hero">
+      <div>
+        <div class="portfolio-hero-title">Portfolio de <span class="serif">Dr. Pierre Dumont</span></div>
+        <div class="portfolio-hero-sub">Cardiologue interventionnel · CHU de Lyon-Sud · Depuis 2022 sur la plateforme</div>
+        <div class="portfolio-stats">
+          <div class="pstat"><div class="pstat-val">4</div><div class="pstat-label">Formations</div></div>
+          <div class="pstat"><div class="pstat-val">48</div><div class="pstat-label">Participants</div></div>
+          <div class="pstat"><div class="pstat-val">4.9</div><div class="pstat-label">Note moy.</div></div>
+          <div class="pstat"><div class="pstat-val">96%</div><div class="pstat-label">Recommandation</div></div>
+        </div>
+      </div>
+      <div class="portfolio-public-card">
+        <div class="portfolio-public-title">Page publique</div>
+        <div class="portfolio-public-url">masterclassmedical.fr/dr-dumont</div>
+        <button class="btn-public">Voir ma page →</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-tab active" onclick="filterPortfolio(this)">Toutes (4)</div>
+      <div class="filter-tab" onclick="filterPortfolio(this)">Masterclass</div>
+      <div class="filter-tab" onclick="filterPortfolio(this)">Atelier</div>
+      <div class="filter-tab" onclick="filterPortfolio(this)">Visible</div>
+      <div class="filter-tab" onclick="filterPortfolio(this)">Masqué</div>
+      <select class="filter-year">
+        <option>Toutes les années</option>
+        <option>2026</option>
+        <option>2025</option>
+        <option>2024</option>
+      </select>
+    </div>
+
+    <div class="archive-grid">
+
+      <div class="acard">
+        <div class="acard-header">
+          <div class="acard-date">15 novembre 2026 · Lyon</div>
+          <div class="acard-title">Cardiologie interventionnelle — Techniques avancées 2026</div>
+          <div class="acard-meta">Marriott Lyon · Masterclass · 7h</div>
+        </div>
+        <div class="acard-body">
+          <div class="visible-toggle"><input type="checkbox" checked> <span>Visible sur ma page publique</span></div>
+          <div class="acard-stats">
+            <div class="acs"><div class="acs-val">12</div><div class="acs-label">Participants</div></div>
+            <div class="acs"><div class="acs-val" style="color:#ffc107;">—</div><div class="acs-label">Note</div></div>
+            <div class="acs"><div class="acs-val" style="font-size:12px;color:#e65100;">À venir</div><div class="acs-label">Statut</div></div>
+          </div>
+          <div class="acard-tags"><span class="atag">Coronarographie</span><span class="atag">Stenting</span><span class="atag">Revascularisation</span></div>
+          <div class="acard-footer">
+            <button class="acard-btn" onclick="window.location='formateur_detail_formation.html'">Voir détail</button>
+            <button class="acard-btn">↓ Bilan PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="acard">
+        <div class="acard-header">
+          <div class="acard-date">14 juin 2026 · Toulouse</div>
+          <div class="acard-title">Stenting coronarien avancé — Techniques complexes</div>
+          <div class="acard-meta">Novotel Wilson · Masterclass · 7h</div>
+        </div>
+        <div class="acard-body">
+          <div class="visible-toggle"><input type="checkbox" checked> <span>Visible sur ma page publique</span></div>
+          <div class="acard-stats">
+            <div class="acs"><div class="acs-val">14</div><div class="acs-label">Participants</div></div>
+            <div class="acs"><div class="acs-val" style="color:#ffc107;">4.9</div><div class="acs-label">Note moy.</div></div>
+            <div class="acs"><div class="acs-val" style="font-size:12px;color:#2e7d32;">Terminée</div><div class="acs-label">Statut</div></div>
+          </div>
+          <div style="margin-bottom:10px;"><div class="stars">★★★★★</div><div style="font-size:11px;color:var(--gray);margin-top:3px;">"Excellente formation, très pratique et bien structurée." — Dr. B.</div></div>
+          <div class="acard-tags"><span class="atag">Stenting</span><span class="atag">Lésions complexes</span><span class="atag">Bifurcations</span></div>
+          <div class="acard-footer">
+            <button class="acard-btn">Voir détail</button>
+            <button class="acard-btn">↓ Bilan PDF</button>
+            <button class="acard-btn">↓ Livret</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="acard">
+        <div class="acard-header">
+          <div class="acard-date">18 mars 2026 · Paris</div>
+          <div class="acard-title">Coronarographie diagnostique — Pratiques avancées</div>
+          <div class="acard-meta">Hôtel Marriott Paris Rive Gauche · Masterclass · 7h</div>
+        </div>
+        <div class="acard-body">
+          <div class="visible-toggle"><input type="checkbox" checked> <span>Visible sur ma page publique</span></div>
+          <div class="acard-stats">
+            <div class="acs"><div class="acs-val">15</div><div class="acs-label">Participants</div></div>
+            <div class="acs"><div class="acs-val" style="color:#ffc107;">4.8</div><div class="acs-label">Note moy.</div></div>
+            <div class="acs"><div class="acs-val" style="font-size:12px;color:#2e7d32;">Terminée</div><div class="acs-label">Statut</div></div>
+          </div>
+          <div style="margin-bottom:10px;"><div class="stars">★★★★★</div><div style="font-size:11px;color:var(--gray);margin-top:3px;">"Formateur passionné, cas cliniques très pertinents." — Dr. M.</div></div>
+          <div class="acard-tags"><span class="atag">Coronarographie</span><span class="atag">Diagnostic</span><span class="atag">Cas cliniques</span></div>
+          <div class="acard-footer">
+            <button class="acard-btn">Voir détail</button>
+            <button class="acard-btn">↓ Bilan PDF</button>
+            <button class="acard-btn">↓ Livret</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="acard" style="opacity:0.75;">
+        <div class="acard-header">
+          <div class="acard-date">10 octobre 2025 · Lyon</div>
+          <div class="acard-title">Urgences cardiologiques — Atelier simulation</div>
+          <div class="acard-meta">Hôtel Radisson Blu Lyon · Atelier · 4h</div>
+        </div>
+        <div class="acard-body">
+          <div class="visible-toggle"><input type="checkbox"> <span style="color:var(--gray);">Non visible (masqué)</span></div>
+          <div class="acard-stats">
+            <div class="acs"><div class="acs-val">7</div><div class="acs-label">Participants</div></div>
+            <div class="acs"><div class="acs-val" style="color:#ffc107;">4.7</div><div class="acs-label">Note moy.</div></div>
+            <div class="acs"><div class="acs-val" style="font-size:12px;color:#2e7d32;">Terminée</div><div class="acs-label">Statut</div></div>
+          </div>
+          <div style="margin-bottom:10px;font-size:11px;color:var(--gray);">Formation masquée du profil public.</div>
+          <div class="acard-tags"><span class="atag">Urgences</span><span class="atag">Simulation</span></div>
+          <div class="acard-footer">
+            <button class="acard-btn">Voir détail</button>
+            <button class="acard-btn">Rendre visible</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function filterPortfolio(el){document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+</script>
+</body>
+</html>

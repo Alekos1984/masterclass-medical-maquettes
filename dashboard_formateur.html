@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Formateur — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #C8102E; --red-light: #E8394A;
+      --black: #0F0F0F; --white: #FFFFFF;
+      --off-white: #F9F7F4; --gray: #6A6A6A;
+      --light-gray: #EBEBEB; --border: #E0E0E0;
+      --sidebar-bg: #0F0F0F;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    html, body { height: 100%; }
+    body { font-family: var(--sans); background: var(--off-white); color: var(--black); display: flex; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: 220px; background: var(--sidebar-bg); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo { padding: 24px 20px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
+    .sidebar-logo-name { font-size: 13px; font-weight: 700; color: white; line-height: 1.2; }
+    .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 1px; }
+    .sidebar-nav { padding: 16px 12px; flex: 1; }
+    .nav-section-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.2); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 6px; margin-top: 16px; display: block; }
+    .nav-section-label:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 2px; text-decoration: none; }
+    .nav-item:hover { background: rgba(255,255,255,0.06); }
+    .nav-item.active { background: rgba(200,16,46,0.18); border-left: 2px solid var(--red); border-radius: 0 8px 8px 0; padding-left: 8px; }
+    .nav-item-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-item-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); }
+    .nav-item.active .nav-item-label { color: white; font-weight: 600; }
+    .nav-item-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 100px; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-user { display: flex; align-items: center; gap: 10px; }
+    .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--red), #ff6b7a); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 600; color: white; }
+    .sidebar-user-role { font-size: 10px; color: rgba(255,255,255,0.3); }
+
+    /* MAIN */
+    .main { flex: 1; overflow-x: hidden; min-width: 0; }
+    .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .topbar-title { font-size: 16px; font-weight: 700; color: var(--black); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-notif { position: relative; width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: border-color 0.15s; }
+    .topbar-notif:hover { border-color: #ccc; }
+    .notif-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); border: 1.5px solid white; }
+    .btn-new { background: var(--red); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+    .btn-new:hover { background: #a50d25; }
+
+    .content { padding: 28px 32px; }
+
+    /* WELCOME BANNER */
+    .welcome-banner { background: linear-gradient(135deg, #0F0F0F 0%, #1a0408 100%); border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+    .welcome-banner::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(200,16,46,0.2) 0%, transparent 65%); pointer-events: none; }
+    .welcome-title { font-size: 18px; font-weight: 800; color: white; letter-spacing: -0.3px; margin-bottom: 4px; }
+    .welcome-sub { font-size: 13px; color: rgba(255,255,255,0.45); }
+    .welcome-pill { background: rgba(200,16,46,0.18); border: 1px solid rgba(200,16,46,0.35); color: #ff8a96; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; margin-top: 8px; display: inline-block; }
+
+    /* METRICS */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .metric-card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .metric-label { font-size: 11px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+    .metric-val { font-size: 28px; font-weight: 800; color: var(--black); letter-spacing: -1px; line-height: 1; }
+    .metric-sub { font-size: 12px; color: var(--gray); margin-top: 5px; }
+    .metric-trend { font-size: 11px; font-weight: 600; margin-top: 4px; }
+    .trend-up { color: #2e7d32; }
+    .trend-neutral { color: var(--gray); }
+
+    /* LAYOUT */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .three-col { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+
+    /* CARD */
+    .card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--black); }
+    .card-action { font-size: 12px; font-weight: 600; color: var(--red); cursor: pointer; text-decoration: none; }
+    .card-action:hover { text-decoration: underline; }
+
+    /* FORMATIONS */
+    .formation-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--light-gray); }
+    .formation-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .formation-row:first-child { padding-top: 0; }
+    .formation-color { width: 4px; height: 44px; border-radius: 100px; flex-shrink: 0; }
+    .formation-info { flex: 1; min-width: 0; }
+    .formation-title { font-size: 13px; font-weight: 700; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    .formation-meta { font-size: 11px; color: var(--gray); }
+    .formation-right { text-align: right; flex-shrink: 0; }
+    .status-pill { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; display: inline-block; margin-bottom: 4px; }
+    .status-publiee { background: #e8f5e9; color: #2e7d32; }
+    .status-attente { background: #fff3e0; color: #e65100; }
+    .status-brouillon { background: #f5f5f5; color: #9e9e9e; }
+    .status-complete { background: #e3f2fd; color: #1565c0; }
+    .formation-inscrits { font-size: 11px; color: var(--gray); }
+    .mini-jauge { margin-top: 4px; }
+    .mini-jauge-bar { background: var(--light-gray); border-radius: 100px; height: 3px; overflow: hidden; width: 80px; }
+    .mini-jauge-fill { height: 100%; border-radius: 100px; background: var(--red); }
+
+    /* NOTIFS */
+    .notif-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--light-gray); }
+    .notif-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .notif-item:first-child { padding-top: 0; }
+    .notif-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .notif-devis { background: #fff3e0; }
+    .notif-inscription { background: #e8f5e9; }
+    .notif-rappel { background: #e3f2fd; }
+    .notif-text { font-size: 12px; color: var(--black); line-height: 1.5; flex: 1; }
+    .notif-text span { color: var(--gray); font-size: 11px; display: block; margin-top: 2px; }
+    .notif-dot-new { width: 7px; height: 7px; border-radius: 50%; background: var(--red); flex-shrink: 0; margin-top: 5px; }
+
+    /* ACTIONS */
+    .action-card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 0; }
+    .action-item { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .action-item:last-child { margin-bottom: 0; }
+    .action-item:hover { border-color: var(--red); background: #fff5f6; }
+    .action-item-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .action-item-icon.red { background: #fff0f2; }
+    .action-item-icon.orange { background: #fff3e0; }
+    .action-item-icon.blue { background: #e3f2fd; }
+    .action-item-text { flex: 1; }
+    .action-item-title { font-size: 13px; font-weight: 600; color: var(--black); }
+    .action-item-sub { font-size: 11px; color: var(--gray); margin-top: 1px; }
+    .action-item-arrow { color: var(--gray); font-size: 16px; }
+
+    /* STATS */
+    .qs-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--light-gray); }
+    .qs-row:last-child { border-bottom: none; }
+    .qs-label { font-size: 12px; color: var(--gray); }
+    .qs-val { font-size: 13px; font-weight: 700; color: var(--black); flex-shrink: 0; }
+    .qs-bar-wrap { flex: 1; margin: 0 12px; background: var(--light-gray); border-radius: 100px; height: 4px; overflow: hidden; }
+    .qs-bar { height: 100%; border-radius: 100px; background: var(--red); }
+
+    /* ABONNEMENT */
+    .sub-card { background: linear-gradient(135deg, #0F0F0F, #1a0408); border-radius: 14px; padding: 18px 20px; color: white; }
+    .sub-label { font-size: 10px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .sub-plan { font-size: 16px; font-weight: 800; color: white; margin-bottom: 2px; }
+    .sub-price { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 14px; }
+    .sub-next { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
+    .sub-next strong { color: white; }
+    .btn-sub { background: var(--red); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); width: 100%; transition: background 0.15s; }
+    .btn-sub:hover { background: #a50d25; }
+  
+    /* ===== SIDEBAR UNIQUE ===== */
+    .sidebar { width: 220px; background: #0F0F0F; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo-link { display: flex; text-decoration: none; }
+    .sidebar-logo { padding: 22px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); width: 100%; }
+    .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: #C8102E; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
+    .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
+    .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 1px; }
+    .sidebar-nav { padding: 14px 10px; flex: 1; }
+    .nav-section { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.18); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; margin-top: 14px; display: block; }
+    .nav-section:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; cursor: pointer; margin-bottom: 1px; text-decoration: none; transition: background 0.15s; }
+    .nav-item:hover { background: rgba(255,255,255,0.05); }
+    .nav-item.active { background: rgba(200,16,46,0.18); border-left: 2px solid #C8102E; border-radius: 0 7px 7px 0; padding-left: 8px; }
+    .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); }
+    .nav-item.active .nav-label { color: white; font-weight: 600; }
+    .nav-badge { margin-left: auto; background: #C8102E; color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 100px; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 10px; }
+    .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #C8102E, #ff6b7a); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 600; color: white; }
+    .sidebar-user-role { font-size: 10px; color: rgba(255,255,255,0.3); }
+    /* ===== FIN SIDEBAR ===== */
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <a href="index.html" class="sidebar-logo-link">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">M</div>
+      <div><div class="sidebar-logo-name">Masterclass Médical</div><div class="sidebar-logo-sub">Espace formateur</div></div>
+    </div>
+  </a>
+  <nav class="sidebar-nav">
+    <span class="nav-section">Principal</span>
+    <a href="dashboard_formateur.html" class="nav-item active">
+      <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+    </a>
+    <a href="formateur_mes_formations.html" class="nav-item">
+      <span class="nav-icon">🎓</span><span class="nav-label">Mes formations</span>
+    </a>
+    <a href="form_creation_masterclass.html" class="nav-item">
+      <span class="nav-icon">➕</span><span class="nav-label">Nouvelle formation</span>
+    </a>
+    <span class="nav-section">Gestion</span>
+    <a href="formateur_mes_formations.html" class="nav-item">
+      <span class="nav-icon">👥</span><span class="nav-label">Participants</span>
+    </a>
+    <a href="formateur_emargement.html" class="nav-item">
+      <span class="nav-icon">✍️</span><span class="nav-label">Émargement</span>
+      <span class="nav-badge">1</span>
+    </a>
+    <a href="formateur_detail_formation.html" class="nav-item">
+      <span class="nav-icon">📄</span><span class="nav-label">Documents</span>
+    </a>
+    <a href="formateur_paiements.html" class="nav-item">
+      <span class="nav-icon">💳</span><span class="nav-label">Paiements</span>
+    </a>
+    <span class="nav-section">Profil</span>
+    <a href="formateur_portfolio.html" class="nav-item">
+      <span class="nav-icon">🏆</span><span class="nav-label">Portfolio</span>
+    </a>
+    <a href="formateur_profil.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Mon profil</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">PD</div>
+    <div><div class="sidebar-user-name">Dr. Pierre Dumont</div><div class="sidebar-user-role">Cardiologue · Lyon</div></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="topbar-notif">🔔<div class="notif-dot"></div></div>
+      <a href="form_creation_masterclass.html"><button class="btn-new">+ Nouvelle formation</button></a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- WELCOME -->
+    <div class="welcome-banner">
+      <div>
+        <div class="welcome-title">Bonjour, Dr. Dumont 👋</div>
+        <div class="welcome-sub">Vous avez 1 devis en attente de validation et 2 nouvelles inscriptions.</div>
+        <div class="welcome-pill">⚡ Formation active · Lyon · 15 nov. 2026</div>
+      </div>
+      <button class="btn-new" style="flex-shrink:0;position:relative;z-index:1;">+ Nouvelle formation</button>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Formations</div>
+        <div class="metric-val">3</div>
+        <div class="metric-sub">2 publiées · 1 en cours</div>
+        <div class="metric-trend trend-up">↑ +1 ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Participants total</div>
+        <div class="metric-val">34</div>
+        <div class="metric-sub">Toutes formations</div>
+        <div class="metric-trend trend-up">↑ +7 ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Revenus HT</div>
+        <div class="metric-val" style="font-size:22px;">6 480 €</div>
+        <div class="metric-sub">Après commission (20%)</div>
+        <div class="metric-trend trend-up">↑ +1 440 € ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Note moyenne</div>
+        <div class="metric-val">4.9</div>
+        <div class="metric-sub">Sur 28 évaluations</div>
+        <div class="metric-trend trend-neutral">⭐ Excellent</div>
+      </div>
+    </div>
+
+    <!-- FORMATIONS + NOTIFS -->
+    <div class="three-col">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Mes formations</span>
+          <a href="formateur_mes_formations.html" class="card-action">Voir tout →</a>
+        </div>
+        <div class="formation-row">
+          <div class="formation-color" style="background:var(--red);"></div>
+          <div class="formation-info">
+            <div class="formation-title">Cardiologie interventionnelle — Lyon</div>
+            <div class="formation-meta">15 nov. 2026 · Marriott Lyon</div>
+            <div class="mini-jauge"><div class="mini-jauge-bar"><div class="mini-jauge-fill" style="width:80%;"></div></div></div>
+          </div>
+          <div class="formation-right">
+            <div class="status-pill status-publiee">Publiée</div>
+            <div class="formation-inscrits">12 / 15 inscrits</div>
+          </div>
+        </div>
+        <div class="formation-row">
+          <div class="formation-color" style="background:#e65100;"></div>
+          <div class="formation-info">
+            <div class="formation-title">Échocardiographie — Paris</div>
+            <div class="formation-meta">12 jan. 2027 · Hôtel Lutetia</div>
+            <div class="mini-jauge"><div class="mini-jauge-bar"><div class="mini-jauge-fill" style="width:20%;"></div></div></div>
+          </div>
+          <div class="formation-right">
+            <div class="status-pill status-attente">Devis reçu</div>
+            <div class="formation-inscrits">3 / 15 inscrits</div>
+          </div>
+        </div>
+        <div class="formation-row">
+          <div class="formation-color" style="background:#9e9e9e;"></div>
+          <div class="formation-info">
+            <div class="formation-title">Insuffisance cardiaque — Bordeaux</div>
+            <div class="formation-meta">Mars 2027 · À confirmer</div>
+          </div>
+          <div class="formation-right">
+            <div class="status-pill status-brouillon">Brouillon</div>
+            <div class="formation-inscrits">—</div>
+          </div>
+        </div>
+        <div class="formation-row">
+          <div class="formation-color" style="background:#1565c0;"></div>
+          <div class="formation-info">
+            <div class="formation-title">Stenting coronarien — Toulouse</div>
+            <div class="formation-meta">Juin 2026 · Novotel Toulouse</div>
+          </div>
+          <div class="formation-right">
+            <div class="status-pill status-complete">Terminée</div>
+            <div class="formation-inscrits">14 / 15</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <span class="card-title">Notifications</span>
+            <a href="#" class="card-action">Tout lire</a>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon notif-devis">💰</div>
+            <div class="notif-text">Devis reçu pour <strong>Paris · Hôtel Lutetia</strong> — 1 400 € HT<span>Il y a 2 heures</span></div>
+            <div class="notif-dot-new"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon notif-inscription">👤</div>
+            <div class="notif-text">Nouvelle inscription — <strong>Dr. Sophie Bernard</strong> · Lyon<span>Il y a 4 heures</span></div>
+            <div class="notif-dot-new"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon notif-rappel">📅</div>
+            <div class="notif-text">Rappel — <strong>Formation Lyon dans 20 jours</strong>. Kit formateur envoyé J-7.<span>Hier</span></div>
+          </div>
+        </div>
+
+        <div class="sub-card">
+          <div class="sub-label">Abonnement</div>
+          <div class="sub-plan">Formateur Actif</div>
+          <div class="sub-price">20 € HT / mois</div>
+          <div class="sub-next">Prochain prélèvement : <strong>1er déc. 2026</strong></div>
+          <button class="btn-sub">Gérer l'abonnement</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS + STATS -->
+    <div class="two-col">
+      <div class="action-card">
+        <div class="card-header" style="margin-bottom:12px;">
+          <span class="card-title">Actions prioritaires</span>
+        </div>
+        <div class="action-item">
+          <div class="action-item-icon red">💰</div>
+          <div class="action-item-text">
+            <div class="action-item-title">Valider le devis — Paris · Hôtel Lutetia</div>
+            <div class="action-item-sub">1 400 € HT + 140 € frais gestion · Expire dans 5 jours</div>
+          </div>
+          <span class="action-item-arrow">→</span>
+        </div>
+        <div class="action-item">
+          <div class="action-item-icon orange">✍️</div>
+          <div class="action-item-text">
+            <div class="action-item-title">Préparer l'émargement — Lyon · 15 nov.</div>
+            <div class="action-item-sub">12 participants confirmés · Formation dans 20 jours</div>
+          </div>
+          <span class="action-item-arrow">→</span>
+        </div>
+        <div class="action-item">
+          <div class="action-item-icon blue">📋</div>
+          <div class="action-item-text">
+            <div class="action-item-title">Compléter le brouillon — Bordeaux</div>
+            <div class="action-item-sub">Étape 3/6 · Contenu pédagogique manquant</div>
+          </div>
+          <span class="action-item-arrow">→</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Statistiques</span>
+          <a href="#" class="card-action">Détails →</a>
+        </div>
+        <div class="qs-row">
+          <span class="qs-label">Taux de remplissage moyen</span>
+          <div class="qs-bar-wrap"><div class="qs-bar" style="width:78%;"></div></div>
+          <span class="qs-val">78%</span>
+        </div>
+        <div class="qs-row">
+          <span class="qs-label">Satisfaction moyenne</span>
+          <div class="qs-bar-wrap"><div class="qs-bar" style="width:98%;"></div></div>
+          <span class="qs-val">4.9 / 5</span>
+        </div>
+        <div class="qs-row">
+          <span class="qs-label">Taux de présence</span>
+          <div class="qs-bar-wrap"><div class="qs-bar" style="width:93%;"></div></div>
+          <span class="qs-val">93%</span>
+        </div>
+        <div class="qs-row">
+          <span class="qs-label">Taux de recommandation</span>
+          <div class="qs-bar-wrap"><div class="qs-bar" style="width:96%;"></div></div>
+          <span class="qs-val">96%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

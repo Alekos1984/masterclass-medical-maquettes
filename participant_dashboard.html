@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon espace — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;--serif:'Instrument Serif',serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);}
+
+    /* NAV */
+    nav{background:var(--black);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .nav-logo-mark{width:30px;height:30px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;}
+    .nav-logo-name{font-size:1rem;font-weight:800;color:white;}
+    .nav-right{display:flex;align-items:center;gap:12px;}
+    .nav-link{font-size:13px;color:rgba(255,255,255,0.6);text-decoration:none;padding:6px 12px;border-radius:100px;}
+    .nav-link:hover{color:white;}
+    .nav-user{display:flex;align-items:center;gap:8px;}
+    .nav-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#42a5f5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;}
+    .nav-user-name{font-size:13px;font-weight:600;color:white;}
+
+    /* PAGE */
+    .page{max-width:1100px;margin:0 auto;padding:32px 40px 60px;}
+
+    /* WELCOME */
+    .welcome{background:linear-gradient(135deg,#080810,#0c1828);border-radius:16px;padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
+    .welcome::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(21,101,192,0.2) 0%,transparent 65%);}
+    .welcome-title{font-size:20px;font-weight:800;color:white;letter-spacing:-0.3px;margin-bottom:4px;}
+    .welcome-sub{font-size:13px;color:rgba(255,255,255,0.45);}
+    .welcome-badge{background:rgba(21,101,192,0.2);border:1px solid rgba(21,101,192,0.4);color:#90caf9;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;margin-top:10px;display:inline-block;}
+    .welcome-right{display:flex;gap:20px;position:relative;z-index:1;}
+    .ws{text-align:center;background:rgba(255,255,255,0.06);border-radius:10px;padding:14px 20px;}
+    .ws-val{font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;}
+    .ws-label{font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px;}
+
+    /* MAIN GRID */
+    .main-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;}
+
+    /* CARD */
+    .card{background:white;border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px;}
+    .card:last-child{margin-bottom:0;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .card-title{font-size:13px;font-weight:700;color:var(--black);}
+    .card-action{font-size:12px;font-weight:600;color:var(--red);text-decoration:none;}
+    .card-action:hover{text-decoration:underline;}
+
+    /* PILL */
+    .pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;display:inline-block;white-space:nowrap;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-orange{background:#fff3e0;color:#e65100;}
+    .pill-blue{background:#e3f2fd;color:#1565c0;}
+    .pill-gray{background:#f5f5f5;color:#9e9e9e;}
+    .pill-red{background:#ffebee;color:#c62828;}
+    .pill-purple{background:#f3e5f5;color:#6a1b9a;}
+
+    /* INSCRIPTION CARDS */
+    .inscr-card{border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;transition:border-color 0.15s;}
+    .inscr-card:hover{border-color:var(--red);}
+    .inscr-card:last-child{margin-bottom:0;}
+    .inscr-card-top{padding:14px 16px;display:flex;align-items:flex-start;gap:14px;}
+    .inscr-color{width:4px;border-radius:100px;flex-shrink:0;align-self:stretch;min-height:50px;}
+    .inscr-body{flex:1;min-width:0;}
+    .inscr-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;}
+    .inscr-title{font-size:14px;font-weight:800;color:var(--black);letter-spacing:-0.2px;}
+    .inscr-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+    .inscr-meta span{font-size:12px;color:var(--gray);display:flex;align-items:center;gap:4px;}
+    .inscr-countdown{font-size:12px;font-weight:700;color:var(--red);background:#fff5f6;border:1px solid #ffc5cc;padding:3px 10px;border-radius:100px;}
+    .inscr-formateur{display:flex;align-items:center;gap:8px;}
+    .inscr-av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;}
+    .inscr-fname{font-size:11px;font-weight:600;color:var(--black);}
+    .inscr-fspec{font-size:10px;color:var(--gray);}
+    .inscr-card-bottom{padding:8px 16px;background:var(--off-white);border-top:1px solid var(--light-gray);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .inscr-doc{font-size:11px;display:flex;align-items:center;gap:4px;}
+    .inscr-doc.ok{color:#2e7d32;}
+    .inscr-doc.wait{color:var(--gray);}
+    .inscr-actions{margin-left:auto;display:flex;gap:6px;}
+    .btn-sm{border:1.5px solid var(--border);background:white;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);text-decoration:none;color:var(--black);display:inline-flex;align-items:center;gap:4px;transition:border-color 0.15s,color 0.15s;}
+    .btn-sm:hover{border-color:var(--red);color:var(--red);}
+    .btn-sm-primary{background:var(--red);color:white;border-color:var(--red);}
+    .btn-sm-primary:hover{background:#a50d25;color:white;}
+
+    /* ATTESTATIONS */
+    .attest-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--light-gray);}
+    .attest-item:last-child{border-bottom:none;padding-bottom:0;}
+    .attest-item:first-child{padding-top:0;}
+    .attest-icon{width:36px;height:36px;border-radius:8px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+    .attest-title{font-size:13px;font-weight:600;color:var(--black);}
+    .attest-meta{font-size:11px;color:var(--gray);margin-top:1px;}
+    .attest-dl{margin-left:auto;font-size:12px;font-weight:600;color:var(--red);cursor:pointer;text-decoration:none;flex-shrink:0;}
+
+    /* RAPPELS */
+    .rappel-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--light-gray);}
+    .rappel-item:last-child{border-bottom:none;padding-bottom:0;}
+    .rappel-item:first-child{padding-top:0;}
+    .rappel-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+    .rappel-title{font-size:12px;font-weight:600;color:var(--black);}
+    .rappel-sub{font-size:11px;color:var(--gray);margin-top:2px;line-height:1.4;}
+    .rappel-time{font-size:10px;color:var(--gray);margin-top:3px;}
+
+    /* SUGGESTIONS */
+    .suggest-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:border-color 0.15s;}
+    .suggest-card:hover{border-color:var(--red);}
+    .suggest-card:last-child{margin-bottom:0;}
+    .suggest-body{flex:1;}
+    .suggest-title{font-size:13px;font-weight:700;color:var(--black);margin-bottom:3px;}
+    .suggest-meta{font-size:11px;color:var(--gray);}
+    .suggest-price{font-size:13px;font-weight:800;color:var(--black);flex-shrink:0;}
+
+    /* PROFIL MINI */
+    .profil-mini{background:var(--off-white);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+    .profil-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .profil-av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#42a5f5);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;flex-shrink:0;}
+    .profil-name{font-size:15px;font-weight:800;color:var(--black);}
+    .profil-spec{font-size:12px;color:var(--gray);}
+    .profil-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);}
+    .profil-row:last-child{border-bottom:none;}
+    .profil-key{color:var(--gray);}
+    .profil-val{font-weight:600;color:var(--black);}
+    .btn-edit{width:100%;background:white;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);margin-top:10px;transition:border-color 0.15s;}
+    .btn-edit:hover{border-color:var(--red);color:var(--red);}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">M</div>
+    <span class="nav-logo-name">Masterclass Médical</span>
+  </a>
+  <div class="nav-right">
+    <a href="catalogue_formations.html" class="nav-link">Catalogue formations</a>
+    <div class="nav-user">
+      <div class="nav-avatar">SB</div>
+      <span class="nav-user-name">Dr. Sophie Bernard</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- WELCOME -->
+  <div class="welcome">
+    <div>
+      <div class="welcome-title">Bonjour, Dr. Bernard 👋</div>
+      <div class="welcome-sub">Vous avez une formation dans 20 jours. Pensez à vérifier vos documents.</div>
+      <div class="welcome-badge">📅 Prochaine formation : 15 novembre 2026 · Lyon</div>
+    </div>
+    <div class="welcome-right">
+      <div class="ws"><div class="ws-val">3</div><div class="ws-label">Formations suivies</div></div>
+      <div class="ws"><div class="ws-val">3</div><div class="ws-label">Attestations</div></div>
+      <div class="ws"><div class="ws-val">4.9</div><div class="ws-label">Note moy. reçue</div></div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div>
+
+      <!-- MES INSCRIPTIONS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Mes inscriptions</span>
+          <a href="catalogue_formations.html" class="card-action">Trouver une formation →</a>
+        </div>
+
+        <!-- À VENIR -->
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--red);margin-bottom:8px;">À venir (1)</div>
+
+        <div class="inscr-card">
+          <div class="inscr-card-top">
+            <div class="inscr-color" style="background:var(--red);"></div>
+            <div class="inscr-body">
+              <div class="inscr-header">
+                <div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                    <span class="pill pill-green">Confirmée</span>
+                    <span class="inscr-countdown">⏰ Dans 20 jours</span>
+                  </div>
+                  <div class="inscr-title">Cardiologie interventionnelle — Techniques avancées 2026</div>
+                </div>
+                <div style="font-size:18px;font-weight:800;color:var(--black);flex-shrink:0;">450 € <span style="font-size:11px;font-weight:400;color:var(--gray);">HT</span></div>
+              </div>
+              <div class="inscr-meta">
+                <span>📅 15 novembre 2026 · 08h30–17h30</span>
+                <span>📍 Lyon · Marriott, Salle Rhône</span>
+                <span>🍽️ Déjeuner inclus</span>
+              </div>
+              <div class="inscr-formateur">
+                <div class="inscr-av">PD</div>
+                <div><div class="inscr-fname">Dr. Pierre Dumont</div><div class="inscr-fspec">Cardiologue interventionnel · CHU Lyon</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="inscr-card-bottom">
+            <span class="inscr-doc ok">✓ Facture</span>
+            <span class="inscr-doc ok">✓ Convention signée</span>
+            <span class="inscr-doc ok">✓ Rappel J-7 reçu</span>
+            <span class="inscr-doc wait">⏳ Émargement (jour J)</span>
+            <div class="inscr-actions">
+              <a href="landing_formation.html" class="btn-sm">Voir la formation</a>
+              <button class="btn-sm" onclick="addCal()">📅 Ajouter au calendrier</button>
+              <button class="btn-sm btn-sm-primary" onclick="getItinerary()">🗺️ Itinéraire</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:16px;"></div>
+
+        <!-- PASSÉES -->
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:8px;">Passées (2)</div>
+
+        <div class="inscr-card" style="opacity:0.85;">
+          <div class="inscr-card-top">
+            <div class="inscr-color" style="background:#1565c0;"></div>
+            <div class="inscr-body">
+              <div class="inscr-header">
+                <div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                    <span class="pill pill-blue">Terminée</span>
+                    <span style="font-size:11px;color:var(--gray);">Attestation envoyée</span>
+                  </div>
+                  <div class="inscr-title">Stenting coronarien avancé — Toulouse 2026</div>
+                </div>
+                <div style="font-size:14px;font-weight:700;color:var(--gray);">420 € HT</div>
+              </div>
+              <div class="inscr-meta">
+                <span>📅 14 juin 2026</span>
+                <span>📍 Toulouse · Novotel Wilson</span>
+                <span style="color:#ffc107;font-weight:600;">⭐ Votre note : 5/5</span>
+              </div>
+            </div>
+          </div>
+          <div class="inscr-card-bottom">
+            <span class="inscr-doc ok">✓ Attestation reçue</span>
+            <span class="inscr-doc ok">✓ Facture</span>
+            <span class="inscr-doc ok">✓ Évaluation envoyée</span>
+            <div class="inscr-actions">
+              <a href="#" class="btn-sm">↓ Attestation PDF</a>
+              <a href="#" class="btn-sm">↓ Facture</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="inscr-card" style="opacity:0.85;margin-top:10px;">
+          <div class="inscr-card-top">
+            <div class="inscr-color" style="background:#1565c0;"></div>
+            <div class="inscr-body">
+              <div class="inscr-header">
+                <div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                    <span class="pill pill-blue">Terminée</span>
+                    <span style="font-size:11px;color:var(--gray);">Attestation envoyée</span>
+                  </div>
+                  <div class="inscr-title">Urgences cardiologiques — Simulation pratique</div>
+                </div>
+                <div style="font-size:14px;font-weight:700;color:var(--gray);">300 € HT</div>
+              </div>
+              <div class="inscr-meta">
+                <span>📅 10 octobre 2025</span>
+                <span>📍 Lyon · Radisson Blu</span>
+                <span style="color:#ffc107;font-weight:600;">⭐ Votre note : 4/5</span>
+              </div>
+            </div>
+          </div>
+          <div class="inscr-card-bottom">
+            <span class="inscr-doc ok">✓ Attestation reçue</span>
+            <span class="inscr-doc ok">✓ Facture</span>
+            <div class="inscr-actions">
+              <a href="#" class="btn-sm">↓ Attestation PDF</a>
+              <a href="#" class="btn-sm">↓ Facture</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATTESTATIONS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Mes attestations</span>
+          <button class="btn-sm" style="font-size:11px;">📥 Tout télécharger</button>
+        </div>
+        <div class="attest-item">
+          <div class="attest-icon">🎓</div>
+          <div>
+            <div class="attest-title">Cardiologie interventionnelle — Lyon 2026</div>
+            <div class="attest-meta">15 novembre 2026 · 7h · Dr. Pierre Dumont</div>
+          </div>
+          <span style="font-size:10px;color:#e65100;font-weight:700;background:#fff3e0;padding:2px 8px;border-radius:100px;margin-right:8px;flex-shrink:0;">À venir</span>
+        </div>
+        <div class="attest-item">
+          <div class="attest-icon">🎓</div>
+          <div>
+            <div class="attest-title">Stenting coronarien avancé — Toulouse</div>
+            <div class="attest-meta">14 juin 2026 · 7h · Dr. Pierre Dumont</div>
+          </div>
+          <a href="#" class="attest-dl">↓ PDF</a>
+        </div>
+        <div class="attest-item">
+          <div class="attest-icon">🎓</div>
+          <div>
+            <div class="attest-title">Urgences cardiologiques — Lyon</div>
+            <div class="attest-meta">10 oct. 2025 · 4h · Dr. A. Chartier</div>
+          </div>
+          <a href="#" class="attest-dl">↓ PDF</a>
+        </div>
+      </div>
+
+      <!-- FORMATIONS SUGGÉRÉES -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Formations recommandées pour vous</span>
+          <a href="catalogue_formations.html" class="card-action">Voir tout →</a>
+        </div>
+        <div class="suggest-card" onclick="window.location='landing_formation.html'">
+          <div class="suggest-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="pill pill-red" style="background:#fff0f2;color:var(--red);">Cardiologie</span>
+              <span style="font-size:10px;font-weight:700;background:#e8f5e9;color:#2e7d32;padding:2px 7px;border-radius:100px;">Places disponibles</span>
+            </div>
+            <div class="suggest-title">Échocardiographie transthoracique — Cas cliniques avancés</div>
+            <div class="suggest-meta">📅 3 déc. 2026 · Paris · Dr. S. Moreau · ⭐ 4.8</div>
+          </div>
+          <div class="suggest-price">320 €<span style="font-size:11px;font-weight:400;color:var(--gray);"> HT</span></div>
+        </div>
+        <div class="suggest-card" onclick="window.location='landing_formation.html'">
+          <div class="suggest-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="pill pill-red" style="background:#fff0f2;color:var(--red);">Cardiologie</span>
+              <span style="font-size:10px;font-weight:700;background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:100px;">⚡ 3 places</span>
+            </div>
+            <div class="suggest-title">Rythmologie clinique — Arythmies et prise en charge urgente</div>
+            <div class="suggest-meta">📅 8 fév. 2027 · Marseille · Dr. A. Chartier · ⭐ 4.7</div>
+          </div>
+          <div class="suggest-price">390 €<span style="font-size:11px;font-weight:400;color:var(--gray);"> HT</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <!-- PROFIL -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Mon profil</span></div>
+        <div class="profil-mini">
+          <div class="profil-top">
+            <div class="profil-av">SB</div>
+            <div>
+              <div class="profil-name">Dr. Sophie Bernard</div>
+              <div class="profil-spec">Cardiologue · CHU Paris-Necker</div>
+            </div>
+          </div>
+          <div class="profil-row"><span class="profil-key">Email</span><span class="profil-val">s.bernard@chu-paris.fr</span></div>
+          <div class="profil-row"><span class="profil-key">Spécialité</span><span class="profil-val">Cardiologie</span></div>
+          <div class="profil-row"><span class="profil-key">RPPS</span><span class="profil-val">1020304050</span></div>
+          <div class="profil-row"><span class="profil-key">Ville</span><span class="profil-val">Paris</span></div>
+          <button class="btn-edit">✏️ Modifier mon profil</button>
+        </div>
+      </div>
+
+      <!-- RAPPELS -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Rappels & notifications</span></div>
+        <div class="rappel-item">
+          <div class="rappel-dot" style="background:var(--red);"></div>
+          <div>
+            <div class="rappel-title">🎓 Formation dans 20 jours</div>
+            <div class="rappel-sub">Cardiologie inter. — Lyon · 15 nov. 2026</div>
+            <div class="rappel-time">Rappel J-7 automatique prévu le 8 nov.</div>
+          </div>
+        </div>
+        <div class="rappel-item">
+          <div class="rappel-dot" style="background:#2e7d32;"></div>
+          <div>
+            <div class="rappel-title">✓ Convention signée</div>
+            <div class="rappel-sub">Formation Lyon · Signée via YouSign le 18 oct.</div>
+            <div class="rappel-time">Il y a 18 jours</div>
+          </div>
+        </div>
+        <div class="rappel-item">
+          <div class="rappel-dot" style="background:#1565c0;"></div>
+          <div>
+            <div class="rappel-title">📊 Bilan pédagogique disponible</div>
+            <div class="rappel-sub">Formation Toulouse — Synthèse disponible</div>
+            <div class="rappel-time">Il y a 4 mois</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BESOIN D'AIDE -->
+      <div style="background:#fff5f6;border:1.5px solid #ffc5cc;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--black);margin-bottom:4px;">Besoin d'aide ?</div>
+        <div style="font-size:12px;color:var(--gray);margin-bottom:10px;line-height:1.5;">Pour toute question sur votre inscription, annulation ou vos documents.</div>
+        <a href="mailto:contact@masterclassmedical.fr" style="font-size:12px;font-weight:600;color:var(--red);text-decoration:none;">✉️ Contacter le support →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function addCal(){
+    const btn = event.target;
+    btn.textContent = '✓ Ajouté';
+    btn.style.background = '#e8f5e9';
+    btn.style.color = '#2e7d32';
+    btn.style.borderColor = '#c8e6c9';
+  }
+  function getItinerary(){
+    alert('Ouverture dans Google Maps : Marriott Lyon Cité Internationale, 70 Quai Charles de Gaulle, 69006 Lyon');
+  }
+</script>
+</body>
+</html>

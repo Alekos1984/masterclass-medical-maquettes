@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mes formations — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0F0F0F;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-logo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .sidebar-logo-mark{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sidebar-logo-name{font-size:12px;font-weight:700;color:white;line-height:1.2;}
+    .sidebar-logo-sub{font-size:10px;color:rgba(255,255,255,0.28);margin-top:1px;}
+    .sidebar-nav{padding:14px 10px;flex:1;}
+        
+    .nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:1px;text-decoration:none;transition:background 0.15s;}
+    .nav-item:hover{background:rgba(255,255,255,0.05);}
+    .nav-item.active{background:rgba(200,16,46,0.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+        .nav-item.active     .nav-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,0.06);}
+    .sidebar-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .sidebar-user{display:flex;align-items:center;gap:10px;}
+    .sidebar-user-name{font-size:12px;font-weight:600;color:white;}
+    .sidebar-user-role{font-size:10px;color:rgba(255,255,255,0.3);}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-title{font-size:15px;font-weight:700;}
+    .btn-new{background:var(--red);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);display:flex;align-items:center;gap:6px;transition:background 0.15s;}
+    .btn-new:hover{background:#a50d25;}
+    .content{padding:24px 28px;}
+    /* FILTERS BAR */
+    .filters-bar{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .filter-search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;}
+    .filter-search input{border:none;outline:none;font-size:13px;font-family:var(--sans);background:transparent;color:var(--black);flex:1;}
+    .filter-tabs{display:flex;gap:4px;background:var(--off-white);border-radius:8px;padding:3px;}
+    .ftab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;transition:background 0.15s,color 0.15s;white-space:nowrap;}
+    .ftab.active{background:white;color:var(--black);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+    .filter-sort{border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-family:var(--sans);color:var(--black);outline:none;background:white;cursor:pointer;}
+    /* STATS ROW */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    .stat-mini{background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+    .stat-mini-val{font-size:22px;font-weight:800;color:var(--black);letter-spacing:-0.5px;}
+    .stat-mini-label{font-size:11px;color:var(--gray);margin-top:3px;}
+    /* FORMATION CARDS */
+    .formations-list{display:flex;flex-direction:column;gap:12px;}
+    .fcard{background:white;border:1.5px solid var(--border);border-radius:14px;padding:0;overflow:hidden;transition:border-color 0.15s,box-shadow 0.15s;}
+    .fcard:hover{border-color:var(--red);box-shadow:0 2px 12px rgba(200,16,46,0.08);}
+    .fcard-top{padding:18px 20px;display:flex;align-items:flex-start;gap:16px;}
+    .fcard-color-bar{width:4px;height:100%;border-radius:100px;flex-shrink:0;align-self:stretch;min-height:60px;}
+    .fcard-body{flex:1;min-width:0;}
+    .fcard-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;}
+    .fcard-title{font-size:15px;font-weight:800;color:var(--black);letter-spacing:-0.3px;}
+    .fcard-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+    .fcard-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;}
+    .fcard-meta-item{font-size:12px;color:var(--gray);display:flex;align-items:center;gap:4px;}
+    .fcard-jauge-wrap{display:flex;align-items:center;gap:8px;}
+    .fcard-jauge-bar{width:80px;background:var(--light-gray);border-radius:100px;height:4px;overflow:hidden;}
+    .fcard-jauge-fill{height:100%;border-radius:100px;background:var(--red);}
+    .fcard-jauge-text{font-size:11px;color:var(--gray);}
+    .fcard-bottom{padding:10px 20px;background:var(--off-white);border-top:1px solid var(--light-gray);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .fcard-doc{font-size:11px;color:var(--gray);display:flex;align-items:center;gap:4px;}
+    .fcard-doc.ready{color:#2e7d32;}
+    .fcard-actions{margin-left:auto;display:flex;gap:6px;}
+    .btn-action{border:1.5px solid var(--border);background:white;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:border-color 0.15s,color 0.15s,background 0.15s;text-decoration:none;color:var(--black);display:inline-flex;align-items:center;gap:5px;}
+    .btn-action:hover{border-color:var(--red);color:var(--red);}
+    .btn-action-primary{background:var(--red);color:white;border-color:var(--red);}
+    .btn-action-primary:hover{background:#a50d25;color:white;}
+    /* PILLS */
+    .pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;display:inline-block;white-space:nowrap;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-orange{background:#fff3e0;color:#e65100;}
+    .pill-blue{background:#e3f2fd;color:#1565c0;}
+    .pill-gray{background:#f5f5f5;color:#9e9e9e;}
+    .pill-red{background:#ffebee;color:#c62828;}
+    .pill-purple{background:#f3e5f5;color:#6a1b9a;}
+    /* EMPTY STATE */
+    .empty{text-align:center;padding:60px 20px;color:var(--gray);}
+    .empty-icon{font-size:40px;margin-bottom:12px;}
+    .empty-title{font-size:16px;font-weight:700;color:var(--black);margin-bottom:6px;}
+    .empty-sub{font-size:13px;margin-bottom:20px;}
+    /* PAGINATION */
+    .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px;}
+    .page-btn{width:34px;height:34px;border-radius:7px;border:1.5px solid var(--border);background:white;font-size:13px;font-weight:600;color:var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .page-btn.active{background:var(--red);border-color:var(--red);color:white;}
+    .page-btn:hover:not(.active){border-color:var(--red);color:var(--red);}
+  
+    /* ===== SIDEBAR UNIQUE ===== */
+    .sidebar { width: 220px; background: #0F0F0F; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo-link { display: flex; text-decoration: none; }
+    .sidebar-logo { padding: 22px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); width: 100%; }
+    .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: #C8102E; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
+    .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
+    .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 1px; }
+    .sidebar-nav { padding: 14px 10px; flex: 1; }
+    .nav-section { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.18); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; margin-top: 14px; display: block; }
+    .nav-section:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; cursor: pointer; margin-bottom: 1px; text-decoration: none; transition: background 0.15s; }
+    .nav-item:hover { background: rgba(255,255,255,0.05); }
+    .nav-item.active { background: rgba(200,16,46,0.18); border-left: 2px solid #C8102E; border-radius: 0 7px 7px 0; padding-left: 8px; }
+    .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); }
+    .nav-item.active .nav-label { color: white; font-weight: 600; }
+    .nav-badge { margin-left: auto; background: #C8102E; color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 100px; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 10px; }
+    .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #C8102E, #ff6b7a); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 600; color: white; }
+    .sidebar-user-role { font-size: 10px; color: rgba(255,255,255,0.3); }
+    /* ===== FIN SIDEBAR ===== */
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <a href="index.html" class="sidebar-logo-link">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">M</div>
+      <div><div class="sidebar-logo-name">Masterclass Médical</div><div class="sidebar-logo-sub">Espace formateur</div></div>
+    </div>
+  </a>
+  <nav class="sidebar-nav">
+    <span class="nav-section">Principal</span>
+    <a href="dashboard_formateur.html" class="nav-item">
+      <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+    </a>
+    <a href="formateur_mes_formations.html" class="nav-item active">
+      <span class="nav-icon">🎓</span><span class="nav-label">Mes formations</span>
+    </a>
+    <a href="form_creation_masterclass.html" class="nav-item">
+      <span class="nav-icon">➕</span><span class="nav-label">Nouvelle formation</span>
+    </a>
+    <span class="nav-section">Gestion</span>
+    <a href="formateur_mes_formations.html" class="nav-item">
+      <span class="nav-icon">👥</span><span class="nav-label">Participants</span>
+    </a>
+    <a href="formateur_emargement.html" class="nav-item">
+      <span class="nav-icon">✍️</span><span class="nav-label">Émargement</span>
+      <span class="nav-badge">1</span>
+    </a>
+    <a href="formateur_detail_formation.html" class="nav-item">
+      <span class="nav-icon">📄</span><span class="nav-label">Documents</span>
+    </a>
+    <a href="formateur_paiements.html" class="nav-item">
+      <span class="nav-icon">💳</span><span class="nav-label">Paiements</span>
+    </a>
+    <span class="nav-section">Profil</span>
+    <a href="formateur_portfolio.html" class="nav-item">
+      <span class="nav-icon">🏆</span><span class="nav-label">Portfolio</span>
+    </a>
+    <a href="formateur_profil.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Mon profil</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">PD</div>
+    <div><div class="sidebar-user-name">Dr. Pierre Dumont</div><div class="sidebar-user-role">Cardiologue · Lyon</div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Mes formations</div>
+    <button class="btn-new">+ Nouvelle formation</button>
+  </div>
+  <div class="content">
+
+    <div class="stats-row">
+      <div class="stat-mini"><div class="stat-mini-val">4</div><div class="stat-mini-label">Total formations</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--red);">1</div><div class="stat-mini-label">Action requise</div></div>
+      <div class="stat-mini"><div class="stat-mini-val">34</div><div class="stat-mini-label">Participants cumulés</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="font-size:18px;">6 480 €</div><div class="stat-mini-label">Revenus HT nets</div></div>
+    </div>
+
+    <div class="filters-bar">
+      <div class="filter-search">
+        <span style="font-size:14px;">🔍</span>
+        <input type="text" placeholder="Rechercher une formation…">
+      </div>
+      <div class="filter-tabs">
+        <div class="ftab active" onclick="filterTab(this)">Toutes (4)</div>
+        <div class="ftab" onclick="filterTab(this)">En cours (2)</div>
+        <div class="ftab" onclick="filterTab(this)">Publiées (1)</div>
+        <div class="ftab" onclick="filterTab(this)">Terminées (1)</div>
+        <div class="ftab" onclick="filterTab(this)">Brouillons (1)</div>
+      </div>
+      <select class="filter-sort">
+        <option>Trier : Date (récent)</option>
+        <option>Trier : Date (ancien)</option>
+        <option>Trier : Inscrits</option>
+        <option>Trier : Revenus</option>
+      </select>
+    </div>
+
+    <div class="formations-list">
+
+      <!-- CARD 1 : PUBLIÉE / ACTIVE -->
+      <div class="fcard">
+        <div class="fcard-top">
+          <div class="fcard-color-bar" style="background:var(--red);"></div>
+          <div class="fcard-body">
+            <div class="fcard-header">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span class="pill pill-green">Publiée</span>
+                  <span style="font-size:11px;color:var(--gray);">Masterclass · 7h</span>
+                </div>
+                <div class="fcard-title">Cardiologie interventionnelle — Techniques avancées 2026</div>
+              </div>
+              <div class="fcard-right">
+                <div style="font-size:18px;font-weight:800;color:var(--black);">450 € <span style="font-size:12px;font-weight:400;color:var(--gray);">HT</span></div>
+                <div class="fcard-jauge-wrap">
+                  <div class="fcard-jauge-bar"><div class="fcard-jauge-fill" style="width:80%;"></div></div>
+                  <span class="fcard-jauge-text">12/15</span>
+                </div>
+              </div>
+            </div>
+            <div class="fcard-meta">
+              <span class="fcard-meta-item">📅 15 novembre 2026</span>
+              <span class="fcard-meta-item">📍 Lyon · Marriott, Salle Rhône</span>
+              <span class="fcard-meta-item">⭐ Note moy. —</span>
+              <span class="fcard-meta-item" style="color:#2e7d32;font-weight:600;">⚡ 3 places restantes</span>
+            </div>
+          </div>
+        </div>
+        <div class="fcard-bottom">
+          <span class="fcard-doc ready">✓ Landing page</span>
+          <span class="fcard-doc ready">✓ Affiche A4</span>
+          <span class="fcard-doc ready">✓ Programme PDF</span>
+          <span class="fcard-doc ready">✓ Émargement prêt</span>
+          <span class="fcard-doc ready">✓ Conventions (12)</span>
+          <div class="fcard-actions">
+            <a href="formateur_detail_formation.html" class="btn-action">Voir le détail</a>
+            <a href="formateur_emargement.html" class="btn-action btn-action-primary">✍️ Ouvrir émargement</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2 : DEVIS REÇU / ACTION REQUISE -->
+      <div class="fcard" style="border-color:#ffe082;">
+        <div class="fcard-top">
+          <div class="fcard-color-bar" style="background:#e65100;"></div>
+          <div class="fcard-body">
+            <div class="fcard-header">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span class="pill pill-orange">⚠ Action requise — Devis reçu</span>
+                  <span style="font-size:11px;color:var(--gray);">Atelier · 4h</span>
+                </div>
+                <div class="fcard-title">Échocardiographie transthoracique — Cas cliniques avancés</div>
+              </div>
+              <div class="fcard-right">
+                <div style="font-size:18px;font-weight:800;color:var(--black);">320 € <span style="font-size:12px;font-weight:400;color:var(--gray);">HT</span></div>
+                <div class="fcard-jauge-wrap">
+                  <div class="fcard-jauge-bar"><div class="fcard-jauge-fill" style="width:0%;"></div></div>
+                  <span class="fcard-jauge-text">0/15</span>
+                </div>
+              </div>
+            </div>
+            <div class="fcard-meta">
+              <span class="fcard-meta-item">📅 3 décembre 2026</span>
+              <span class="fcard-meta-item">📍 Paris · Hôtel Lutetia</span>
+              <span class="fcard-meta-item" style="color:#e65100;font-weight:600;">💰 Devis : 1 850 € HT — expire dans 5 jours</span>
+            </div>
+          </div>
+        </div>
+        <div class="fcard-bottom">
+          <span class="fcard-doc">⏳ Landing page (en attente paiement)</span>
+          <span class="fcard-doc">⏳ Documents (en attente paiement)</span>
+          <div class="fcard-actions">
+            <a href="formateur_detail_formation.html" class="btn-action">Voir le détail</a>
+            <a href="#" class="btn-action btn-action-primary" style="background:#e65100;border-color:#e65100;">💰 Valider le devis</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3 : BROUILLON -->
+      <div class="fcard">
+        <div class="fcard-top">
+          <div class="fcard-color-bar" style="background:#9e9e9e;"></div>
+          <div class="fcard-body">
+            <div class="fcard-header">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span class="pill pill-gray">Brouillon</span>
+                  <span style="font-size:11px;color:var(--gray);">Masterclass · 7h</span>
+                  <span style="font-size:11px;color:var(--gray);">Étape 3 / 6</span>
+                </div>
+                <div class="fcard-title">Insuffisance cardiaque — Prise en charge avancée</div>
+              </div>
+              <div class="fcard-right">
+                <div style="font-size:18px;font-weight:800;color:var(--gray);">— €</div>
+              </div>
+            </div>
+            <div class="fcard-meta">
+              <span class="fcard-meta-item">📅 Mars 2027 (estimé)</span>
+              <span class="fcard-meta-item">📍 Bordeaux · À confirmer</span>
+              <span class="fcard-meta-item" style="color:var(--gray);">Contenu pédagogique manquant</span>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="font-size:11px;color:var(--gray);margin-bottom:4px;">Progression</div>
+              <div style="background:var(--light-gray);border-radius:100px;height:4px;overflow:hidden;width:200px;">
+                <div style="height:100%;background:#9e9e9e;border-radius:100px;width:40%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fcard-bottom">
+          <span class="fcard-doc">○ Informations ✓</span>
+          <span class="fcard-doc">○ Lieu ✓</span>
+          <span class="fcard-doc">○ Contenu ✗</span>
+          <span class="fcard-doc">○ Réglementaire —</span>
+          <div class="fcard-actions">
+            <a href="#" class="btn-action">Supprimer</a>
+            <a href="form_creation_masterclass.html" class="btn-action btn-action-primary">Continuer →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4 : TERMINÉE -->
+      <div class="fcard" style="opacity:0.8;">
+        <div class="fcard-top">
+          <div class="fcard-color-bar" style="background:#1565c0;"></div>
+          <div class="fcard-body">
+            <div class="fcard-header">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span class="pill pill-blue">Terminée · Archivée</span>
+                  <span style="font-size:11px;color:var(--gray);">Masterclass · 7h</span>
+                </div>
+                <div class="fcard-title">Stenting coronarien avancé — Toulouse 2026</div>
+              </div>
+              <div class="fcard-right">
+                <div style="font-size:18px;font-weight:800;color:var(--black);">420 € <span style="font-size:12px;font-weight:400;color:var(--gray);">HT</span></div>
+                <div class="fcard-jauge-wrap">
+                  <div class="fcard-jauge-bar"><div class="fcard-jauge-fill" style="width:93%;background:#1565c0;"></div></div>
+                  <span class="fcard-jauge-text">14/15</span>
+                </div>
+              </div>
+            </div>
+            <div class="fcard-meta">
+              <span class="fcard-meta-item">📅 14 juin 2026</span>
+              <span class="fcard-meta-item">📍 Toulouse · Novotel Wilson</span>
+              <span class="fcard-meta-item" style="color:#2e7d32;font-weight:600;">⭐ Note : 4.9 / 5</span>
+              <span class="fcard-meta-item" style="color:#1565c0;font-weight:600;">💰 Revenus : 4 704 € HT nets</span>
+            </div>
+          </div>
+        </div>
+        <div class="fcard-bottom">
+          <span class="fcard-doc ready">✓ Feuille présence certifiée</span>
+          <span class="fcard-doc ready">✓ PV de formation</span>
+          <span class="fcard-doc ready">✓ 14 attestations envoyées</span>
+          <span class="fcard-doc ready">✓ Bilan pédagogique</span>
+          <div class="fcard-actions">
+            <a href="formateur_portfolio.html" class="btn-action">Voir portfolio</a>
+            <a href="formateur_detail_formation.html" class="btn-action">Voir le détail</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pagination">
+      <button class="page-btn active">1</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function filterTab(el){document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+</script>
+</body>
+</html>

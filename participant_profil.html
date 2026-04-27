@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon profil — Masterclass Médical</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);}
+    nav{background:var(--black);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo-mark{width:30px;height:30px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;}
+    .logo-name{font-size:1rem;font-weight:800;color:white;}
+    .nav-right{display:flex;align-items:center;gap:12px;}
+    .nav-link{font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;padding:6px 12px;}
+    .nav-link:hover{color:white;}
+    .nav-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#42a5f5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;}
+    .page{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+    .page-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+    .page-back{font-size:13px;color:var(--gray);text-decoration:none;}
+    .page-back:hover{color:var(--black);}
+    .page-sep{width:1px;height:16px;background:var(--border);}
+    .page-title{font-size:18px;font-weight:800;}
+    /* PROFILE HEADER */
+    .profile-header{background:white;border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;}
+    .profile-photo-wrap{position:relative;}
+    .profile-photo{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#42a5f5);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;}
+    .photo-edit-btn{position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:var(--red);border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:white;}
+    .profile-info{flex:1;}
+    .profile-name{font-size:18px;font-weight:800;margin-bottom:2px;}
+    .profile-spec{font-size:13px;color:var(--gray);}
+    .profile-badges{display:flex;gap:6px;margin-top:8px;}
+    .pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-blue{background:#e3f2fd;color:#1565c0;}
+    /* SECTIONS */
+    .card{background:white;border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px;}
+    .card-title{font-size:13px;font-weight:700;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .field{margin-bottom:14px;}
+    .field:last-child{margin-bottom:0;}
+    label{display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:4px;}
+    input,select{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-size:13px;font-family:var(--sans);color:var(--black);outline:none;transition:border-color .15s;background:white;}
+    input:focus,select:focus{border-color:var(--red);}
+    .opt{font-size:11px;font-weight:400;color:var(--gray);}
+    .hint{font-size:11px;color:var(--gray);margin-top:4px;}
+    /* NOTIFICATIONS */
+    .notif-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+    .notif-row:last-child{border-bottom:none;}
+    .notif-title{font-size:13px;font-weight:600;}
+    .notif-sub{font-size:11px;color:var(--gray);margin-top:1px;}
+    input[type=checkbox]{width:18px;height:18px;accent-color:var(--red);cursor:pointer;}
+    /* DANGER */
+    .danger-section{background:white;border:1.5px solid #ef9a9a;border-radius:14px;padding:20px 22px;margin-bottom:16px;}
+    .danger-title{font-size:13px;font-weight:700;color:#c62828;margin-bottom:12px;}
+    .btn-danger{background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);}
+    /* SAVE BAR */
+    .save-bar{position:sticky;bottom:0;background:white;border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:flex-end;gap:10px;}
+    .btn-cancel{background:white;border:1.5px solid var(--border);border-radius:9px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);color:var(--gray);}
+    .btn-save{background:var(--red);color:white;border:none;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:background .15s;}
+    .btn-save:hover{background:#a50d25;}
+  </style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo"><div class="logo-mark">M</div><span class="logo-name">Masterclass Médical</span></a>
+  <div class="nav-right">
+    <a href="catalogue_formations.html" class="nav-link">Catalogue</a>
+    <div class="nav-avatar">SB</div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <a href="participant_dashboard.html" class="page-back">← Mon espace</a>
+    <div class="page-sep"></div>
+    <div class="page-title">Mon profil</div>
+  </div>
+
+  <div class="profile-header">
+    <div class="profile-photo-wrap">
+      <div class="profile-photo">SB</div>
+      <div class="photo-edit-btn">✏️</div>
+    </div>
+    <div class="profile-info">
+      <div class="profile-name">Dr. Sophie Bernard</div>
+      <div class="profile-spec">Cardiologue · CHU Paris-Necker · Paris</div>
+      <div class="profile-badges">
+        <span class="pill pill-green">✓ Email vérifié</span>
+        <span class="pill pill-blue">3 formations suivies</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Informations personnelles</div>
+    <div class="grid2">
+      <div class="field"><label>Civilité</label><select><option>Dr.</option><option>Pr.</option><option>M.</option><option>Mme</option></select></div>
+      <div class="field"><label>Prénom</label><input type="text" value="Sophie"></div>
+    </div>
+    <div class="field"><label>Nom</label><input type="text" value="Bernard"></div>
+    <div class="grid2">
+      <div class="field"><label>Email</label><input type="email" value="s.bernard@chu-paris.fr"></div>
+      <div class="field"><label>Téléphone</label><input type="tel" value="06 23 45 67 89"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Profil médical</div>
+    <div class="grid2">
+      <div class="field"><label>Spécialité</label><select><option selected>Cardiologie</option><option>Neurologie</option><option>Médecine générale</option><option>Autre</option></select></div>
+      <div class="field"><label>Ville d'exercice</label><input type="text" value="Paris"></div>
+    </div>
+    <div class="field"><label>Établissement</label><input type="text" value="CHU Paris-Necker — Service de Cardiologie"></div>
+    <div class="field">
+      <label>Numéro RPPS <span class="opt">(pour attestations certifiées)</span></label>
+      <input type="text" value="1020304050">
+      <div class="hint">Apparaît sur vos attestations de participation. Obligatoire pour les attestations certifiées.</div>
+    </div>
+    <div class="field">
+      <label>Numéro ADELI <span class="opt">(optionnel)</span></label>
+      <input type="text" placeholder="9 chiffres">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Adresse de facturation</div>
+    <div class="field"><label>Adresse</label><input type="text" value="15 Rue de la Médecine"></div>
+    <div class="grid2">
+      <div class="field"><label>Code postal</label><input type="text" value="75015"></div>
+      <div class="field"><label>Ville</label><input type="text" value="Paris"></div>
+    </div>
+    <div class="hint" style="margin-top:4px;">Utilisée pour vos factures d'inscription.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Préférences de notification</div>
+    <div class="notif-row">
+      <div><div class="notif-title">Confirmation d'inscription</div><div class="notif-sub">Email à chaque nouvelle inscription</div></div>
+      <input type="checkbox" checked>
+    </div>
+    <div class="notif-row">
+      <div><div class="notif-title">Rappel J-7</div><div class="notif-sub">Email une semaine avant chaque formation</div></div>
+      <input type="checkbox" checked>
+    </div>
+    <div class="notif-row">
+      <div><div class="notif-title">Nouvelles formations recommandées</div><div class="notif-sub">En fonction de votre spécialité</div></div>
+      <input type="checkbox" checked>
+    </div>
+    <div class="notif-row">
+      <div><div class="notif-title">Newsletter mensuelle</div><div class="notif-sub">Actualités et nouvelles formations</div></div>
+      <input type="checkbox">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Mot de passe</div>
+    <div class="grid2">
+      <div class="field"><label>Mot de passe actuel</label><input type="password" placeholder="••••••••••"></div>
+      <div></div>
+      <div class="field"><label>Nouveau mot de passe</label><input type="password" placeholder="••••••••••"></div>
+      <div class="field"><label>Confirmer</label><input type="password" placeholder="••••••••••"></div>
+    </div>
+  </div>
+
+  <div class="danger-section">
+    <div class="danger-title">Zone de danger</div>
+    <button class="btn-danger">Supprimer mon compte</button>
+  </div>
+</div>
+
+<div class="save-bar">
+  <button class="btn-cancel">Annuler</button>
+  <button class="btn-save" onclick="save()">✓ Enregistrer</button>
+</div>
+
+<script>
+  function save(){
+    const btn=document.querySelector('.btn-save');
+    btn.textContent='✓ Enregistré !';btn.style.background='#2e7d32';
+    setTimeout(()=>{btn.textContent='✓ Enregistrer';btn.style.background='var(--red)';},2000);
+  }
+</script>
+</body>
+</html>

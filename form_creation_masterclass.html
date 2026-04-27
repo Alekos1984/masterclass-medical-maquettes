@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masterclass Médical — Créer une formation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #C8102E; --red-light: #E8394A;
+      --black: #0F0F0F; --white: #FFFFFF;
+      --off-white: #F9F7F4; --gray: #6A6A6A;
+      --light-gray: #EBEBEB; --border: #E0E0E0;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); background: var(--off-white); color: var(--black); }
+
+    /* TOP BAR */
+    .top-bar { background: var(--black); padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .top-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .top-logo-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; }
+    .top-logo-name { font-size: 1rem; font-weight: 800; color: white; }
+    .top-back { font-size: 13px; color: rgba(255,255,255,0.45); cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .top-back:hover { color: rgba(255,255,255,0.75); }
+
+    /* STEPPER */
+    .stepper-bar { background: white; border-bottom: 1px solid var(--border); padding: 0 40px; }
+    .stepper { display: flex; align-items: stretch; max-width: 900px; margin: 0 auto; }
+    .step { flex: 1; padding: 16px 0 14px; display: flex; align-items: center; gap: 10px; border-bottom: 3px solid transparent; cursor: pointer; transition: border-color 0.2s; }
+    .step.active { border-bottom-color: var(--red); }
+    .step.done { border-bottom-color: var(--light-gray); }
+    .step-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; transition: background 0.2s; }
+    .step.active .step-num { background: var(--red); color: white; }
+    .step.done .step-num { background: #e8f5e9; color: #2e7d32; font-size: 14px; }
+    .step.todo .step-num { border: 1.5px solid var(--border); color: var(--gray); }
+    .step-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); font-weight: 600; }
+    .step.active .step-label { color: var(--red); }
+    .step.done .step-label { color: #2e7d32; }
+    .step-title { font-size: 13px; font-weight: 600; color: var(--black); }
+    .step.todo .step-title, .step.done .step-title { color: var(--gray); }
+    .step-sep { width: 1px; background: var(--border); margin: 0 2px; align-self: stretch; }
+
+    /* FORM AREA */
+    .form-area { max-width: 900px; margin: 32px auto 0; padding: 0 40px 80px; }
+    .form-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--red); margin-bottom: 6px; }
+    .form-title { font-size: 24px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; }
+    .form-sub { font-size: 14px; color: var(--gray); margin-top: 4px; line-height: 1.5; margin-bottom: 28px; }
+
+    /* CARDS */
+    .card { background: white; border-radius: 16px; padding: 28px 32px; margin-bottom: 20px; border: 1px solid var(--border); }
+    .card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--light-gray); }
+
+    /* FIELDS */
+    .field { margin-bottom: 20px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-row { display: grid; gap: 16px; }
+    .field-row.cols2 { grid-template-columns: 1fr 1fr; }
+    .field-row.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 6px; }
+    label span.req { color: var(--red); margin-left: 2px; }
+    label span.opt { color: var(--gray); font-weight: 400; font-size: 12px; margin-left: 4px; }
+    input[type=text], input[type=number], input[type=date], input[type=email], select, textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; font-size: 14px; font-family: var(--sans);
+      color: var(--black); background: white; outline: none; transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--red); }
+    textarea { resize: vertical; line-height: 1.6; }
+    .field-hint { font-size: 12px; color: var(--gray); margin-top: 5px; line-height: 1.4; }
+    .field-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .field-header label { margin-bottom: 0; }
+    .sep { height: 1px; background: var(--light-gray); margin: 20px 0; }
+
+    /* BUTTONS */
+    .btn-ai { display: flex; align-items: center; gap: 6px; background: var(--black); color: white; border: none; border-radius: 100px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: background 0.15s; white-space: nowrap; }
+    .btn-ai:hover { background: #333; }
+    .btn-ai.loading { background: #555; cursor: wait; }
+    .btn-add { display: flex; align-items: center; gap: 7px; background: transparent; border: 1.5px dashed var(--border); border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--gray); cursor: pointer; width: 100%; font-family: var(--sans); transition: border-color 0.15s, color 0.15s; }
+    .btn-add:hover { border-color: var(--red); color: var(--red); }
+
+    /* RADIO CARDS */
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 9px; flex: 1; min-width: 120px; transition: border-color 0.15s, background 0.15s; }
+    .radio-card.selected { border-color: var(--red); background: #fff5f6; }
+    .radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s; }
+    .radio-card.selected .radio-dot { border-color: var(--red); }
+    .radio-dot-inner { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: none; }
+    .radio-card.selected .radio-dot-inner { display: block; }
+    .radio-text { font-size: 13px; font-weight: 600; color: var(--black); }
+    .radio-sub { font-size: 11px; color: var(--gray); margin-top: 1px; }
+
+    /* DUREE PILLS */
+    .duree-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .duree-pill { border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .duree-pill.selected { border-color: var(--red); background: #fff5f6; }
+    .duree-pill-val { font-size: 15px; font-weight: 700; color: var(--black); }
+    .duree-pill.selected .duree-pill-val { color: var(--red); }
+    .duree-pill-label { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+    /* TOGGLE */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+    .toggle-row:last-child { margin-bottom: 0; }
+    .toggle-label { font-size: 14px; font-weight: 500; color: var(--black); }
+    .toggle-sub { font-size: 12px; color: var(--gray); margin-top: 1px; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--light-gray); border-radius: 100px; cursor: pointer; transition: background 0.2s; }
+    .toggle input:checked + .toggle-slider { background: var(--red); }
+    .toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* COUNTER */
+    .counter-wrap { display: flex; align-items: center; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; width: fit-content; }
+    .counter-btn { width: 40px; height: 40px; border: none; background: var(--off-white); cursor: pointer; font-size: 18px; font-weight: 300; color: var(--black); display: flex; align-items: center; justify-content: center; font-family: var(--sans); transition: background 0.15s; }
+    .counter-btn:hover { background: var(--light-gray); }
+    .counter-val { padding: 0 20px; font-size: 15px; font-weight: 700; color: var(--black); min-width: 60px; text-align: center; }
+
+    /* TAG INPUT */
+    .tag-input-wrap { border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px; cursor: text; }
+    .tag-input-wrap:focus-within { border-color: var(--red); }
+    .tag { background: var(--off-white); border: 1px solid var(--light-gray); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 500; color: var(--black); display: flex; align-items: center; gap: 5px; }
+    .tag-x { color: var(--gray); cursor: pointer; font-size: 14px; line-height: 1; }
+    .tag-x:hover { color: var(--red); }
+    .tag-input { border: none; outline: none; font-size: 13px; font-family: var(--sans); flex: 1; min-width: 80px; padding: 2px 4px; background: transparent; }
+
+    /* PRIX TOGGLE */
+    .prix-toggle { display: flex; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .prix-opt { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--gray); transition: background 0.15s, color 0.15s; }
+    .prix-opt.active { background: var(--red); color: white; }
+
+    /* BANNERS */
+    .alert-banner { border-radius: 12px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+    .alert-red { background: #fff5f6; border: 1.5px solid #ffc5cc; }
+    .alert-blue { background: #e3f2fd; border: 1.5px solid #90caf9; }
+    .alert-yellow { background: #fff8e1; border: 1.5px solid #ffe082; }
+    .alert-green { background: #f1f8e9; border: 1.5px solid #c8e6c9; }
+    .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .alert-text { font-size: 13px; line-height: 1.55; }
+    .alert-red .alert-text { color: #7b1c2a; }
+    .alert-blue .alert-text { color: #1565c0; }
+    .alert-yellow .alert-text { color: #5d4037; }
+    .alert-green .alert-text { color: #2e7d32; }
+    .alert-text strong { font-weight: 700; }
+
+    /* CHECKBOXES */
+    .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .checkbox-item.checked { border-color: var(--red); background: #fff5f6; }
+    .checkbox-box { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; }
+    .checkbox-item.checked .checkbox-box { background: var(--red); border-color: var(--red); }
+    .checkbox-check { color: white; font-size: 12px; font-weight: 700; display: none; }
+    .checkbox-item.checked .checkbox-check { display: block; }
+    .checkbox-label { font-size: 13px; font-weight: 500; color: var(--black); }
+
+    /* STEP PANELS */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    /* STEP 2 SPECIFIC */
+    .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .mode-card { border: 2px solid var(--border); border-radius: 14px; padding: 20px 22px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .mode-card.selected { border-color: var(--red); background: #fff5f6; }
+    .mode-card-icon { font-size: 24px; margin-bottom: 10px; }
+    .mode-card-title { font-size: 15px; font-weight: 700; color: var(--black); margin-bottom: 4px; }
+    .mode-card.selected .mode-card-title { color: var(--red); }
+    .mode-card-sub { font-size: 12px; color: var(--gray); line-height: 1.5; }
+    .existing-card { border: 1.5px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: border-color 0.15s; margin-bottom: 10px; }
+    .existing-card:hover { border-color: #ccc; }
+    .existing-card.selected { border-color: var(--red); background: #fff5f6; }
+    .existing-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 9px; border-radius: 100px; }
+    .badge-wait { background: #fff3e0; color: #e65100; }
+    .badge-received { background: #e8f5e9; color: #2e7d32; }
+    .existing-title { font-size: 14px; font-weight: 700; color: var(--black); margin-top: 4px; }
+    .existing-meta { font-size: 12px; color: var(--gray); margin-top: 2px; }
+    .radio-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .existing-card.selected .radio-circle { border-color: var(--red); }
+    .radio-circle-inner { width: 10px; height: 10px; border-radius: 50%; background: var(--red); display: none; }
+    .existing-card.selected .radio-circle-inner { display: block; }
+
+    /* STEP 3 SPECIFIC */
+    .obj-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .obj-item { display: flex; align-items: flex-start; gap: 10px; background: var(--off-white); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+    .obj-item.ai-generated { border-color: #c8e6c9; background: #f1f8e9; }
+    .obj-num { width: 22px; height: 22px; border-radius: 50%; background: var(--red); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .obj-item.ai-generated .obj-num { background: #388e3c; }
+    .obj-text { font-size: 13px; color: var(--black); line-height: 1.55; flex: 1; }
+    .obj-del { color: var(--gray); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px; flex-shrink: 0; }
+    .obj-del:hover { color: var(--red); }
+    .programme-slot { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+    .programme-slot-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--off-white); cursor: pointer; }
+    .programme-slot-header.ai-gen { background: #f1f8e9; }
+    .programme-slot-time { font-size: 12px; font-weight: 700; color: var(--red); min-width: 110px; flex-shrink: 0; }
+    .programme-slot-title { font-size: 13px; font-weight: 600; color: var(--black); flex: 1; }
+    .programme-slot-type { font-size: 11px; padding: 3px 10px; border-radius: 100px; font-weight: 600; flex-shrink: 0; }
+    .type-cours { background: #e3f2fd; color: #1565c0; }
+    .type-atelier { background: #fce4ec; color: #880e4f; }
+    .type-pause { background: #f3e5f5; color: #6a1b9a; }
+    .type-table { background: #e8f5e9; color: #1b5e20; }
+    .programme-slot-body { padding: 12px 16px; border-top: 1px solid var(--light-gray); display: none; }
+    .ai-banner { background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 10px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+    .ai-banner-text { font-size: 13px; color: #2e7d32; line-height: 1.5; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .upload-zone:hover { border-color: var(--red); background: #fff5f6; }
+
+    /* STEP 4 SPECIFIC */
+    .coi-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .coi-card { border: 2px solid var(--border); border-radius: 14px; padding: 20px 22px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .coi-card.selected-no { border-color: #2e7d32; background: #f1f8e9; }
+    .coi-card.selected-yes { border-color: var(--red); background: #fff5f6; }
+    .coi-card-title { font-size: 15px; font-weight: 700; color: var(--black); margin-bottom: 4px; }
+    .coi-card.selected-no .coi-card-title { color: #2e7d32; }
+    .coi-card.selected-yes .coi-card-title { color: var(--red); }
+    .coi-card-sub { font-size: 12px; color: var(--gray); line-height: 1.5; }
+    .coi-detail-card { background: #fff8e1; border: 1.5px solid #ffe082; border-radius: 12px; padding: 20px 22px; margin-top: 14px; }
+    .coi-industry-item { display: flex; align-items: center; gap: 10px; background: white; border: 1.5px solid #ffe082; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+    .coi-industry-name { font-size: 13px; font-weight: 600; color: var(--black); flex: 1; }
+    .coi-industry-role { font-size: 12px; color: var(--gray); }
+    .intervenants-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+    .intervenant-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--off-white); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+    .btn-del { background: transparent; border: none; color: var(--gray); cursor: pointer; font-size: 18px; padding: 2px; line-height: 1; }
+    .btn-del:hover { color: var(--red); }
+    .preview-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .preview-img { width: 100%; height: 160px; background: linear-gradient(135deg, #0F2B5B 0%, #C8102E 100%); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; }
+    .preview-info { padding: 12px 14px; font-size: 12px; color: var(--gray); }
+
+    /* STEP 5 SPECIFIC */
+    .hero-banner { background: var(--black); border-radius: 16px; padding: 28px 32px; margin-bottom: 16px; display: flex; align-items: center; gap: 24px; }
+    .hero-banner-title { font-size: 18px; font-weight: 800; color: white; letter-spacing: -0.3px; margin-bottom: 4px; }
+    .hero-banner-sub { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.55; }
+    .hero-count { background: var(--red); color: white; border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 700; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+    .context-banner { background: #fff8e1; border: 1.5px solid #ffe082; border-radius: 12px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+    .context-steps { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .ctx-step { display: flex; align-items: center; gap: 6px; background: white; border: 1px solid #ffe082; border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 600; color: #795548; }
+    .ctx-step-num { width: 18px; height: 18px; border-radius: 50%; background: #795548; color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ctx-arrow { color: #bdbdbd; font-size: 12px; }
+    .gen-section { margin-bottom: 20px; }
+    .gen-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .gen-section-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .icon-comm { background: #e3f2fd; }
+    .icon-ped { background: #e8f5e9; }
+    .icon-admin { background: #fff3e0; }
+    .icon-jour { background: #fce4ec; }
+    .icon-post { background: #f3e5f5; }
+    .gen-section-title { font-size: 14px; font-weight: 700; color: var(--black); }
+    .gen-section-sub { font-size: 12px; color: var(--gray); margin-top: 1px; }
+    .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .doc-card { background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; }
+    .doc-card.included { border-color: #c8e6c9; }
+    .doc-card.optional { border-color: var(--border); opacity: 0.65; }
+    .doc-status { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .status-auto { background: #e8f5e9; color: #2e7d32; }
+    .status-opt { background: #f5f5f5; color: #9e9e9e; }
+    .status-post { background: #f3e5f5; color: #6a1b9a; }
+    .status-jour { background: #fce4ec; color: #880e4f; }
+    .doc-name { font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+    .doc-card.optional .doc-name { color: var(--gray); }
+    .doc-desc { font-size: 11px; color: var(--gray); line-height: 1.45; }
+    .doc-trigger { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; margin-top: 4px; padding: 2px 7px; border-radius: 100px; display: inline-block; }
+    .trigger-devis { background: #e8f5e9; color: #1b5e20; }
+    .trigger-inscription { background: #e3f2fd; color: #1565c0; }
+    .trigger-jour { background: #fce4ec; color: #880e4f; }
+    .trigger-post { background: #f3e5f5; color: #6a1b9a; }
+    .trigger-opt { background: #f5f5f5; color: #9e9e9e; }
+    .trigger-j7 { background: #fff3e0; color: #e65100; }
+    .timeline { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
+    .timeline-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--light-gray); }
+    .tl-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+    .tl-row:last-child { margin-bottom: 0; }
+    .tl-dot-col { display: flex; flex-direction: column; align-items: center; }
+    .tl-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .tl-line { width: 1.5px; background: var(--light-gray); flex: 1; min-height: 20px; margin: 3px 0; }
+    .tl-when { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+    .tl-what { font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+    .tl-docs { font-size: 12px; color: var(--gray); line-height: 1.5; }
+
+    /* STEP 6 SPECIFIC */
+    .recap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .recap-card { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+    .recap-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--light-gray); }
+    .recap-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); }
+    .recap-edit { font-size: 12px; font-weight: 600; color: var(--red); cursor: pointer; text-decoration: none; }
+    .recap-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+    .recap-row:last-child { margin-bottom: 0; }
+    .recap-key { font-size: 12px; color: var(--gray); flex-shrink: 0; }
+    .recap-val { font-size: 12px; font-weight: 600; color: var(--black); text-align: right; line-height: 1.4; }
+    .recap-tag { display: inline-flex; background: var(--off-white); border: 1px solid var(--light-gray); border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: 500; color: var(--black); margin: 2px 2px 0 0; }
+    .recap-full { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    .recap-full-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--light-gray); }
+    .recap-full-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); }
+    .obj-mini { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+    .obj-mini:last-child { margin-bottom: 0; }
+    .obj-mini-num { width: 18px; height: 18px; border-radius: 50%; background: #e8f5e9; color: #2e7d32; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .obj-mini-text { font-size: 12px; color: var(--black); line-height: 1.5; }
+    .prix-recap { background: var(--off-white); border-radius: 10px; padding: 14px 16px; }
+    .prix-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
+    .prix-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--border); font-weight: 700; font-size: 14px; }
+    .prix-label { color: var(--gray); }
+    .prix-val { color: var(--black); font-weight: 600; }
+    .prix-note { font-size: 11px; color: var(--gray); margin-top: 6px; line-height: 1.4; }
+    .validation-card { background: white; border: 2px solid var(--border); border-radius: 14px; padding: 24px 26px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .validation-card.ready { border-color: #c8e6c9; }
+    .validation-title { font-size: 14px; font-weight: 700; color: var(--black); margin-bottom: 16px; }
+    .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .check-item:last-child { margin-bottom: 0; }
+    .check-item.checked { border-color: #c8e6c9; background: #f1f8e9; }
+    .check-box { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: background 0.15s, border-color 0.15s; }
+    .check-item.checked .check-box { background: #2e7d32; border-color: #2e7d32; }
+    .check-mark { color: white; font-size: 12px; font-weight: 700; display: none; }
+    .check-item.checked .check-mark { display: block; }
+    .check-label { font-size: 13px; font-weight: 600; color: var(--black); }
+    .check-sub { font-size: 12px; color: var(--gray); margin-top: 2px; line-height: 1.4; }
+    .check-item.checked .check-label { color: #1b5e20; }
+    .submit-zone { background: var(--black); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 20px; }
+    .submit-title { font-size: 20px; font-weight: 800; color: white; letter-spacing: -0.3px; margin-bottom: 8px; }
+    .submit-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 24px; line-height: 1.6; }
+    .btn-submit { background: var(--red); color: white; border: none; border-radius: 100px; padding: 16px 48px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: var(--sans); transition: background 0.15s, transform 0.1s; box-shadow: 0 8px 24px rgba(200,16,46,0.35); }
+    .btn-submit:hover:not(:disabled) { background: #a50d25; transform: translateY(-1px); }
+    .btn-submit:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+    .submit-note { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 12px; }
+    .next-steps { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 20px; }
+    .next-steps-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--light-gray); }
+    .ns-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+    .ns-row:last-child { margin-bottom: 0; }
+    .ns-num { width: 24px; height: 24px; border-radius: 50%; background: var(--off-white); border: 1.5px solid var(--border); color: var(--gray); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .ns-title { font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+    .ns-sub { font-size: 12px; color: var(--gray); line-height: 1.4; }
+    .ns-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 100px; display: inline-block; margin-top: 3px; }
+    .ns-badge-sla { background: #fff3e0; color: #e65100; }
+    .ns-badge-auto { background: #e8f5e9; color: #2e7d32; }
+
+    /* BOTTOM BAR */
+    .bottom-bar { background: white; border-top: 1px solid var(--border); padding: 16px 40px; display: flex; align-items: center; justify-content: space-between; position: sticky; bottom: 0; z-index: 50; }
+    .btn-next { background: var(--red); color: white; border: none; border-radius: 100px; padding: 12px 28px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: background 0.15s; }
+    .btn-next:hover { background: #a50d25; }
+    .btn-prev { background: transparent; color: var(--gray); border: 1.5px solid var(--border); border-radius: 100px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--sans); }
+    .btn-prev:hover { border-color: #ccc; }
+    .btn-save { background: transparent; color: var(--gray); border: 1.5px solid var(--border); border-radius: 100px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--sans); }
+    .btn-save:hover { border-color: #ccc; }
+    .bottom-info { font-size: 13px; color: var(--gray); }
+    .bottom-info strong { color: var(--black); }
+
+    /* SUCCESS STATE */
+    .success-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; }
+    .success-overlay.show { display: flex; }
+    .success-modal { background: white; border-radius: 24px; padding: 48px 40px; max-width: 480px; width: 90%; text-align: center; }
+    .success-icon { width: 64px; height: 64px; border-radius: 50%; background: #e8f5e9; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 20px; }
+    .success-title { font-size: 22px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; margin-bottom: 10px; }
+    .success-sub { font-size: 14px; color: var(--gray); line-height: 1.65; margin-bottom: 28px; }
+    .btn-dashboard { background: var(--black); color: white; border: none; border-radius: 100px; padding: 13px 32px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="index.html" class="top-logo">
+    <div class="top-logo-mark">M</div>
+    <span class="top-logo-name">Masterclass Médical</span>
+  </a>
+  <a href="dashboard_formateur.html" class="top-back">← Retour au dashboard</a>
+</div>
+
+<div class="stepper-bar">
+  <div class="stepper">
+    <div class="step active" id="s1" onclick="goTo(1)">
+      <div class="step-num" id="sn1">1</div>
+      <div class="step-info"><div class="step-label">Étape 1</div><div class="step-title">Informations</div></div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step todo" id="s2" onclick="goTo(2)">
+      <div class="step-num" id="sn2">2</div>
+      <div class="step-info"><div class="step-label">Étape 2</div><div class="step-title">Lieu</div></div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step todo" id="s3" onclick="goTo(3)">
+      <div class="step-num" id="sn3">3</div>
+      <div class="step-info"><div class="step-label">Étape 3</div><div class="step-title">Contenu pédagogique</div></div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step todo" id="s4" onclick="goTo(4)">
+      <div class="step-num" id="sn4">4</div>
+      <div class="step-info"><div class="step-label">Étape 4</div><div class="step-title">Réglementaire</div></div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step todo" id="s5" onclick="goTo(5)">
+      <div class="step-num" id="sn5">5</div>
+      <div class="step-info"><div class="step-label">Étape 5</div><div class="step-title">Ce qui sera généré</div></div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step todo" id="s6" onclick="goTo(6)">
+      <div class="step-num" id="sn6">6</div>
+      <div class="step-info"><div class="step-label">Étape 6</div><div class="step-title">Récapitulatif</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ÉTAPE 1 ==================== -->
+<div class="step-panel active" id="panel1">
+  <div class="form-area">
+    <div class="form-eyebrow">Nouvelle formation</div>
+    <div class="form-title">Informations essentielles</div>
+    <div class="form-sub">Décrivez votre formation en quelques informations clés. Ces éléments apparaîtront sur la landing page publique.</div>
+
+    <div class="card">
+      <div class="card-title">Titre & thématique</div>
+      <div class="field">
+        <label>Titre de la formation <span class="req">*</span></label>
+        <input type="text" placeholder="Ex : Cardiologie interventionnelle — Techniques avancées 2026">
+        <div class="field-hint">Soyez précis et accrocheur — c'est le premier élément vu par les participants.</div>
+      </div>
+      <div class="field field-row cols2">
+        <div>
+          <label>Thématique <span class="req">*</span></label>
+          <select>
+            <option value="">Sélectionner une thématique</option>
+            <option>Cardiologie</option><option>Neurologie</option><option>Oncologie</option>
+            <option>Chirurgie</option><option>Médecine interne</option><option>Pédiatrie</option>
+            <option>Psychiatrie</option><option>Rhumatologie</option><option>Autre</option>
+          </select>
+        </div>
+        <div>
+          <label>Sous-thématique <span class="opt">(optionnel)</span></label>
+          <input type="text" placeholder="Ex : Coronarographie, Stenting…">
+        </div>
+      </div>
+      <div class="field">
+        <label>Mots-clés <span class="opt">(optionnel)</span></label>
+        <div class="tag-input-wrap" id="tagWrap">
+          <span class="tag">Coronarographie <span class="tag-x" onclick="removeTag(this)">×</span></span>
+          <span class="tag">Stenting <span class="tag-x" onclick="removeTag(this)">×</span></span>
+          <input class="tag-input" placeholder="Ajouter un mot-clé…" onkeydown="addTag(event)">
+        </div>
+        <div class="field-hint">Appuyez sur Entrée pour ajouter. Ces mots-clés améliorent la visibilité dans le catalogue.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Format & durée</div>
+      <div class="field">
+        <label>Format de la formation <span class="req">*</span></label>
+        <div class="radio-group">
+          <div class="radio-card selected" onclick="selectRadio(this,'format')">
+            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+            <div><div class="radio-text">Masterclass</div><div class="radio-sub">Format court : de 1h à 1 journée</div></div>
+          </div>
+          <div class="radio-card" onclick="selectRadio(this,'format')">
+            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+            <div><div class="radio-text">Atelier pratique</div><div class="radio-sub">Hands-on, petits groupes</div></div>
+          </div>
+          <div class="radio-card" onclick="selectRadio(this,'format')">
+            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+            <div><div class="radio-text">Symposium</div><div class="radio-sub">Multi-intervenants</div></div>
+          </div>
+          <div class="radio-card" onclick="selectRadio(this,'format')">
+            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+            <div><div class="radio-text">Séminaire</div><div class="radio-sub">2 jours ou plus</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Durée de la formation <span class="req">*</span></label>
+        <div class="duree-grid">
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">1h</div><div class="duree-pill-label">Conférence</div></div>
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">2h</div><div class="duree-pill-label">Atelier court</div></div>
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">3h</div><div class="duree-pill-label">Atelier</div></div>
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">4h</div><div class="duree-pill-label">Demi-journée</div></div>
+          <div class="duree-pill selected" onclick="selectDuree(this)"><div class="duree-pill-val">7h</div><div class="duree-pill-label">Journée</div></div>
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">14h</div><div class="duree-pill-label">2 jours</div></div>
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">21h</div><div class="duree-pill-label">3 jours</div></div>
+          <div class="duree-pill" onclick="selectDuree(this)"><div class="duree-pill-val">Autre</div><div class="duree-pill-label">Personnalisé</div></div>
+        </div>
+        <div id="dureeCustom" style="display:none;margin-top:10px;">
+          <input type="number" placeholder="Nombre d'heures au total" style="max-width:220px;">
+        </div>
+        <div class="field-hint" style="margin-top:8px;">La durée détermine les exigences réglementaires de l'émargement (par demi-journée si > 4h).</div>
+      </div>
+      <div class="field field-row cols2">
+        <div>
+          <label>Niveau requis <span class="req">*</span></label>
+          <select><option>Tous niveaux</option><option selected>Intermédiaire</option><option>Avancé</option><option>Expert</option></select>
+        </div>
+        <div>
+          <label>Public cible <span class="req">*</span></label>
+          <select><option>Médecins généralistes</option><option selected>Médecins spécialistes</option><option>Internes</option><option>Tout professionnel de santé</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dates souhaitées</div>
+      <div class="field">
+        <div class="field-row cols2">
+          <div><label>Date de début <span class="req">*</span></label><input type="date"></div>
+          <div><label>Date de fin <span class="req">*</span></label><input type="date"></div>
+        </div>
+        <div class="field-hint" style="margin-top:8px;">Ces dates sont indicatives — elles seront confirmées lors de la validation du devis de salle.</div>
+      </div>
+      <div class="field">
+        <div class="toggle-row">
+          <div><div class="toggle-label">Dates flexibles</div><div class="toggle-sub">Vous acceptez un décalage de ± 2 semaines si la salle n'est pas disponible</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Participants & tarification</div>
+      <div class="field field-row cols2">
+        <div>
+          <label>Nombre maximum de participants <span class="req">*</span></label>
+          <div class="counter-wrap">
+            <button class="counter-btn" onclick="changeCount(-1)">−</button>
+            <span class="counter-val" id="countVal">15</span>
+            <button class="counter-btn" onclick="changeCount(1)">+</button>
+          </div>
+          <div class="field-hint">Recommandé : 10–25 pour une masterclass premium.</div>
+        </div>
+        <div>
+          <label>Nombre minimum pour maintien <span class="opt">(optionnel)</span></label>
+          <div class="counter-wrap">
+            <button class="counter-btn" onclick="changeMin(-1)">−</button>
+            <span class="counter-val" id="minVal">8</span>
+            <button class="counter-btn" onclick="changeMin(1)">+</button>
+          </div>
+          <div class="field-hint">En dessous de ce seuil, vous pourrez annuler la session.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Type de tarification <span class="req">*</span></label>
+        <div class="prix-toggle">
+          <div class="prix-opt active" onclick="setPrix('payant',this)">Formation payante</div>
+          <div class="prix-opt" onclick="setPrix('gratuit',this)">Formation gratuite</div>
+        </div>
+      </div>
+      <div id="prixFields" class="field field-row cols2">
+        <div>
+          <label>Prix par participant (HT) <span class="req">*</span></label>
+          <input type="number" placeholder="Ex : 450">
+          <div class="field-hint">La commission plateforme de 20% HT sera déduite de ce montant.</div>
+        </div>
+        <div>
+          <label>Taux TVA <span class="req">*</span></label>
+          <select><option>Exonéré de TVA (art. 261-4-4° CGI)</option><option>20% TVA</option></select>
+          <div class="field-hint">Selon votre statut juridique renseigné dans votre profil.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="btn-save" onclick="window.location='formateur_mes_formations.html'">Enregistrer le brouillon</button>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="bottom-info">Étape <strong>1</strong> sur <strong>6</strong></span>
+        <button class="btn-next" onclick="goTo(2)">Étape suivante : Lieu →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ÉTAPE 2 ==================== -->
+<div class="step-panel" id="panel2">
+  <div class="form-area">
+    <div class="form-eyebrow">Nouvelle formation</div>
+    <div class="form-title">Lieu de la formation</div>
+    <div class="form-sub">Choisissez un lieu existant ou soumettez une nouvelle demande de salle. Notre équipe vous contacte sous 72h avec un devis.</div>
+
+    <div class="card">
+      <div class="card-title">Mode de sélection du lieu</div>
+      <div class="mode-toggle">
+        <div class="mode-card selected" id="modeNew" onclick="setMode('new')">
+          <div class="mode-card-icon">🏨</div>
+          <div class="mode-card-title">Nouvelle demande de salle</div>
+          <div class="mode-card-sub">Vous choisissez la ville et le type d'établissement. Notre équipe obtient un devis sous 72h.</div>
+        </div>
+        <div class="mode-card" id="modeExisting" onclick="setMode('existing')">
+          <div class="mode-card-icon">📋</div>
+          <div class="mode-card-title">Utiliser une demande existante</div>
+          <div class="mode-card-sub">Vous avez déjà soumis une demande de salle en attente ou avec devis reçu.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="newRequest">
+      <div class="alert-banner alert-yellow">
+        <div class="alert-icon">⏱</div>
+        <div class="alert-text"><strong>Garantie 72h.</strong> Une fois votre demande soumise, notre équipe contacte l'établissement et vous transmet un devis dans les 72 heures ouvrées.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Localisation</div>
+        <div class="field field-row cols3">
+          <div><label>Ville <span class="req">*</span></label><input type="text" placeholder="Ex : Lyon, Paris, Bordeaux…"></div>
+          <div>
+            <label>Pays <span class="req">*</span></label>
+            <select><option selected>France</option><option>Belgique</option><option>Suisse</option><option>Luxembourg</option><option>Autre</option></select>
+          </div>
+          <div>
+            <label>Type d'établissement <span class="req">*</span></label>
+            <select><option value="">Sélectionner</option><option>Hôtel (salle de conférence)</option><option>Centre de congrès</option><option>Clinique / Hôpital</option><option>Université / Faculté</option><option>Autre</option></select>
+          </div>
+        </div>
+        <div class="field field-row cols2">
+          <div>
+            <label>Nom de l'établissement souhaité <span class="opt">(optionnel)</span></label>
+            <input type="text" placeholder="Ex : Marriott Lyon, Palais des Congrès…">
+            <div class="field-hint">Si vous avez une préférence. Sinon nous cherchons le meilleur disponible.</div>
+          </div>
+          <div>
+            <label>Capacité souhaitée <span class="req">*</span></label>
+            <select><option>Moins de 10 personnes</option><option selected>10 à 25 personnes</option><option>25 à 50 personnes</option><option>50 à 100 personnes</option><option>Plus de 100 personnes</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Équipements & services</div>
+        <div class="field">
+          <label>Équipements requis <span class="opt">(optionnel)</span></label>
+          <div class="checkbox-grid">
+            <div class="checkbox-item checked" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Vidéoprojecteur / écran</span></div>
+            <div class="checkbox-item checked" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Sono / micro</span></div>
+            <div class="checkbox-item" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Tableau blanc / paperboard</span></div>
+            <div class="checkbox-item" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Connexion Wi-Fi haut débit</span></div>
+            <div class="checkbox-item" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Matériel de simulation</span></div>
+            <div class="checkbox-item" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Salle de pause séparée</span></div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="field">
+          <div class="toggle-row">
+            <div><div class="toggle-label">Restauration souhaitée</div><div class="toggle-sub">Pause café, déjeuner ou dîner à inclure dans le devis</div></div>
+            <label class="toggle"><input type="checkbox" id="restaurationToggle" onchange="toggleRestauration()" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div id="restaurationOptions">
+            <div class="checkbox-grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px;">
+              <div class="checkbox-item checked" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Pause café matin</span></div>
+              <div class="checkbox-item checked" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Déjeuner</span></div>
+              <div class="checkbox-item" onclick="toggleCheck(this)"><div class="checkbox-box"><span class="checkbox-check">✓</span></div><span class="checkbox-label">Pause café après-midi</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="field">
+          <label>Notes complémentaires <span class="opt">(optionnel)</span></label>
+          <textarea style="min-height:80px;" placeholder="Précisions sur vos besoins : accessibilité PMR, parking, proximité gare…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="existingRequest" style="display:none;">
+      <div class="card">
+        <div class="card-title">Vos demandes de salle en cours</div>
+        <div class="existing-card selected" onclick="selectExisting(this)">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span class="existing-badge badge-received">Devis reçu</span><span style="font-size:11px;font-weight:600;background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:100px;">Expire dans 5 jours</span></div>
+            <div class="existing-title">Marriott Lyon — Salle Rhône</div>
+            <div class="existing-meta">Lyon · 10–25 personnes · Devis : 1 200 € HT · Soumis le 18 avril 2026</div>
+          </div>
+          <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        </div>
+        <div class="existing-card" onclick="selectExisting(this)">
+          <div>
+            <div style="margin-bottom:6px;"><span class="existing-badge badge-wait">En attente de devis</span></div>
+            <div class="existing-title">Centre de Congrès de Bordeaux</div>
+            <div class="existing-meta">Bordeaux · 25–50 personnes · Soumis le 22 avril 2026</div>
+          </div>
+          <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--light-gray);font-size:13px;color:var(--gray);">
+          Vous ne voyez pas votre salle ? <span style="color:var(--red);font-weight:600;cursor:pointer;" onclick="setMode('new')">Soumettre une nouvelle demande →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="display:flex;gap:10px;">
+        <button class="btn-prev" onclick="goTo(1)">← Étape précédente</button>
+        <button class="btn-save">Enregistrer le brouillon</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="bottom-info">Étape <strong>2</strong> sur <strong>6</strong></span>
+        <button class="btn-next" onclick="goTo(3)">Étape suivante : Contenu →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ÉTAPE 3 ==================== -->
+<div class="step-panel" id="panel3">
+  <div class="form-area">
+    <div class="form-eyebrow">Nouvelle formation</div>
+    <div class="form-title">Contenu pédagogique</div>
+    <div class="form-sub">Définissez les objectifs, le programme et les ressources de votre formation. L'IA peut vous assister à chaque étape en un clic.</div>
+
+    <div class="card">
+      <div class="card-title">Objectifs pédagogiques</div>
+      <div class="field">
+        <div class="field-header">
+          <label>Objectifs <span class="req">*</span></label>
+          <button class="btn-ai" id="btnAiObj" onclick="simulateAI('btnAiObj')"><span>✦</span> Générer avec l'IA</button>
+        </div>
+        <div class="field-hint" style="margin-bottom:12px;">3 à 5 objectifs réglementaires. Formulés à l'infinitif : "Savoir identifier…", "Être capable de…"</div>
+        <div class="obj-list" id="objList">
+          <div class="obj-item ai-generated">
+            <div class="obj-num">1</div>
+            <div class="obj-text">Maîtriser les indications et contre-indications de la coronarographie diagnostique et interventionnelle</div>
+            <span class="obj-del" onclick="delObj(this)">×</span>
+          </div>
+          <div class="obj-item ai-generated">
+            <div class="obj-num">2</div>
+            <div class="obj-text">Interpréter les résultats angiographiques et adapter la stratégie de revascularisation</div>
+            <span class="obj-del" onclick="delObj(this)">×</span>
+          </div>
+          <div class="obj-item ai-generated">
+            <div class="obj-num">3</div>
+            <div class="obj-text">Gérer les complications péri-procédurales et connaître les protocoles d'urgence associés</div>
+            <span class="obj-del" onclick="delObj(this)">×</span>
+          </div>
+        </div>
+        <button class="btn-add" onclick="addObj()">+ Ajouter un objectif manuellement</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Programme détaillé</div>
+      <div class="field">
+        <div class="field-header">
+          <label>Programme heure par heure <span class="req">*</span></label>
+          <button class="btn-ai" id="btnAiProg" onclick="simulateAI('btnAiProg')"><span>✦</span> Générer avec l'IA</button>
+        </div>
+        <div class="field-hint" style="margin-bottom:12px;">Structurez votre journée. L'IA génère un programme complet à partir de vos objectifs.</div>
+        <div class="ai-banner">
+          <span style="font-size:16px;">✦</span>
+          <div class="ai-banner-text"><strong>Programme généré par l'IA</strong> à partir de vos objectifs. Cliquez sur un créneau pour modifier.</div>
+        </div>
+        <div id="progList">
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">08h30 – 09h00</span><span class="programme-slot-title">Accueil des participants & café</span><span class="programme-slot-type type-pause">Pause</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Accueil, émargement, distribution des supports.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">09h00 – 10h30</span><span class="programme-slot-title">Indications & contre-indications de la coronarographie</span><span class="programme-slot-type type-cours">Cours</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Présentation théorique : indications actuelles, stratification du risque, contre-indications absolues et relatives.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">10h30 – 10h45</span><span class="programme-slot-title">Pause café</span><span class="programme-slot-type type-pause">Pause</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Pause.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">10h45 – 12h30</span><span class="programme-slot-title">Interprétation angiographique — cas cliniques</span><span class="programme-slot-type type-atelier">Atelier</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Analyse de 8 cas cliniques : lecture des images, scoring SYNTAX, décision thérapeutique en groupe.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">12h30 – 13h30</span><span class="programme-slot-title">Déjeuner</span><span class="programme-slot-type type-pause">Pause</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Déjeuner.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">13h30 – 15h30</span><span class="programme-slot-title">Stratégies de revascularisation — table ronde</span><span class="programme-slot-type type-table">Table ronde</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Discussion interactive : CABG vs PCI, lésions complexes, décision heart team.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">15h30 – 17h00</span><span class="programme-slot-title">Gestion des complications péri-procédurales</span><span class="programme-slot-type type-cours">Cours</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Protocoles d'urgence, no-reflow, perforation coronaire, tamponnade.</textarea></div></div>
+          <div class="programme-slot"><div class="programme-slot-header ai-gen" onclick="toggleSlot(this)"><span class="programme-slot-time">17h00 – 17h30</span><span class="programme-slot-title">Synthèse & questionnaire de satisfaction</span><span class="programme-slot-type type-cours">Cours</span></div><div class="programme-slot-body"><textarea style="min-height:60px;">Récapitulatif des points clés, remise des attestations, évaluation.</textarea></div></div>
+        </div>
+        <button class="btn-add">+ Ajouter un créneau</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Résumé scientifique & bibliographie</div>
+      <div class="field">
+        <div class="field-header">
+          <label>Résumé scientifique <span class="req">*</span></label>
+          <button class="btn-ai"><span>✦</span> Générer avec l'IA</button>
+        </div>
+        <textarea style="min-height:110px;">La cardiologie interventionnelle connaît des évolutions majeures dans la prise en charge des syndromes coronariens aigus et chroniques. Cette masterclass propose une mise à jour complète des pratiques de coronarographie diagnostique et interventionnelle…</textarea>
+        <div class="field-hint">Visible sur la landing page publique. Niveau expert, 200–300 mots.</div>
+      </div>
+      <div class="sep"></div>
+      <div class="field">
+        <div class="field-header">
+          <label>Bibliographie <span class="opt">(recommandé)</span></label>
+          <button class="btn-ai"><span>✦</span> Générer avec l'IA</button>
+        </div>
+        <textarea style="min-height:100px;">1. Neumann FJ, et al. 2018 ESC/EACTS Guidelines on myocardial revascularization. Eur Heart J. 2019;40(2):87-165.
+2. Collet JP, et al. 2020 ESC Guidelines for the management of acute coronary syndromes. Eur Heart J. 2021;42(14):1289-1367.</textarea>
+        <div class="field-hint">5 à 10 références pertinentes. Apparaissent dans le livret pédagogique.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Support de présentation <span style="font-weight:400;font-size:12px;color:var(--gray);text-transform:none;letter-spacing:0;">(optionnel)</span></div>
+      <div class="upload-zone" id="uploadZone3" onclick="simulateUpload()">
+        <div style="font-size:28px;margin-bottom:8px;">📎</div>
+        <div style="font-size:14px;font-weight:600;color:var(--black);margin-bottom:4px;">Déposer votre PowerPoint</div>
+        <div style="font-size:12px;color:var(--gray);">La plateforme générera automatiquement les slides standardisées (intro, objectifs, COI, conclusion)<br>Formats acceptés : .pptx, .ppt — max 50 Mo</div>
+      </div>
+      <div id="uploadDone3" style="display:none;border:1.5px solid #c8e6c9;border-radius:12px;padding:14px 18px;background:#f1f8e9;display:none;align-items:center;gap:12px;">
+        <span style="font-size:20px;">✅</span>
+        <div><div style="font-size:14px;font-weight:600;color:#2e7d32;">Coronarographie_2026.pptx</div><div style="font-size:12px;color:#388e3c;">48 slides · 12,4 Mo · Slides standardisées en cours de génération…</div></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="display:flex;gap:10px;">
+        <button class="btn-prev" onclick="goTo(2)">← Étape précédente</button>
+        <button class="btn-save">Enregistrer le brouillon</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="bottom-info">Étape <strong>3</strong> sur <strong>6</strong></span>
+        <button class="btn-next" onclick="goTo(4)">Étape suivante : Réglementaire →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ÉTAPE 4 ==================== -->
+<div class="step-panel" id="panel4">
+  <div class="form-area">
+    <div class="form-eyebrow">Nouvelle formation</div>
+    <div class="form-title">Réglementaire & communication</div>
+    <div class="form-sub">Déclaration obligatoire des conflits d'intérêt, co-formateurs et visuels de communication pour la landing page.</div>
+
+    <div class="card">
+      <div class="card-title">Déclaration de conflits d'intérêt <span style="color:var(--red);font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;">— Obligatoire</span></div>
+      <div class="alert-banner alert-red">
+        <div class="alert-icon">⚖️</div>
+        <div class="alert-text"><strong>Obligation réglementaire.</strong> La déclaration de conflits d'intérêt est obligatoire pour toute formation médicale. Elle sera affichée sur la landing page, intégrée au programme officiel et présentée en slide d'ouverture.</div>
+      </div>
+      <div class="field">
+        <label>Avez-vous des liens d'intérêt avec l'industrie ? <span class="req">*</span></label>
+        <div class="coi-toggle">
+          <div class="coi-card" id="coiNo" onclick="setCOI('no')">
+            <div style="font-size:22px;margin-bottom:10px;">✓</div>
+            <div class="coi-card-title">Aucun lien d'intérêt</div>
+            <div class="coi-card-sub">Je déclare n'avoir aucun lien d'intérêt avec l'industrie pharmaceutique ou dispositifs médicaux.</div>
+          </div>
+          <div class="coi-card selected-yes" id="coiYes" onclick="setCOI('yes')">
+            <div style="font-size:22px;margin-bottom:10px;">⚠️</div>
+            <div class="coi-card-title">Liens d'intérêt à déclarer</div>
+            <div class="coi-card-sub">Je déclare avoir des liens d'intérêt avec une ou plusieurs entreprises en rapport avec cette formation.</div>
+          </div>
+        </div>
+        <div id="coiDetails" class="coi-detail-card">
+          <div style="font-size:13px;font-weight:700;color:#795548;margin-bottom:12px;">Détail des liens d'intérêt</div>
+          <div id="coiList">
+            <div class="coi-industry-item"><div><div class="coi-industry-name">Medtronic</div><div class="coi-industry-role">Consultant, frais de congrès</div></div><button class="btn-del" onclick="this.closest('.coi-industry-item').remove()">×</button></div>
+            <div class="coi-industry-item"><div><div class="coi-industry-name">Abbott Vascular</div><div class="coi-industry-role">Honoraires de formation</div></div><button class="btn-del" onclick="this.closest('.coi-industry-item').remove()">×</button></div>
+          </div>
+          <button class="btn-add" style="border-color:#ffe082;color:#795548;margin-top:8px;" onclick="addCOI()">+ Ajouter un lien d'intérêt</button>
+          <div style="margin-top:14px;">
+            <div style="font-size:12px;font-weight:600;color:#795548;margin-bottom:6px;">Texte libre complémentaire <span style="font-weight:400;">(optionnel)</span></div>
+            <textarea style="min-height:70px;border-color:#ffe082;" placeholder="Précisions supplémentaires…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Co-formateurs & intervenants <span style="font-weight:400;font-size:12px;color:var(--gray);text-transform:none;letter-spacing:0;">(optionnel)</span></div>
+      <div class="alert-banner alert-blue">
+        <div class="alert-icon">👥</div>
+        <div class="alert-text">Invitez d'autres médecins à intervenir. Chaque co-formateur recevra un email d'invitation pour confirmer sa participation.</div>
+      </div>
+      <div class="field">
+        <div class="intervenants-list" id="intervenantsList">
+          <div class="intervenant-row">
+            <input type="text" value="Dr. Sophie Bernard" placeholder="Nom complet">
+            <input type="email" value="sophie.bernard@chu-paris.fr" placeholder="Email">
+            <select><option selected>Co-formateur principal</option><option>Intervenant ponctuel</option><option>Modérateur</option></select>
+            <button class="btn-del" onclick="this.closest('.intervenant-row').remove()">×</button>
+          </div>
+        </div>
+        <button class="btn-add" onclick="addIntervenant()">+ Inviter un co-formateur</button>
+        <div class="field-hint">Les co-formateurs apparaîtront sur la landing page et les documents officiels.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Visuels de communication</div>
+      <div class="field">
+        <label>Image principale de la formation <span class="opt">(optionnel)</span></label>
+        <div class="field-row cols2">
+          <div class="upload-zone" id="uploadZone4" onclick="simulateUpload4()">
+            <div style="font-size:26px;margin-bottom:8px;">🖼️</div>
+            <div style="font-size:14px;font-weight:600;color:var(--black);margin-bottom:4px;">Uploader une image</div>
+            <div style="font-size:12px;color:var(--gray);">JPG, PNG · min 1200×630px · max 5 Mo</div>
+          </div>
+          <div class="preview-card">
+            <div class="preview-img">Aperçu landing page</div>
+            <div class="preview-info">Si aucune image n'est fournie, un visuel générique sera généré automatiquement.</div>
+          </div>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="field">
+        <div class="field-header">
+          <label>Description publique courte <span class="req">*</span></label>
+          <button class="btn-ai"><span>✦</span> Générer avec l'IA</button>
+        </div>
+        <textarea style="min-height:80px;">Une journée intensive pour maîtriser les techniques de coronarographie diagnostique et interventionnelle, animée par des experts de référence.</textarea>
+        <div class="field-hint">Utilisée comme meta-description SEO et dans les visuels LinkedIn/réseaux sociaux générés automatiquement.</div>
+      </div>
+      <div class="sep"></div>
+      <div class="field">
+        <label>Options de génération automatique</label>
+        <div class="toggle-row"><div><div class="toggle-label">Générer les visuels LinkedIn & réseaux sociaux</div><div class="toggle-sub">Visuel 1200×628px et story 1080×1920px aux couleurs de la plateforme</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><div><div class="toggle-label">Générer l'affiche A4 et le flyer</div><div class="toggle-sub">PDFs imprimables avec programme, lieu, formateur et QR code d'inscription</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><div><div class="toggle-label">Activer le livret pédagogique post-formation</div><div class="toggle-sub">PDF envoyé aux participants après la formation (programme, supports, bibliographie)</div></div><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="display:flex;gap:10px;">
+        <button class="btn-prev" onclick="goTo(3)">← Étape précédente</button>
+        <button class="btn-save">Enregistrer le brouillon</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="bottom-info">Étape <strong>4</strong> sur <strong>6</strong></span>
+        <button class="btn-next" onclick="goTo(5)">Étape suivante : Ce qui sera généré →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ÉTAPE 5 ==================== -->
+<div class="step-panel" id="panel5">
+  <div class="form-area">
+    <div class="form-eyebrow">Nouvelle formation</div>
+    <div class="form-title">Ce qui sera généré automatiquement</div>
+    <div class="form-sub">Voici l'ensemble des documents et éléments que la plateforme va produire pour vous, sans aucune action supplémentaire.</div>
+
+    <div class="hero-banner">
+      <div style="font-size:36px;flex-shrink:0;">⚡</div>
+      <div>
+        <div class="hero-banner-title">17 éléments générés automatiquement</div>
+        <div class="hero-banner-sub">Dès validation du devis et paiement, la plateforme lance la génération complète. Zéro tâche administrative supplémentaire.</div>
+      </div>
+      <div class="hero-count">17 éléments</div>
+    </div>
+
+    <div class="context-banner">
+      <div class="alert-icon">ℹ️</div>
+      <div>
+        <div style="font-size:13px;color:#5d4037;line-height:1.6;"><strong style="color:#3e2723;">Comment ça fonctionne ?</strong> La génération démarre après votre <strong style="color:#3e2723;">validation et paiement du devis de salle</strong>. Ce n'est pas immédiat après cette soumission — notre équipe doit d'abord vous envoyer le devis sous 72h.</div>
+        <div class="context-steps">
+          <div class="ctx-step"><div class="ctx-step-num">1</div>Soumission formation</div>
+          <span class="ctx-arrow">→</span>
+          <div class="ctx-step"><div class="ctx-step-num">2</div>Devis reçu (72h)</div>
+          <span class="ctx-arrow">→</span>
+          <div class="ctx-step"><div class="ctx-step-num">3</div>Validation + paiement devis</div>
+          <span class="ctx-arrow">→</span>
+          <div class="ctx-step" style="background:#e8f5e9;border-color:#c8e6c9;color:#2e7d32;"><div class="ctx-step-num" style="background:#2e7d32;">⚡</div>Génération lancée</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <div class="gen-section-header"><div class="gen-section-icon icon-comm">📣</div><div><div class="gen-section-title">Communication</div><div class="gen-section-sub">Générés dès validation et paiement du devis de salle</div></div></div>
+      <div class="doc-grid">
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Landing page publique</div><div class="doc-desc">Page web avec programme, formateur, lieu, inscription et paiement.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Affiche A4 PDF</div><div class="doc-desc">Affiche imprimable avec visuel, programme, lieu, dates et QR code.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Affiche A3 PDF</div><div class="doc-desc">Format grand format pour affichage dans la salle de formation.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Flyer PDF</div><div class="doc-desc">Format pocket A5, recto-verso, pour diffusion papier ou email.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Visuel LinkedIn</div><div class="doc-desc">Image 1200×628px optimisée pour le partage LinkedIn.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Visuel réseaux sociaux</div><div class="doc-desc">Format carré et story 1080×1920px pour Instagram, X et Facebook.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <div class="gen-section-header"><div class="gen-section-icon icon-ped">📚</div><div><div class="gen-section-title">Documents pédagogiques</div><div class="gen-section-sub">Générés dès validation et paiement du devis de salle</div></div></div>
+      <div class="doc-grid">
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Programme officiel PDF</div><div class="doc-desc">Format réglementaire avec objectifs, méthodes, profil formateur et COI.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Kit formateur J-7</div><div class="doc-desc">Adresse, plan d'accès, liste nominative des inscrits, contacts établissement.</div><span class="doc-trigger trigger-j7">J-7 automatique</span></div></div>
+        <div class="doc-card optional"><div class="doc-status status-opt">–</div><div><div class="doc-name">Livret pédagogique</div><div class="doc-desc">PDF post-formation avec programme, supports et bibliographie. Non activé.</div><span class="doc-trigger trigger-opt">Désactivé — étape 4</span></div></div>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <div class="gen-section-header"><div class="gen-section-icon icon-admin">⚖️</div><div><div class="gen-section-title">Documents administratifs</div><div class="gen-section-sub">Générés automatiquement à chaque inscription participant confirmée</div></div></div>
+      <div class="doc-grid">
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Convention de formation</div><div class="doc-desc">Document légal (L6353-1 Code du travail) avec signature électronique YouSign.</div><span class="doc-trigger trigger-inscription">À chaque inscription</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Facture participant PDF</div><div class="doc-desc">Facture conforme avec numéro séquentiel, SIRET, mention TVA ou exonération.</div><span class="doc-trigger trigger-inscription">À chaque inscription</span></div></div>
+        <div class="doc-card included"><div class="doc-status status-auto">✓</div><div><div class="doc-name">Feuille d'émargement numérique</div><div class="doc-desc">Tokens sécurisés par participant, horodatage certifié, valeur légale.</div><span class="doc-trigger trigger-devis">Validation devis + paiement</span></div></div>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <div class="gen-section-header"><div class="gen-section-icon icon-jour">📋</div><div><div class="gen-section-title">Jour J</div><div class="gen-section-sub">Générés à la clôture de la session d'émargement</div></div></div>
+      <div class="doc-grid">
+        <div class="doc-card included" style="border-color:#f8bbd0;"><div class="doc-status status-jour">✓</div><div><div class="doc-name">Feuille de présence officielle</div><div class="doc-desc">PDF certifié horodaté avec liste des présences et métadonnées légales.</div><span class="doc-trigger trigger-jour">Clôture émargement</span></div></div>
+        <div class="doc-card included" style="border-color:#f8bbd0;"><div class="doc-status status-jour">✓</div><div><div class="doc-name">PV de formation</div><div class="doc-desc">Procès-verbal officiel avec statistiques de présence et validation formateur.</div><span class="doc-trigger trigger-jour">Clôture émargement</span></div></div>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <div class="gen-section-header"><div class="gen-section-icon icon-post">🎓</div><div><div class="gen-section-title">Post-formation</div><div class="gen-section-sub">Envoyés automatiquement dans les 24–72h suivant la formation</div></div></div>
+      <div class="doc-grid">
+        <div class="doc-card included" style="border-color:#e1bee7;"><div class="doc-status status-post">✓</div><div><div class="doc-name">Attestation de participation</div><div class="doc-desc">PDF nominatif avec objectifs atteints, durée effective et signature formateur.</div><span class="doc-trigger trigger-post">J+1 automatique</span></div></div>
+        <div class="doc-card included" style="border-color:#e1bee7;"><div class="doc-status status-post">✓</div><div><div class="doc-name">Questionnaire de satisfaction</div><div class="doc-desc">Envoyé à chaque participant. Synthèse disponible dans votre dashboard 48h après.</div><span class="doc-trigger trigger-post">J+1 automatique</span></div></div>
+        <div class="doc-card included" style="border-color:#e1bee7;"><div class="doc-status status-post">✓</div><div><div class="doc-name">Bilan pédagogique</div><div class="doc-desc">Synthèse des évaluations, note moyenne, points forts et axes d'amélioration.</div><span class="doc-trigger trigger-post">J+3 automatique</span></div></div>
+        <div class="doc-card included" style="border-color:#e1bee7;"><div class="doc-status status-post">✓</div><div><div class="doc-name">Fiche portfolio</div><div class="doc-desc">Archivage automatique dans votre portfolio formateur avec stats et notes.</div><span class="doc-trigger trigger-post">Après archivage</span></div></div>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-title">Chronologie des automatisations</div>
+      <div class="tl-row"><div class="tl-dot-col"><div class="tl-dot" style="background:var(--red);"></div><div class="tl-line"></div></div><div><div class="tl-when">Validation + paiement du devis de salle</div><div class="tl-what">Pipeline de génération lancé</div><div class="tl-docs">Landing page · Affiches A4/A3 · Flyer · Visuels LinkedIn/réseaux · Programme officiel · Feuille d'émargement initialisée</div></div></div>
+      <div class="tl-row"><div class="tl-dot-col"><div class="tl-dot" style="background:#1565c0;"></div><div class="tl-line"></div></div><div><div class="tl-when">À chaque inscription participant confirmée</div><div class="tl-what">Documents participant générés</div><div class="tl-docs">Convention de formation (YouSign) · Facture PDF · Email de confirmation</div></div></div>
+      <div class="tl-row"><div class="tl-dot-col"><div class="tl-dot" style="background:#e65100;"></div><div class="tl-line"></div></div><div><div class="tl-when">J-7</div><div class="tl-what">Kit formateur envoyé automatiquement</div><div class="tl-docs">Adresse · Plan · Liste participants · Contacts établissement</div></div></div>
+      <div class="tl-row"><div class="tl-dot-col"><div class="tl-dot" style="background:#880e4f;"></div><div class="tl-line"></div></div><div><div class="tl-when">Jour J — clôture émargement</div><div class="tl-what">Documents officiels certifiés</div><div class="tl-docs">Feuille de présence certifiée · PV de formation</div></div></div>
+      <div class="tl-row"><div class="tl-dot-col"><div class="tl-dot" style="background:#6a1b9a;"></div></div><div><div class="tl-when">J+1 à J+3</div><div class="tl-what">Clôture automatique</div><div class="tl-docs">Attestations nominatives · Questionnaire satisfaction · Bilan pédagogique · Fiche portfolio</div></div></div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="display:flex;gap:10px;">
+        <button class="btn-prev" onclick="goTo(4)">← Étape précédente</button>
+        <button class="btn-save">Enregistrer le brouillon</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="bottom-info">Étape <strong>5</strong> sur <strong>6</strong></span>
+        <button class="btn-next" onclick="goTo(6)">Étape suivante : Récapitulatif →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ÉTAPE 6 ==================== -->
+<div class="step-panel" id="panel6">
+  <div class="form-area">
+    <div class="form-eyebrow">Nouvelle formation</div>
+    <div class="form-title">Récapitulatif & soumission</div>
+    <div class="form-sub">Vérifiez les informations avant de soumettre votre formation. Vous pouvez modifier chaque section en cliquant sur "Modifier".</div>
+
+    <div class="recap-grid">
+      <div class="recap-card">
+        <div class="recap-card-header"><span class="recap-card-title">Informations</span><a class="recap-edit" onclick="goTo(1)">Modifier</a></div>
+        <div class="recap-row"><span class="recap-key">Titre</span><span class="recap-val">Cardiologie interventionnelle — Techniques avancées 2026</span></div>
+        <div class="recap-row"><span class="recap-key">Thématique</span><span class="recap-val">Cardiologie</span></div>
+        <div class="recap-row"><span class="recap-key">Format</span><span class="recap-val">Masterclass · Journée (7h)</span></div>
+        <div class="recap-row"><span class="recap-key">Dates</span><span class="recap-val">15 novembre 2026</span></div>
+        <div class="recap-row"><span class="recap-key">Participants</span><span class="recap-val">Max 15 · Min 8</span></div>
+        <div class="recap-row"><span class="recap-key">Mots-clés</span><span class="recap-val"><span class="recap-tag">Coronarographie</span><span class="recap-tag">Stenting</span></span></div>
+      </div>
+      <div class="recap-card">
+        <div class="recap-card-header"><span class="recap-card-title">Lieu</span><a class="recap-edit" onclick="goTo(2)">Modifier</a></div>
+        <div class="recap-row"><span class="recap-key">Établissement</span><span class="recap-val">Marriott Lyon — Salle Rhône</span></div>
+        <div class="recap-row"><span class="recap-key">Ville</span><span class="recap-val">Lyon, France</span></div>
+        <div class="recap-row"><span class="recap-key">Capacité</span><span class="recap-val">10–25 personnes</span></div>
+        <div class="recap-row"><span class="recap-key">Équipements</span><span class="recap-val">Vidéoprojecteur · Sono · Wi-Fi</span></div>
+        <div class="recap-row"><span class="recap-key">Restauration</span><span class="recap-val">Pause café matin · Déjeuner</span></div>
+        <div class="recap-row"><span class="recap-key">Statut devis</span><span class="recap-val" style="color:#2e7d32;">✓ Devis reçu — 1 200 € HT</span></div>
+      </div>
+      <div class="recap-card">
+        <div class="recap-card-header"><span class="recap-card-title">Tarification</span><a class="recap-edit" onclick="goTo(1)">Modifier</a></div>
+        <div class="prix-recap">
+          <div class="prix-row"><span class="prix-label">Prix participant HT</span><span class="prix-val">450 €</span></div>
+          <div class="prix-row"><span class="prix-label">Commission plateforme (20%)</span><span class="prix-val">− 90 €</span></div>
+          <div class="prix-row"><span class="prix-label">Vous percevez</span><span class="prix-val" style="color:var(--red);">360 € / participant</span></div>
+        </div>
+        <div class="prix-note">TVA : Exonéré (art. 261-4-4° CGI) · Frais salle : 1 200 € HT + 120 € frais gestion (10%)</div>
+      </div>
+      <div class="recap-card">
+        <div class="recap-card-header"><span class="recap-card-title">Communication</span><a class="recap-edit" onclick="goTo(4)">Modifier</a></div>
+        <div class="recap-row"><span class="recap-key">Co-formateur</span><span class="recap-val">Dr. Sophie Bernard</span></div>
+        <div class="recap-row"><span class="recap-key">Image principale</span><span class="recap-val">cardiologie_hero.jpg</span></div>
+        <div class="recap-row"><span class="recap-key">Visuels LinkedIn</span><span class="recap-val" style="color:#2e7d32;">✓ Activé</span></div>
+        <div class="recap-row"><span class="recap-key">Affiche A4 / Flyer</span><span class="recap-val" style="color:#2e7d32;">✓ Activé</span></div>
+        <div class="recap-row"><span class="recap-key">Livret pédagogique</span><span class="recap-val" style="color:var(--gray);">Désactivé</span></div>
+      </div>
+    </div>
+
+    <div class="recap-full">
+      <div class="recap-full-header"><span class="recap-full-title">Objectifs pédagogiques</span><a class="recap-edit" onclick="goTo(3)">Modifier</a></div>
+      <div class="obj-mini"><div class="obj-mini-num">1</div><div class="obj-mini-text">Maîtriser les indications et contre-indications de la coronarographie diagnostique et interventionnelle</div></div>
+      <div class="obj-mini"><div class="obj-mini-num">2</div><div class="obj-mini-text">Interpréter les résultats angiographiques et adapter la stratégie de revascularisation</div></div>
+      <div class="obj-mini"><div class="obj-mini-num">3</div><div class="obj-mini-text">Gérer les complications péri-procédurales et connaître les protocoles d'urgence associés</div></div>
+    </div>
+
+    <div class="recap-full">
+      <div class="recap-full-header"><span class="recap-full-title">Déclaration de conflits d'intérêt</span><a class="recap-edit" onclick="goTo(4)">Modifier</a></div>
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">
+        <span>⚠️</span>
+        <div style="font-size:12px;color:#795548;line-height:1.5;"><strong style="color:#3e2723;">Liens d'intérêt déclarés :</strong> Medtronic (consultant, frais de congrès) · Abbott Vascular (honoraires de formation). Cette déclaration sera affichée sur la landing page et intégrée à tous les documents officiels.</div>
+      </div>
+    </div>
+
+    <div class="validation-card" id="validationCard">
+      <div class="validation-title">Validations obligatoires avant soumission</div>
+      <div class="check-item" id="vcheck1" onclick="toggleVCheck('vcheck1')">
+        <div class="check-box"><span class="check-mark">✓</span></div>
+        <div><div class="check-label">Je confirme l'exactitude de ma déclaration de conflits d'intérêt</div><div class="check-sub">Cette déclaration engage ma responsabilité professionnelle et sera publiée publiquement.</div></div>
+      </div>
+      <div class="check-item" id="vcheck2" onclick="toggleVCheck('vcheck2')">
+        <div class="check-box"><span class="check-mark">✓</span></div>
+        <div><div class="check-label">Je certifie que le contenu pédagogique est conforme aux règles déontologiques</div><div class="check-sub">Le programme ne contient aucun contenu promotionnel pour un produit ou dispositif médical.</div></div>
+      </div>
+      <div class="check-item" id="vcheck3" onclick="toggleVCheck('vcheck3')">
+        <div class="check-box"><span class="check-mark">✓</span></div>
+        <div><div class="check-label">J'accepte les Conditions Générales d'Utilisation de Masterclass Médical</div><div class="check-sub">Notamment les conditions de commission (20% HT), de remboursement et d'annulation.</div></div>
+      </div>
+      <div class="check-item" id="vcheck4" onclick="toggleVCheck('vcheck4')">
+        <div class="check-box"><span class="check-mark">✓</span></div>
+        <div><div class="check-label">J'accepte la politique de confidentialité et le traitement des données personnelles</div><div class="check-sub">Conformément au RGPD, les données des participants sont traitées dans le cadre de la formation uniquement.</div></div>
+      </div>
+    </div>
+
+    <div class="submit-zone">
+      <div class="submit-title">Tout est prêt !</div>
+      <div class="submit-sub">En soumettant votre formation, notre équipe reçoit une notification immédiate.<br>Vous recevrez le devis de salle par email dans les 72 heures ouvrées.</div>
+      <button class="btn-submit" id="submitBtn" disabled onclick="handleSubmit()">Soumettre ma formation →</button>
+      <div class="submit-note">Aucun paiement demandé à cette étape · Le devis vous sera transmis sous 72h</div>
+    </div>
+
+    <div class="next-steps">
+      <div class="next-steps-title">Ce qui se passe après la soumission</div>
+      <div class="ns-row"><div class="ns-num">1</div><div><div class="ns-title">Notification à notre équipe</div><div class="ns-sub">Votre dossier est transmis immédiatement. Un chargé de compte est affecté à votre formation.</div><span class="ns-badge ns-badge-auto">Immédiat</span></div></div>
+      <div class="ns-row"><div class="ns-num">2</div><div><div class="ns-title">Devis de salle reçu par email</div><div class="ns-sub">Nous contactons l'établissement et vous envoyons le devis avec montant HT, conditions et validité.</div><span class="ns-badge ns-badge-sla">Garanti sous 72h ouvrées</span></div></div>
+      <div class="ns-row"><div class="ns-num">3</div><div><div class="ns-title">Vous validez et payez le devis</div><div class="ns-sub">Depuis votre dashboard, acceptez le devis et réglez la salle + frais de gestion (10% HT) en ligne.</div><span class="ns-badge ns-badge-auto">Paiement sécurisé Stripe</span></div></div>
+      <div class="ns-row"><div class="ns-num">4</div><div><div class="ns-title">Pipeline de génération automatique lancé</div><div class="ns-sub">Landing page, affiches, programme officiel, feuille d'émargement — tout généré en quelques minutes.</div><span class="ns-badge ns-badge-auto">⚡ Automatique</span></div></div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="display:flex;gap:10px;">
+        <button class="btn-prev" onclick="goTo(5)">← Étape précédente</button>
+        <button class="btn-save">Enregistrer le brouillon</button>
+      </div>
+      <span class="bottom-info">Étape <strong>6</strong> sur <strong>6</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-modal">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Formation soumise avec succès !</div>
+    <div class="success-sub">Notre équipe a bien reçu votre dossier. Vous recevrez le devis de salle par email dans les <strong>72 heures ouvrées</strong>. En attendant, votre formation est enregistrée en statut "En attente de devis" dans votre dashboard.</div>
+    <button class="btn-dashboard" onclick="window.location='dashboard_formateur.html'">Retourner au dashboard →</button>
+  </div>
+</div>
+
+<script>
+  let currentStep = 1;
+  const maxStep = 6;
+
+  function goTo(step) {
+    if (step < 1 || step > maxStep) return;
+    document.getElementById('panel' + currentStep).classList.remove('active');
+    for (let i = 1; i <= maxStep; i++) {
+      const s = document.getElementById('s' + i);
+      s.className = 'step ' + (i === step ? 'active' : i < step ? 'done' : 'todo');
+      const sn = document.getElementById('sn' + i);
+      sn.textContent = i < step ? '✓' : i;
+    }
+    currentStep = step;
+    document.getElementById('panel' + step).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // STEP 1
+  let count = 15, minCount = 8;
+  function changeCount(d) { count = Math.max(1, count + d); document.getElementById('countVal').textContent = count; }
+  function changeMin(d) { minCount = Math.max(0, minCount + d); document.getElementById('minVal').textContent = minCount; }
+  function selectRadio(el, group) { el.closest('.radio-group').querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected')); el.classList.add('selected'); }
+  function selectDuree(el) { document.querySelectorAll('.duree-pill').forEach(p => p.classList.remove('selected')); el.classList.add('selected'); document.getElementById('dureeCustom').style.display = el.querySelector('.duree-pill-val').textContent === 'Autre' ? 'block' : 'none'; }
+  function setPrix(type, el) { document.querySelectorAll('.prix-opt').forEach(o => o.classList.remove('active')); el.classList.add('active'); document.getElementById('prixFields').style.display = type === 'payant' ? 'grid' : 'none'; }
+  function addTag(e) { if (e.key === 'Enter') { const val = e.target.value.trim(); if (!val) return; const tag = document.createElement('span'); tag.className = 'tag'; tag.innerHTML = val + ' <span class="tag-x" onclick="removeTag(this)">×</span>'; document.getElementById('tagWrap').insertBefore(tag, e.target); e.target.value = ''; } }
+  function removeTag(x) { x.parentElement.remove(); }
+
+  // STEP 2
+  function setMode(mode) {
+    document.getElementById('modeNew').classList.toggle('selected', mode === 'new');
+    document.getElementById('modeExisting').classList.toggle('selected', mode === 'existing');
+    document.getElementById('newRequest').style.display = mode === 'new' ? 'block' : 'none';
+    document.getElementById('existingRequest').style.display = mode === 'existing' ? 'block' : 'none';
+  }
+  function toggleCheck(el) { el.classList.toggle('checked'); }
+  function toggleRestauration() { document.getElementById('restaurationOptions').style.display = document.getElementById('restaurationToggle').checked ? 'block' : 'none'; }
+  function selectExisting(el) {
+    document.querySelectorAll('.existing-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // STEP 3
+  function toggleSlot(h) { const b = h.nextElementSibling; b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
+  function delObj(btn) { btn.parentElement.remove(); document.querySelectorAll('.obj-num').forEach((n, i) => n.textContent = i + 1); }
+  function addObj() { const list = document.getElementById('objList'); const n = list.children.length + 1; const item = document.createElement('div'); item.className = 'obj-item'; item.innerHTML = `<div class="obj-num">${n}</div><div class="obj-text" contenteditable="true" style="outline:none;">Nouvel objectif…</div><span class="obj-del" onclick="delObj(this)">×</span>`; list.appendChild(item); item.querySelector('[contenteditable]').focus(); }
+  function simulateAI(btnId) { const btn = document.getElementById(btnId); btn.classList.add('loading'); btn.innerHTML = '<span>⏳</span> Génération…'; setTimeout(() => { btn.classList.remove('loading'); btn.innerHTML = '<span>✦</span> Régénérer'; }, 1800); }
+  function simulateUpload() { document.getElementById('uploadZone3').style.display = 'none'; const d = document.getElementById('uploadDone3'); d.style.display = 'flex'; }
+
+  // STEP 4
+  function setCOI(val) {
+    document.getElementById('coiNo').className = 'coi-card' + (val === 'no' ? ' selected-no' : '');
+    document.getElementById('coiYes').className = 'coi-card' + (val === 'yes' ? ' selected-yes' : '');
+    document.getElementById('coiDetails').style.display = val === 'yes' ? 'block' : 'none';
+  }
+  function addCOI() { const list = document.getElementById('coiList'); const item = document.createElement('div'); item.className = 'coi-industry-item'; item.innerHTML = `<div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;"><input type="text" placeholder="Nom de l'entreprise" style="border:1px solid #ffe082;border-radius:7px;padding:7px 10px;font-size:13px;font-family:var(--sans);outline:none;"><input type="text" placeholder="Nature du lien" style="border:1px solid #ffe082;border-radius:7px;padding:7px 10px;font-size:13px;font-family:var(--sans);outline:none;"></div><button class="btn-del" onclick="this.closest('.coi-industry-item').remove()">×</button>`; list.appendChild(item); }
+  function addIntervenant() { const list = document.getElementById('intervenantsList'); const row = document.createElement('div'); row.className = 'intervenant-row'; row.innerHTML = `<input type="text" placeholder="Nom complet"><input type="email" placeholder="Email"><select><option>Co-formateur principal</option><option>Intervenant ponctuel</option><option>Modérateur</option></select><button class="btn-del" onclick="this.closest('.intervenant-row').remove()">×</button>`; list.appendChild(row); }
+  function simulateUpload4() { const z = document.getElementById('uploadZone4'); z.innerHTML = '<div style="font-size:20px;">✅</div><div style="font-size:13px;font-weight:600;color:#2e7d32;margin-top:6px;">Image uploadée</div><div style="font-size:12px;color:#388e3c;margin-top:2px;">cardiologie_hero.jpg · 2,1 Mo</div>'; z.style.borderColor = '#c8e6c9'; z.style.background = '#f1f8e9'; }
+
+  // STEP 6
+  function toggleVCheck(id) { document.getElementById(id).classList.toggle('checked'); updateSubmit(); }
+  function updateSubmit() {
+    const allChecked = ['vcheck1','vcheck2','vcheck3','vcheck4'].every(id => document.getElementById(id).classList.contains('checked'));
+    document.getElementById('submitBtn').disabled = !allChecked;
+    document.getElementById('validationCard').classList.toggle('ready', allChecked);
+  }
+  function handleSubmit() {
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = '⏳ Soumission en cours…';
+    btn.disabled = true;
+    setTimeout(() => { document.getElementById('successOverlay').classList.add('show'); }, 1800);
+  }
+</script>
+</body>
+</html>

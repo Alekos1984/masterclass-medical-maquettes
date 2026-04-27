@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon profil — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0F0F0F;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .slgo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .slm{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sln{font-size:12px;font-weight:700;color:white;}.sls{font-size:10px;color:rgba(255,255,255,0.28);margin-top:1px;}
+    .snav{padding:14px 10px;flex:1;}
+    .nl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.18);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:4px;margin-top:14px;display:block;}
+    .nl:first-child{margin-top:0;}
+    .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:1px;text-decoration:none;transition:background 0.15s;}
+    .ni:hover{background:rgba(255,255,255,0.05);}
+    .ni.active{background:rgba(200,16,46,0.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .ni .ic{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+    .ni .lb{font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);}
+    .ni.active .lb{color:white;font-weight:600;}
+    .nb{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sft{padding:14px;border-top:1px solid rgba(255,255,255,0.06);}
+    .su{display:flex;align-items:center;gap:10px;}
+    .sav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .sun{font-size:12px;font-weight:600;color:white;}.sur{font-size:10px;color:rgba(255,255,255,0.3);}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-title{font-size:15px;font-weight:700;}
+    .btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;transition:background 0.15s;}
+    .btn-red{background:var(--red);color:white;}.btn-red:hover{background:#a50d25;}
+    .btn-ghost{background:white;color:var(--gray);border:1.5px solid var(--border);}.btn-ghost:hover{border-color:var(--red);color:var(--red);}
+    .content{padding:24px 28px;}
+    /* PROFILE HEADER */
+    .profile-header{background:white;border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;}
+    .profile-photo-wrap{position:relative;}
+    .profile-photo{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;}
+    .photo-edit{position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;background:var(--red);border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;}
+    .profile-name{font-size:20px;font-weight:800;color:var(--black);margin-bottom:3px;}
+    .profile-spec{font-size:14px;color:var(--gray);margin-bottom:8px;}
+    .profile-badges{display:flex;gap:6px;flex-wrap:wrap;}
+    .profile-completion{margin-left:auto;text-align:center;}
+    .completion-circle{width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--red) 0% 85%,var(--light-gray) 85% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
+    .completion-inner{width:48px;height:48px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--black);}
+    /* TABS */
+    .tabs-bar{background:white;border:1px solid var(--border);border-radius:12px;padding:3px;display:flex;gap:2px;margin-bottom:20px;}
+    .tab{flex:1;padding:8px 10px;border-radius:9px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;text-align:center;transition:background 0.15s,color 0.15s;white-space:nowrap;}
+    .tab.active{background:var(--red);color:white;}
+    .panel{display:none;}
+    .panel.active{display:block;}
+    /* FORM */
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .card:last-child{margin-bottom:0;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .card-title{font-size:13px;font-weight:700;color:var(--black);}
+    .field{margin-bottom:16px;}
+    .field:last-child{margin-bottom:0;}
+    label{display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;}
+    label span.opt{color:var(--gray);font-weight:400;font-size:11px;margin-left:4px;}
+    input[type=text],input[type=email],input[type=url],input[type=number],select,textarea{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:var(--sans);color:var(--black);background:white;outline:none;transition:border-color 0.15s;}
+    input:focus,select:focus,textarea:focus{border-color:var(--red);}
+    textarea{resize:vertical;line-height:1.6;}
+    .sep{height:1px;background:var(--light-gray);margin:16px 0;}
+    /* LISTE ITEMS */
+    .list-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;}
+    .list-item:last-child{margin-bottom:0;}
+    .list-item-body{flex:1;}
+    .list-item-title{font-size:13px;font-weight:600;color:var(--black);}
+    .list-item-sub{font-size:12px;color:var(--gray);margin-top:2px;}
+    .btn-item-del{background:transparent;border:none;color:var(--gray);cursor:pointer;font-size:16px;padding:2px;line-height:1;flex-shrink:0;}
+    .btn-item-del:hover{color:var(--red);}
+    .btn-add{display:flex;align-items:center;gap:7px;background:transparent;border:1.5px dashed var(--border);border-radius:9px;padding:9px 14px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;width:100%;font-family:var(--sans);margin-top:8px;}
+    .btn-add:hover{border-color:var(--red);color:var(--red);}
+    /* LEGAL */
+    .legal-banner{background:#e3f2fd;border:1.5px solid #90caf9;border-radius:10px;padding:12px 14px;font-size:13px;color:#1565c0;margin-bottom:16px;}
+    .pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-orange{background:#fff3e0;color:#e65100;}
+    /* SAVE BAR */
+    .save-bar{position:sticky;bottom:0;background:white;border-top:1px solid var(--border);padding:12px 28px;display:flex;justify-content:flex-end;gap:10px;margin-top:0;}
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="slgo"><div class="slm">M</div><div><div class="sln">Masterclass Médical</div><div class="sls">Espace formateur</div></div></div>
+  <div class="snav">
+    <span class="nl">Principal</span>
+    <a href="dashboard_formateur.html" class="ni"><span class="ic">📊</span><span class="lb">Dashboard</span></a>
+    <a href="formateur_mes_formations.html" class="ni"><span class="ic">🎓</span><span class="lb">Mes formations</span></a>
+    <a href="#" class="ni"><span class="ic">➕</span><span class="lb">Nouvelle formation</span></a>
+    <span class="nl">Gestion</span>
+    <a href="#" class="ni"><span class="ic">👥</span><span class="lb">Participants</span></a>
+    <a href="formateur_emargement.html" class="ni"><span class="ic">✍️</span><span class="lb">Émargement</span><span class="nb">1</span></a>
+    <a href="#" class="ni"><span class="ic">📄</span><span class="lb">Documents</span></a>
+    <a href="formateur_paiements.html" class="ni"><span class="ic">💳</span><span class="lb">Paiements</span></a>
+    <span class="nl">Profil</span>
+    <a href="formateur_portfolio.html" class="ni"><span class="ic">🏆</span><span class="lb">Portfolio</span></a>
+    <a href="#" class="ni active"><span class="ic">⚙️</span><span class="lb">Mon profil</span></a>
+  </div>
+  <div class="sft"><div class="su"><div class="sav">PD</div><div><div class="sun">Dr. Pierre Dumont</div><div class="sur">Cardiologue · Lyon</div></div></div></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Mon profil</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:12px;color:var(--gray);">Profil public :</span>
+      <a href="landing_formation.html" style="font-size:12px;color:var(--red);font-weight:600;text-decoration:none;">Voir mon profil public →</a>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- HEADER -->
+    <div class="profile-header">
+      <div class="profile-photo-wrap">
+        <div class="profile-photo">PD</div>
+        <div class="photo-edit">✏️</div>
+      </div>
+      <div>
+        <div class="profile-name">Dr. Pierre Dumont</div>
+        <div class="profile-spec">Cardiologue interventionnel · CHU de Lyon-Sud</div>
+        <div class="profile-badges">
+          <span class="pill pill-green">✓ Profil vérifié</span>
+          <span style="font-size:11px;color:var(--gray);">4 formations · Note 4.9/5</span>
+        </div>
+      </div>
+      <div class="profile-completion">
+        <div class="completion-circle"><div class="completion-inner">85%</div></div>
+        <div style="font-size:11px;color:var(--gray);">Complétude</div>
+        <div style="font-size:10px;color:var(--red);margin-top:2px;">+ Publications</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+      <div class="tab active" onclick="switchTab('identite',this)">👤 Identité</div>
+      <div class="tab" onclick="switchTab('scientifique',this)">🔬 Scientifique</div>
+      <div class="tab" onclick="switchTab('legal',this)">⚖️ Informations légales</div>
+      <div class="tab" onclick="switchTab('securite',this)">🔒 Sécurité</div>
+    </div>
+
+    <!-- IDENTITÉ -->
+    <div class="panel active" id="panel-identite">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Informations personnelles</span></div>
+        <div class="grid3">
+          <div class="field"><label>Civilité</label><select><option>Dr.</option><option>Pr.</option></select></div>
+          <div class="field"><label>Prénom</label><input type="text" value="Pierre"></div>
+          <div class="field"><label>Nom</label><input type="text" value="Dumont"></div>
+        </div>
+        <div class="grid2" style="margin-top:16px;">
+          <div class="field"><label>Email</label><input type="email" value="pierre.dumont@chu-lyon.fr"></div>
+          <div class="field"><label>Téléphone <span class="opt">(non public)</span></label><input type="text" value="06 12 34 56 78"></div>
+        </div>
+        <div class="sep"></div>
+        <div class="grid2">
+          <div class="field"><label>Spécialité principale</label><select><option selected>Cardiologie</option><option>Neurologie</option><option>Chirurgie</option></select></div>
+          <div class="field"><label>Sous-spécialité <span class="opt">(optionnel)</span></label><input type="text" value="Cardiologie interventionnelle"></div>
+        </div>
+        <div class="field" style="margin-top:16px;">
+          <label>Établissement principal</label>
+          <input type="text" value="CHU de Lyon-Sud — Service de Cardiologie Interventionnelle">
+        </div>
+        <div class="field">
+          <label>Années d'expérience</label>
+          <input type="number" value="18" style="max-width:120px;">
+        </div>
+        <div class="field">
+          <label>Thématiques d'expertise</label>
+          <input type="text" value="Coronarographie, Stenting, Revascularisation, Syndromes coronariens aigus" placeholder="Séparées par des virgules">
+        </div>
+        <div class="field">
+          <label>Biographie <span class="opt">(visible sur vos landing pages)</span></label>
+          <textarea style="min-height:100px;">Cardiologue interventionnel au CHU de Lyon-Sud depuis 2008, spécialisé dans la prise en charge des syndromes coronariens aigus et des techniques de revascularisation complexes. Auteur de 34 publications internationales, intervenant régulier dans les congrès européens de cardiologie (EuroPCR, ESC Congress).</textarea>
+        </div>
+        <div class="sep"></div>
+        <div class="card-title" style="margin-bottom:12px;">Liens professionnels</div>
+        <div class="grid3">
+          <div class="field"><label>LinkedIn</label><input type="url" value="linkedin.com/in/pierre-dumont-cardio" placeholder="linkedin.com/in/…"></div>
+          <div class="field"><label>ResearchGate</label><input type="url" placeholder="researchgate.net/profile/…"></div>
+          <div class="field"><label>PubMed</label><input type="url" placeholder="ncbi.nlm.nih.gov/…"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCIENTIFIQUE -->
+    <div class="panel" id="panel-scientifique">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Formations académiques</span><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="addItem('formations')">+ Ajouter</button></div>
+        <div id="formations">
+          <div class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">Doctorat en médecine — Université Claude Bernard Lyon 1</div>
+              <div class="list-item-sub">1994 – 2001</div>
+            </div>
+            <button class="btn-item-del">×</button>
+          </div>
+          <div class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">DESC Cardiologie et maladies vasculaires</div>
+              <div class="list-item-sub">2001 – 2007 · CHU Lyon</div>
+            </div>
+            <button class="btn-item-del">×</button>
+          </div>
+          <div class="list-item">
+            <div class="list-item-body">
+              <div class="list-item-title">Fellowship en Cardiologie Interventionnelle</div>
+              <div class="list-item-sub">2007 – 2008 · Hôpital Bichat, Paris</div>
+            </div>
+            <button class="btn-item-del">×</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Expériences professionnelles</span><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;">+ Ajouter</button></div>
+        <div class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">Praticien Hospitalier — CHU de Lyon-Sud</div>
+            <div class="list-item-sub">Depuis 2008 · Service de Cardiologie Interventionnelle</div>
+          </div>
+          <button class="btn-item-del">×</button>
+        </div>
+        <div class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">Chef de Clinique — CHU de Lyon-Sud</div>
+            <div class="list-item-sub">2008 – 2012</div>
+          </div>
+          <button class="btn-item-del">×</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Publications <span style="font-weight:400;font-size:11px;color:var(--gray);">(34 référencées)</span></span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;">Import PubMed</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;">+ Ajouter</button>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">Long-term outcomes of primary PCI in elderly patients with STEMI</div>
+            <div class="list-item-sub">Eur Heart J. 2023 · DOI: 10.1093/eurheartj/ehad302</div>
+          </div>
+          <button class="btn-item-del">×</button>
+        </div>
+        <div class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">Radial vs femoral access in complex coronary interventions</div>
+            <div class="list-item-sub">JACC Cardiovasc Interv. 2022 · DOI: 10.1016/j.jcin.2022.04.012</div>
+          </div>
+          <button class="btn-item-del">×</button>
+        </div>
+        <div class="list-item">
+          <div class="list-item-body">
+            <div class="list-item-title">OCT-guided stenting in left main disease</div>
+            <div class="list-item-sub">EuroIntervention. 2021 · DOI: 10.4244/EIJ-D-21-00032</div>
+          </div>
+          <button class="btn-item-del">×</button>
+        </div>
+        <button class="btn-add">+ Ajouter une publication</button>
+      </div>
+    </div>
+
+    <!-- LÉGAL -->
+    <div class="panel" id="panel-legal">
+      <div class="legal-banner">ℹ️ Ces informations sont utilisées pour la facturation, le calcul de TVA et la génération de documents officiels. Elles ne sont pas affichées publiquement.</div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Statut juridique & facturation</span></div>
+        <div class="grid2">
+          <div class="field"><label>Statut juridique</label>
+            <select>
+              <option>Médecin libéral</option>
+              <option>Auto-entrepreneur</option>
+              <option>SASU</option>
+              <option>SELARL</option>
+              <option>Autre société</option>
+            </select>
+          </div>
+          <div class="field"><label>Raison sociale <span class="opt">(si société)</span></label><input type="text" placeholder="Ex : Cabinet du Dr. Dumont SAS"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>SIRET</label><input type="text" value="12345678901234" placeholder="14 chiffres"></div>
+          <div class="field"><label>Numéro de déclaration d'activité</label><input type="text" placeholder="11 chiffres — Préfecture"></div>
+        </div>
+        <div class="field">
+          <label>TVA intracommunautaire <span class="opt">(si applicable)</span></label>
+          <input type="text" placeholder="FR00000000000">
+        </div>
+        <div class="sep"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1.5px solid var(--border);border-radius:9px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--black);">Exonération de TVA</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px;">Article 261-4-4° du CGI — Formations professionnelles continues</div>
+          </div>
+          <label style="position:relative;width:42px;height:24px;flex-shrink:0;display:block;">
+            <input type="checkbox" checked style="opacity:0;width:0;height:0;">
+            <span style="position:absolute;inset:0;background:var(--red);border-radius:100px;cursor:pointer;"></span>
+            <span style="position:absolute;width:18px;height:18px;left:21px;top:3px;background:white;border-radius:50%;"></span>
+          </label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Adresse de facturation</span></div>
+        <div class="field"><label>Adresse</label><input type="text" value="12 Rue de la Cardiologue"></div>
+        <div class="grid3">
+          <div class="field"><label>Code postal</label><input type="text" value="69005"></div>
+          <div class="field"><label>Ville</label><input type="text" value="Lyon"></div>
+          <div class="field"><label>Pays</label><select><option selected>France</option><option>Belgique</option></select></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Coordonnées bancaires (virement)</span></div>
+        <div class="legal-banner" style="background:#fff8e1;border-color:#ffe082;color:#795548;">🔒 Ces informations sont chiffrées et utilisées uniquement pour les virements de revenus de formations.</div>
+        <div class="grid2">
+          <div class="field"><label>IBAN</label><input type="text" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"></div>
+          <div class="field"><label>BIC / SWIFT</label><input type="text" placeholder="BNPAFRPP"></div>
+        </div>
+        <div class="field"><label>Titulaire du compte</label><input type="text" value="Dr. Pierre Dumont"></div>
+      </div>
+    </div>
+
+    <!-- SÉCURITÉ -->
+    <div class="panel" id="panel-securite">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Mot de passe</span></div>
+        <div class="grid2">
+          <div class="field"><label>Mot de passe actuel</label><input type="password" placeholder="••••••••••"></div>
+          <div></div>
+          <div class="field"><label>Nouveau mot de passe</label><input type="password" placeholder="••••••••••"></div>
+          <div class="field"><label>Confirmer</label><input type="password" placeholder="••••••••••"></div>
+        </div>
+        <button class="btn btn-red" style="margin-top:8px;">Mettre à jour le mot de passe</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Notifications email</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;">
+            <div><div style="font-size:13px;font-weight:600;">Nouvelle inscription</div><div style="font-size:12px;color:var(--gray);">Recevez un email à chaque nouvelle inscription</div></div>
+            <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--red);">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;">
+            <div><div style="font-size:13px;font-weight:600;">Devis disponible</div><div style="font-size:12px;color:var(--gray);">Notification quand un devis de salle est prêt</div></div>
+            <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--red);">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;">
+            <div><div style="font-size:13px;font-weight:600;">Résumé hebdomadaire</div><div style="font-size:12px;color:var(--gray);">Récap de vos formations chaque lundi matin</div></div>
+            <input type="checkbox" style="width:18px;height:18px;accent-color:var(--red);">
+          </div>
+        </div>
+      </div>
+      <div class="card" style="border-color:#ffebee;">
+        <div class="card-header"><span class="card-title" style="color:#c62828;">Zone de danger</span></div>
+        <button class="btn" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;">Désactiver mon compte</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="save-bar">
+    <button class="btn btn-ghost">Annuler les modifications</button>
+    <button class="btn btn-red" onclick="saveProfile()">✓ Enregistrer le profil</button>
+  </div>
+</div>
+
+<script>
+  function switchTab(id,el){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+id).classList.add('active');
+  }
+  function saveProfile(){
+    const btn=event.target;
+    btn.textContent='✓ Enregistré !';
+    btn.style.background='#2e7d32';
+    setTimeout(()=>{btn.textContent='✓ Enregistrer le profil';btn.style.background='var(--red)';},2000);
+  }
+  function addItem(listId){
+    const list=document.getElementById(listId);
+    const item=document.createElement('div');
+    item.className='list-item';
+    item.innerHTML='<div class="list-item-body"><input type="text" placeholder="Titre…" style="border:none;outline:none;font-size:13px;font-weight:600;font-family:var(--sans);width:100%;"><input type="text" placeholder="Date / établissement…" style="border:none;outline:none;font-size:12px;color:var(--gray);font-family:var(--sans);width:100%;margin-top:4px;"></div><button class="btn-item-del" onclick="this.parentElement.remove()">×</button>';
+    list.appendChild(item);
+    item.querySelector('input').focus();
+  }
+</script>
+</body>
+</html>

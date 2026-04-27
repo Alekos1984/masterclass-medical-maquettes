@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paiements — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0F0F0F;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .slgo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .slm{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sln{font-size:12px;font-weight:700;color:white;}.sls{font-size:10px;color:rgba(255,255,255,0.28);margin-top:1px;}
+    .snav{padding:14px 10px;flex:1;}
+    .nl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.18);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:4px;margin-top:14px;display:block;}
+    .nl:first-child{margin-top:0;}
+    .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:1px;text-decoration:none;transition:background 0.15s;}
+    .ni:hover{background:rgba(255,255,255,0.05);}
+    .ni.active{background:rgba(200,16,46,0.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .ni .ic{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+    .ni .lb{font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);}
+    .ni.active .lb{color:white;font-weight:600;}
+    .nb{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sft{padding:14px;border-top:1px solid rgba(255,255,255,0.06);}
+    .su{display:flex;align-items:center;gap:10px;}
+    .sav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .sun{font-size:12px;font-weight:600;color:white;}.sur{font-size:10px;color:rgba(255,255,255,0.3);}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-title{font-size:15px;font-weight:700;}
+    .btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;}
+    .btn-ghost{background:white;color:var(--gray);border:1.5px solid var(--border);}.btn-ghost:hover{border-color:var(--red);color:var(--red);}
+    .btn-red{background:var(--red);color:white;}.btn-red:hover{background:#a50d25;}
+    .content{padding:24px 28px;}
+    /* METRICS */
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+    .metric{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+    .metric-label{font-size:10px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;}
+    .metric-val{font-size:22px;font-weight:800;color:var(--black);letter-spacing:-0.5px;}
+    .metric-sub{font-size:11px;color:var(--gray);margin-top:4px;}
+    .metric-trend{font-size:11px;font-weight:600;margin-top:3px;color:#2e7d32;}
+    /* BANNER VIREMENT */
+    .virement-banner{background:linear-gradient(135deg,#0a2010,#0a1808);border-radius:14px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+    .vb-title{font-size:15px;font-weight:700;color:white;margin-bottom:3px;}
+    .vb-sub{font-size:12px;color:rgba(255,255,255,0.45);}
+    .vb-amount{font-size:28px;font-weight:800;color:#4caf50;letter-spacing:-1px;}
+    .vb-label{font-size:11px;color:rgba(255,255,255,0.4);}
+    /* TABS */
+    .tabs-bar{background:white;border:1px solid var(--border);border-radius:10px;padding:3px;display:flex;gap:2px;margin-bottom:20px;}
+    .tab{flex:1;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;text-align:center;transition:background 0.15s,color 0.15s;}
+    .tab.active{background:var(--red);color:white;}
+    .panel{display:none;}
+    .panel.active{display:block;}
+    /* TABLE */
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .card-title{font-size:13px;font-weight:700;color:var(--black);}
+    table{width:100%;border-collapse:collapse;}
+    thead th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);padding:8px 10px;text-align:left;border-bottom:1px solid var(--light-gray);}
+    tbody td{font-size:12px;padding:11px 10px;border-bottom:1px solid var(--light-gray);vertical-align:middle;color:var(--black);}
+    tbody tr:last-child td{border-bottom:none;}
+    tbody tr:hover td{background:var(--off-white);}
+    .td-name{font-weight:600;}
+    .td-sub{font-size:11px;color:var(--gray);margin-top:1px;}
+    .pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;display:inline-block;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-orange{background:#fff3e0;color:#e65100;}
+    .pill-blue{background:#e3f2fd;color:#1565c0;}
+    .pill-gray{background:#f5f5f5;color:#9e9e9e;}
+    .pill-red{background:#ffebee;color:#c62828;}
+    .amount-pos{color:#2e7d32;font-weight:700;}
+    .amount-neg{color:var(--red);font-weight:700;}
+    /* GRAPH */
+    .graph-bars{display:flex;align-items:flex-end;gap:8px;height:100px;margin-top:12px;}
+    .gbar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+    .gbar{width:100%;border-radius:5px 5px 0 0;transition:opacity 0.15s;}
+    .gbar:hover{opacity:0.8;}
+    .gbar-label{font-size:10px;color:var(--gray);}
+    .gbar-val{font-size:10px;font-weight:700;color:var(--black);}
+    /* ABONNEMENT */
+    .sub-card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+    .sub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .sub-plan{font-size:16px;font-weight:800;color:var(--black);}
+    .sub-price{font-size:13px;color:var(--gray);margin-top:2px;}
+    .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--light-gray);font-size:12px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{color:var(--gray);}
+    .info-val{font-weight:600;color:var(--black);}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="slgo"><div class="slm">M</div><div><div class="sln">Masterclass Médical</div><div class="sls">Espace formateur</div></div></div>
+  <div class="snav">
+    <span class="nl">Principal</span>
+    <a href="dashboard_formateur.html" class="ni"><span class="ic">📊</span><span class="lb">Dashboard</span></a>
+    <a href="formateur_mes_formations.html" class="ni"><span class="ic">🎓</span><span class="lb">Mes formations</span></a>
+    <a href="#" class="ni"><span class="ic">➕</span><span class="lb">Nouvelle formation</span></a>
+    <span class="nl">Gestion</span>
+    <a href="#" class="ni"><span class="ic">👥</span><span class="lb">Participants</span></a>
+    <a href="formateur_emargement.html" class="ni"><span class="ic">✍️</span><span class="lb">Émargement</span><span class="nb">1</span></a>
+    <a href="#" class="ni"><span class="ic">📄</span><span class="lb">Documents</span></a>
+    <a href="#" class="ni active"><span class="ic">💳</span><span class="lb">Paiements</span></a>
+    <span class="nl">Profil</span>
+    <a href="formateur_portfolio.html" class="ni"><span class="ic">🏆</span><span class="lb">Portfolio</span></a>
+    <a href="formateur_profil.html" class="ni"><span class="ic">⚙️</span><span class="lb">Mon profil</span></a>
+  </div>
+  <div class="sft"><div class="su"><div class="sav">PD</div><div><div class="sun">Dr. Pierre Dumont</div><div class="sur">Cardiologue · Lyon</div></div></div></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Paiements & facturation</div>
+    <button class="btn btn-ghost">📥 Exporter relevé PDF</button>
+  </div>
+
+  <div class="content">
+
+    <!-- VIREMENT BANNER -->
+    <div class="virement-banner">
+      <div>
+        <div class="vb-title">Prochain virement</div>
+        <div class="vb-sub">Revenus de la formation de Toulouse · J+7 après formation</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="vb-amount">4 320 €</div>
+        <div class="vb-label">HT — vers IBAN FR76 ···· 1234</div>
+      </div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Revenus nets cumulés</div>
+        <div class="metric-val" style="font-size:20px;">10 800 €</div>
+        <div class="metric-sub">Après commissions (20%)</div>
+        <div class="metric-trend">↑ +4 320 € en attente</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Frais salle payés</div>
+        <div class="metric-val" style="font-size:20px;">2 640 €</div>
+        <div class="metric-sub">3 formations · Incl. frais gestion</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Commissions prélevées</div>
+        <div class="metric-val" style="font-size:20px;">2 700 €</div>
+        <div class="metric-sub">20% HT sur inscriptions</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Abonnement</div>
+        <div class="metric-val" style="font-size:18px;">20 € HT</div>
+        <div class="metric-sub">/mois · Actif</div>
+        <div class="metric-trend">Renouvellement le 1er déc.</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+      <div class="tab active" onclick="switchTab('revenus',this)">💰 Revenus formations</div>
+      <div class="tab" onclick="switchTab('salles',this)">🏨 Frais de salle</div>
+      <div class="tab" onclick="switchTab('abonnement',this)">🔄 Abonnement</div>
+      <div class="tab" onclick="switchTab('factures',this)">📄 Mes factures</div>
+    </div>
+
+    <!-- REVENUS -->
+    <div class="panel active" id="panel-revenus">
+      <div class="grid2" style="margin-bottom:16px;">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><span class="card-title">Revenus mensuels</span></div>
+          <div class="graph-bars">
+            <div class="gbar-wrap"><div class="gbar" style="height:25%;background:#ffc107;"></div><div class="gbar-val">840€</div><div class="gbar-label">Oct</div></div>
+            <div class="gbar-wrap"><div class="gbar" style="height:18%;background:#ffc107;"></div><div class="gbar-val">600€</div><div class="gbar-label">Nov</div></div>
+            <div class="gbar-wrap"><div class="gbar" style="height:35%;background:#ffc107;"></div><div class="gbar-val">1.2k€</div><div class="gbar-label">Déc</div></div>
+            <div class="gbar-wrap"><div class="gbar" style="height:15%;background:#ffc107;"></div><div class="gbar-val">480€</div><div class="gbar-label">Jan</div></div>
+            <div class="gbar-wrap"><div class="gbar" style="height:45%;background:#ffc107;"></div><div class="gbar-val">1.5k€</div><div class="gbar-label">Mar</div></div>
+            <div class="gbar-wrap"><div class="gbar" style="height:100%;background:var(--red);"></div><div class="gbar-val" style="color:var(--red);">4.3k€</div><div class="gbar-label" style="font-weight:700;">Juin</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><span class="card-title">Répartition</span></div>
+          <div class="info-row"><span class="info-key">Revenus bruts formations</span><span class="info-val">13 500 €</span></div>
+          <div class="info-row"><span class="info-key">Commissions plateforme (20%)</span><span class="info-val" style="color:var(--red);">− 2 700 €</span></div>
+          <div class="info-row"><span class="info-key">Revenus nets virés</span><span class="info-val" style="color:#2e7d32;">6 480 €</span></div>
+          <div class="info-row"><span class="info-key">En attente (Toulouse)</span><span class="info-val" style="color:#e65100;">4 320 €</span></div>
+          <div class="info-row"><span class="info-key">Total nets</span><span class="info-val" style="font-size:15px;font-weight:800;">10 800 €</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Détail par formation</span>
+          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;">📥 Export CSV</button>
+        </div>
+        <table>
+          <thead><tr><th>Formation</th><th>Inscrits payants</th><th>Prix HT</th><th>Revenus bruts</th><th>Commission (20%)</th><th>Net HT</th><th>Statut</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="td-name">Stenting coronarien — Toulouse</div><div class="td-sub">14 juin 2026</div></td>
+              <td>14</td><td>420 €</td><td>5 880 €</td>
+              <td class="amount-neg">− 1 176 €</td>
+              <td class="amount-pos">4 704 €</td>
+              <td><span class="pill pill-orange">Virement J+7</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Coronarographie — Paris</div><div class="td-sub">18 mars 2026</div></td>
+              <td>15</td><td>400 €</td><td>6 000 €</td>
+              <td class="amount-neg">− 1 200 €</td>
+              <td class="amount-pos">4 800 €</td>
+              <td><span class="pill pill-green">Viré · 28 mars</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Urgences cardio. — Lyon</div><div class="td-sub">10 oct. 2025</div></td>
+              <td>7</td><td>300 €</td><td>2 100 €</td>
+              <td class="amount-neg">− 420 €</td>
+              <td class="amount-pos">1 680 €</td>
+              <td><span class="pill pill-green">Viré · 20 oct.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FRAIS SALLE -->
+    <div class="panel" id="panel-salles">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Paiements de salle</span></div>
+        <table>
+          <thead><tr><th>Formation · Établissement</th><th>Devis salle HT</th><th>Frais gestion (10%)</th><th>Total payé HT</th><th>Date</th><th>Facture</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="td-name">Cardiologie inter. — Lyon · Marriott</div><div class="td-sub">15 nov. 2026 · Salle Rhône</div></td>
+              <td>1 200 €</td><td style="color:var(--red);">+ 120 €</td>
+              <td style="font-weight:700;">1 320 €</td>
+              <td>2 oct. 2026</td>
+              <td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Coronarographie — Paris · Marriott RG</div><div class="td-sub">18 mars 2026 · Salle Loire</div></td>
+              <td>1 100 €</td><td style="color:var(--red);">+ 110 €</td>
+              <td style="font-weight:700;">1 210 €</td>
+              <td>5 fév. 2026</td>
+              <td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Urgences cardio. — Lyon · Radisson</div><div class="td-sub">10 oct. 2025</div></td>
+              <td>900 €</td><td style="color:var(--red);">+ 90 €</td>
+              <td style="font-weight:700;">990 €</td>
+              <td>15 sept. 2025</td>
+              <td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ABONNEMENT -->
+    <div class="panel" id="panel-abonnement">
+      <div class="grid2">
+        <div class="sub-card">
+          <div class="sub-header">
+            <div>
+              <div class="sub-plan">Formateur Actif</div>
+              <div class="sub-price">20 € HT / mois</div>
+            </div>
+            <span class="pill pill-green">Actif</span>
+          </div>
+          <div class="info-row"><span class="info-key">Date de début</span><span class="info-val">1er juillet 2026</span></div>
+          <div class="info-row"><span class="info-key">Prochain prélèvement</span><span class="info-val">1er décembre 2026</span></div>
+          <div class="info-row"><span class="info-key">Moyen de paiement</span><span class="info-val">Visa ···· 4242</span></div>
+          <div style="margin-top:14px;display:flex;gap:8px;">
+            <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;">Changer le moyen de paiement</button>
+            <button class="btn" style="background:#ffebee;color:#c62828;font-size:12px;padding:6px 12px;border:1.5px solid #ef9a9a;">Résilier</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:12px;">Historique abonnement</div>
+          <table>
+            <thead><tr><th>Période</th><th>Montant</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr><td>Nov. 2026</td><td>20 € HT</td><td><span class="pill pill-green">Payé</span></td></tr>
+              <tr><td>Oct. 2026</td><td>20 € HT</td><td><span class="pill pill-green">Payé</span></td></tr>
+              <tr><td>Sept. 2026</td><td>20 € HT</td><td><span class="pill pill-green">Payé</span></td></tr>
+              <tr><td>Août 2026</td><td>20 € HT</td><td><span class="pill pill-green">Payé</span></td></tr>
+              <tr><td>Juil. 2026</td><td>20 € HT</td><td><span class="pill pill-green">Payé</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FACTURES -->
+    <div class="panel" id="panel-factures">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Toutes les factures</span>
+          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;">📥 Tout télécharger</button>
+        </div>
+        <table>
+          <thead><tr><th>N° Facture</th><th>Description</th><th>Date</th><th>Montant HT</th><th>Statut</th><th></th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-size:11px;">FCT-2026-0089</td><td><div class="td-name">Frais salle — Marriott Lyon</div><div class="td-sub">Cardiologie inter. · Réf. DR-2026-0041</div></td><td>2 oct. 2026</td><td>1 320 €</td><td><span class="pill pill-green">Payée</span></td><td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td></tr>
+            <tr><td style="font-family:monospace;font-size:11px;">FCT-2026-0088</td><td><div class="td-name">Abonnement formateur — Novembre 2026</div></td><td>1 nov. 2026</td><td>20 €</td><td><span class="pill pill-green">Payée</span></td><td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td></tr>
+            <tr><td style="font-family:monospace;font-size:11px;">FCT-2026-0071</td><td><div class="td-name">Frais salle — Marriott Paris</div><div class="td-sub">Coronarographie · Réf. DR-2026-0021</div></td><td>5 fév. 2026</td><td>1 210 €</td><td><span class="pill pill-green">Payée</span></td><td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td></tr>
+            <tr><td style="font-family:monospace;font-size:11px;">FCT-2025-0049</td><td><div class="td-name">Frais salle — Radisson Blu Lyon</div><div class="td-sub">Urgences cardio. · Réf. DR-2025-0011</div></td><td>15 sept. 2025</td><td>990 €</td><td><span class="pill pill-green">Payée</span></td><td><button style="border:1px solid var(--border);background:white;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">↓ PDF</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function switchTab(id,el){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+id).classList.add('active');
+  }
+</script>
+</body>
+</html>

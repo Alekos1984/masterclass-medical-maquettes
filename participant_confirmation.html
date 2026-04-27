@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscription confirmée — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;--serif:'Instrument Serif',serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);}
+
+    /* NAV */
+    nav{background:var(--black);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .nav-logo-mark{width:30px;height:30px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;}
+    .nav-logo-name{font-size:1rem;font-weight:800;color:white;}
+
+    /* SUCCESS HERO */
+    .success-hero{background:linear-gradient(135deg,#032b0a,#051a10);padding:56px 40px;text-align:center;position:relative;overflow:hidden;}
+    .success-hero::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:400px;height:400px;background:radial-gradient(circle,rgba(46,204,113,0.15) 0%,transparent 65%);pointer-events:none;}
+    .success-icon{width:80px;height:80px;border-radius:50%;background:rgba(46,204,113,0.15);border:2px solid rgba(46,204,113,0.4);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;position:relative;z-index:1;}
+    .success-eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4caf50;margin-bottom:10px;position:relative;z-index:1;}
+    .success-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;color:white;line-height:1.1;letter-spacing:-1px;margin-bottom:8px;position:relative;z-index:1;}
+    .success-title .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:#a5d6a7;}
+    .success-sub{font-size:14px;color:rgba(255,255,255,0.5);position:relative;z-index:1;}
+
+    /* CONTENT */
+    .page{max-width:860px;margin:0 auto;padding:32px 40px 60px;}
+
+    /* CONFIRMATION CARD */
+    .confirm-card{background:white;border:1.5px solid #c8e6c9;border-radius:16px;padding:28px 32px;margin-bottom:20px;}
+    .confirm-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--light-gray);}
+    .confirm-icon{width:48px;height:48px;border-radius:12px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .confirm-ref{font-size:12px;font-weight:700;color:#2e7d32;letter-spacing:0.5px;}
+    .confirm-title{font-size:16px;font-weight:800;color:var(--black);letter-spacing:-0.3px;margin-top:2px;}
+    .confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .confirm-block{}
+    .confirm-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:8px;}
+    .confirm-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--light-gray);}
+    .confirm-row:last-child{border-bottom:none;}
+    .confirm-row-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
+    .confirm-row-val{font-size:12px;font-weight:600;color:var(--black);line-height:1.4;}
+    .confirm-row-sub{font-size:11px;color:var(--gray);}
+
+    /* NEXT STEPS */
+    .steps-card{background:white;border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:20px;}
+    .steps-title{font-size:15px;font-weight:800;color:var(--black);letter-spacing:-0.3px;margin-bottom:20px;}
+    .step-row{display:flex;gap:16px;margin-bottom:16px;}
+    .step-row:last-child{margin-bottom:0;}
+    .step-num-wrap{display:flex;flex-direction:column;align-items:center;}
+    .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+    .step-num.done{background:#e8f5e9;color:#2e7d32;}
+    .step-num.soon{background:#fff3e0;color:#e65100;}
+    .step-num.later{background:var(--off-white);color:var(--gray);}
+    .step-line{width:1.5px;background:var(--light-gray);flex:1;margin:3px 0;}
+    .step-content{flex:1;padding-top:2px;}
+    .step-title{font-size:13px;font-weight:700;color:var(--black);margin-bottom:3px;}
+    .step-sub{font-size:12px;color:var(--gray);line-height:1.5;}
+    .step-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;display:inline-block;margin-top:4px;}
+    .sbadge-done{background:#e8f5e9;color:#2e7d32;}
+    .sbadge-soon{background:#fff3e0;color:#e65100;}
+    .sbadge-auto{background:#e3f2fd;color:#1565c0;}
+
+    /* DOCS CARD */
+    .docs-card{background:white;border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:20px;}
+    .docs-title{font-size:15px;font-weight:800;color:var(--black);margin-bottom:16px;}
+    .docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .doc-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.15s;}
+    .doc-item.ready{border-color:#c8e6c9;}
+    .doc-item.pending{border-color:var(--border);opacity:0.6;}
+    .doc-icon{font-size:18px;flex-shrink:0;}
+    .doc-name{font-size:12px;font-weight:600;color:var(--black);}
+    .doc-status{font-size:10px;margin-top:2px;}
+    .doc-item.ready .doc-status{color:#2e7d32;}
+    .doc-item.pending .doc-status{color:var(--gray);}
+    .doc-dl{margin-left:auto;font-size:12px;color:var(--red);cursor:pointer;font-weight:600;flex-shrink:0;}
+
+    /* LIEU CARD */
+    .lieu-card{background:white;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+    .lieu-map{width:100%;height:140px;background:linear-gradient(135deg,#e8eaf6,#c5cae9);display:flex;align-items:center;justify-content:center;color:#5c6bc0;font-size:13px;font-weight:600;position:relative;}
+    .lieu-map-btn{position:absolute;right:12px;top:12px;background:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#5c6bc0;}
+    .lieu-info{padding:18px 22px;display:flex;gap:20px;align-items:flex-start;}
+    .lieu-details{flex:1;}
+    .lieu-name{font-size:15px;font-weight:800;color:var(--black);margin-bottom:3px;}
+    .lieu-adresse{font-size:12px;color:var(--gray);margin-bottom:8px;}
+    .lieu-features{display:flex;flex-wrap:wrap;gap:5px;}
+    .lieu-feature{font-size:11px;color:var(--gray);background:var(--off-white);border:1px solid var(--light-gray);border-radius:5px;padding:2px 8px;}
+    .lieu-right{flex-shrink:0;display:flex;flex-direction:column;gap:6px;}
+    .btn-itinerary{background:var(--red);color:white;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;}
+    .btn-cal{background:white;color:var(--gray);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;}
+    .btn-cal:hover{border-color:var(--red);color:var(--red);}
+
+    /* BOTTOM ACTIONS */
+    .bottom-actions{display:flex;gap:12px;flex-wrap:wrap;}
+    .btn-main{background:var(--black);color:white;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);text-decoration:none;display:inline-flex;align-items:center;gap:7px;}
+    .btn-secondary{background:white;color:var(--gray);border:1.5px solid var(--border);border-radius:10px;padding:11px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);text-decoration:none;display:inline-flex;align-items:center;gap:7px;}
+    .btn-secondary:hover{border-color:var(--red);color:var(--red);}
+
+    /* SHARE */
+    .share-band{background:var(--off-white);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .share-text{font-size:13px;color:var(--black);}
+    .share-text span{font-weight:700;}
+    .share-btns{display:flex;gap:6px;}
+    .share-btn{border:1.5px solid var(--border);background:white;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);color:var(--gray);transition:border-color 0.15s,color 0.15s;}
+    .share-btn:hover{border-color:var(--red);color:var(--red);}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">M</div>
+    <span class="nav-logo-name">Masterclass Médical</span>
+  </a>
+</nav>
+
+<!-- SUCCESS HERO -->
+<div class="success-hero">
+  <div class="success-icon">✓</div>
+  <div class="success-eyebrow">Inscription confirmée</div>
+  <h1 class="success-title">Votre place est <span class="serif">réservée !</span></h1>
+  <p class="success-sub">Un email de confirmation vous a été envoyé à <strong style="color:rgba(255,255,255,0.7);">s.bernard@chu-paris.fr</strong></p>
+</div>
+
+<div class="page">
+
+  <!-- CONFIRMATION CARD -->
+  <div class="confirm-card">
+    <div class="confirm-header">
+      <div class="confirm-icon">🎓</div>
+      <div>
+        <div class="confirm-ref">✓ Réf. inscription : INS-2026-0312 · Paiement confirmé</div>
+        <div class="confirm-title">Cardiologie interventionnelle — Techniques avancées 2026</div>
+      </div>
+    </div>
+    <div class="confirm-grid">
+      <div class="confirm-block">
+        <div class="confirm-label">Formation</div>
+        <div class="confirm-row"><span class="confirm-row-icon">📅</span><div><div class="confirm-row-val">Samedi 15 novembre 2026</div><div class="confirm-row-sub">08h30 – 17h30</div></div></div>
+        <div class="confirm-row"><span class="confirm-row-icon">📍</span><div><div class="confirm-row-val">Marriott Lyon Cité Internationale</div><div class="confirm-row-sub">Salle Rhône · 70 Quai Charles de Gaulle, 69006 Lyon</div></div></div>
+        <div class="confirm-row"><span class="confirm-row-icon">🕐</span><div><div class="confirm-row-val">7 heures · Masterclass</div><div class="confirm-row-sub">Niveau intermédiaire</div></div></div>
+        <div class="confirm-row"><span class="confirm-row-icon">🍽️</span><div><div class="confirm-row-val">Restauration incluse</div><div class="confirm-row-sub">Pause café matin + déjeuner</div></div></div>
+      </div>
+      <div class="confirm-block">
+        <div class="confirm-label">Formateur & paiement</div>
+        <div class="confirm-row"><span class="confirm-row-icon">👨‍⚕️</span><div><div class="confirm-row-val">Dr. Pierre Dumont</div><div class="confirm-row-sub">Cardiologue interventionnel · CHU Lyon · ⭐ 4.9</div></div></div>
+        <div class="confirm-row"><span class="confirm-row-icon">💳</span><div><div class="confirm-row-val">450 € HT payés</div><div class="confirm-row-sub">Visa ···· 4242 · Exonéré de TVA</div></div></div>
+        <div class="confirm-row"><span class="confirm-row-icon">📄</span><div><div class="confirm-row-val">Facture PDF disponible</div><div class="confirm-row-sub">N° FCT-2026-0312</div></div></div>
+        <div class="confirm-row"><span class="confirm-row-icon">❌</span><div><div class="confirm-row-val">Annulation remboursée jusqu'au</div><div class="confirm-row-sub">1er novembre 2026 (J-14)</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEXT STEPS -->
+  <div class="steps-card">
+    <div class="steps-title">Ce qui se passe maintenant</div>
+    <div class="step-row">
+      <div class="step-num-wrap"><div class="step-num done">✓</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <div class="step-title">Inscription et paiement confirmés</div>
+        <div class="step-sub">Votre paiement de 450 € HT a été validé. La facture PDF est disponible ci-dessous.</div>
+        <span class="step-badge sbadge-done">✓ Maintenant</span>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num-wrap"><div class="step-num done">✓</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <div class="step-title">Email de confirmation envoyé</div>
+        <div class="step-sub">Programme détaillé, adresse, plan d'accès et vos coordonnées de participant dans votre boîte mail.</div>
+        <span class="step-badge sbadge-done">✓ Envoyé à l'instant</span>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num-wrap"><div class="step-num done">✓</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <div class="step-title">Convention de formation à signer</div>
+        <div class="step-sub">Vous allez recevoir dans quelques minutes un email YouSign pour signer électroniquement votre convention de formation (obligatoire).</div>
+        <span class="step-badge sbadge-done">✓ Email YouSign en route</span>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num-wrap"><div class="step-num soon">4</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <div class="step-title">Rappel J-7 automatique</div>
+        <div class="step-sub">Le 8 novembre 2026, vous recevrez l'adresse exacte, le plan d'accès, les horaires précis et le programme final.</div>
+        <span class="step-badge sbadge-soon">8 novembre 2026</span>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num-wrap"><div class="step-num soon">5</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <div class="step-title">Lien d'émargement le jour J</div>
+        <div class="step-sub">Le 15 novembre au matin, vous recevrez un lien unique et sécurisé pour confirmer votre présence. Cliquez dessus à votre arrivée.</div>
+        <span class="step-badge sbadge-soon">15 novembre 2026</span>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num-wrap"><div class="step-num later">6</div></div>
+      <div class="step-content">
+        <div class="step-title">Attestation de participation</div>
+        <div class="step-sub">Dans les 24h suivant la formation, votre attestation nominative PDF sera envoyée automatiquement par email et disponible dans votre espace participant.</div>
+        <span class="step-badge sbadge-auto">⚡ Automatique · J+1</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div class="docs-card">
+    <div class="docs-title">Vos documents</div>
+    <div class="docs-grid">
+      <div class="doc-item ready">
+        <div class="doc-icon">📄</div>
+        <div><div class="doc-name">Facture PDF</div><div class="doc-status">✓ Disponible · FCT-2026-0312</div></div>
+        <span class="doc-dl">↓</span>
+      </div>
+      <div class="doc-item ready">
+        <div class="doc-icon">📋</div>
+        <div><div class="doc-name">Programme officiel</div><div class="doc-status">✓ Disponible</div></div>
+        <span class="doc-dl">↓</span>
+      </div>
+      <div class="doc-item pending">
+        <div class="doc-icon">📜</div>
+        <div><div class="doc-name">Convention de formation</div><div class="doc-status">⏳ Signature YouSign en attente</div></div>
+      </div>
+      <div class="doc-item pending">
+        <div class="doc-icon">🎓</div>
+        <div><div class="doc-name">Attestation de participation</div><div class="doc-status">⏳ Disponible après la formation</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIEU -->
+  <div class="lieu-card">
+    <div class="lieu-map">
+      📍 Marriott Lyon Cité Internationale · Salle Rhône
+      <button class="lieu-map-btn" onclick="alert('Ouverture Google Maps')">Agrandir</button>
+    </div>
+    <div class="lieu-info">
+      <div class="lieu-details">
+        <div class="lieu-name">Marriott Lyon Cité Internationale</div>
+        <div class="lieu-adresse">70 Quai Charles de Gaulle, 69006 Lyon · Salle Rhône (2e étage)</div>
+        <div class="lieu-features">
+          <span class="lieu-feature">🚇 T1 Cité Internationale</span>
+          <span class="lieu-feature">🚗 Parking disponible</span>
+          <span class="lieu-feature">♿ PMR accessible</span>
+          <span class="lieu-feature">🍽️ Déjeuner inclus</span>
+        </div>
+      </div>
+      <div class="lieu-right">
+        <button class="btn-itinerary" onclick="alert('Google Maps : Marriott Lyon')">🗺️ Itinéraire</button>
+        <button class="btn-cal" onclick="handleCal()">📅 Ajouter au calendrier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHARE -->
+  <div class="share-band">
+    <div class="share-text">Partagez cette formation avec vos confrères · <span>3 places restantes</span></div>
+    <div class="share-btns">
+      <button class="share-btn">LinkedIn</button>
+      <button class="share-btn">Copier le lien</button>
+      <button class="share-btn">Email</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM ACTIONS -->
+  <div class="bottom-actions">
+    <a href="participant_dashboard.html" class="btn-main">📋 Voir mon espace participant →</a>
+    <a href="catalogue_formations.html" class="btn-secondary">🔍 Trouver d'autres formations</a>
+    <a href="landing_formation.html" class="btn-secondary">← Retour à la formation</a>
+  </div>
+
+</div>
+
+<script>
+  function handleCal(){
+    const btn=event.target;
+    btn.textContent='✓ Ajouté';
+    btn.style.background='#e8f5e9';
+    btn.style.color='#2e7d32';
+    btn.style.borderColor='#c8e6c9';
+  }
+</script>
+</body>
+</html>

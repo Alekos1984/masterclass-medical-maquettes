@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Paiements — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0a0a0a;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-logo-link{display:flex;text-decoration:none;}
+    .sidebar-logo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06);width:100%;}
+    .sidebar-logo-mark{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sidebar-logo-name{font-size:12px;font-weight:700;color:white;}.sidebar-logo-sub{font-size:10px;color:rgba(255,255,255,.28);margin-top:1px;}
+    .sidebar-nav{padding:14px 10px;flex:1;}
+    .nav-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.18);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:4px;margin-top:14px;display:block;}
+    .nav-section:first-child{margin-top:0;}
+    .nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;margin-bottom:1px;text-decoration:none;transition:background .15s;}
+    .nav-item:hover{background:rgba(255,255,255,.05);}
+    .nav-item.active{background:rgba(200,16,46,.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+    .nav-label{font-size:12px;font-weight:500;color:rgba(255,255,255,.5);}
+    .nav-item.active .nav-label{color:white;font-weight:600;}
+    .nav-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,.06);}
+    .admin-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(200,16,46,.15);border:1px solid rgba(200,16,46,.3);border-radius:6px;padding:5px 10px;}
+    .admin-dot{width:6px;height:6px;border-radius:50%;background:#ff8a96;}
+    .admin-tag-text{font-size:11px;font-weight:600;color:#ff8a96;}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .topbar-back{font-size:13px;color:var(--gray);text-decoration:none;}
+    .topbar-title{font-size:15px;font-weight:700;}
+    .tsep{width:1px;height:18px;background:var(--border);}
+    .content{padding:24px 28px;}
+    table{width:100%;border-collapse:collapse;}
+    thead th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray);padding:9px 12px;text-align:left;border-bottom:1px solid var(--light-gray);background:var(--off-white);}
+    tbody td{font-size:12px;padding:11px 12px;border-bottom:1px solid var(--light-gray);vertical-align:middle;}
+    tbody tr:last-child td{border-bottom:none;}
+    tbody tr:hover td{background:#fafafa;}
+    .td-name{font-weight:600;}.td-sub{font-size:11px;color:var(--gray);margin-top:1px;}
+    .pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;white-space:nowrap;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}.pill-orange{background:#fff3e0;color:#e65100;}
+    .pill-blue{background:#e3f2fd;color:#1565c0;}.pill-gray{background:#f5f5f5;color:#9e9e9e;}
+    .pill-red{background:#ffebee;color:#c62828;}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .card-title{font-size:13px;font-weight:700;}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    .stat{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+    .stat-val{font-size:22px;font-weight:800;letter-spacing:-.5px;}
+    .stat-label{font-size:11px;color:var(--gray);margin-top:3px;}
+    .stat-trend{font-size:10px;font-weight:600;margin-top:3px;}
+    .trend-up{color:#2e7d32;}.trend-warn{color:#e65100;}
+    .btn{border:none;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+    .btn-red{background:var(--red);color:white;}.btn-ghost{background:var(--off-white);color:var(--gray);border:1px solid var(--border);}
+    .btn-warn{background:#ffebee;color:#c62828;border:1px solid #ef9a9a;}
+    .filters{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    .search-box{display:flex;align-items:center;gap:8px;background:var(--off-white);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;flex:1;min-width:180px;}
+    .search-box input{border:none;outline:none;font-size:13px;font-family:var(--sans);background:transparent;width:100%;}
+    .fsel{border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;font-family:var(--sans);color:var(--black);outline:none;background:white;}
+    .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--light-gray);font-size:12px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{color:var(--gray);}.info-val{font-weight:600;}
+
+  .tabs{display:flex;gap:4px;background:var(--off-white);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:20px;}
+  .tab{flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;text-align:center;}
+  .tab.active{background:white;color:var(--black);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .rev-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .rev-bar{width:100%;border-radius:4px 4px 0 0;background:var(--red);opacity:.7;}
+  .rev-bar-label{font-size:9px;color:var(--gray);}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:8px;}
+</style></head><body>
+<div class="sidebar">
+  <a href="index.html" class="sidebar-logo-link">
+    <div class="sidebar-logo"><div class="sidebar-logo-mark">M</div><div><div class="sidebar-logo-name">Masterclass Médical</div><div class="sidebar-logo-sub">Administration</div></div></div>
+  </a>
+  <nav class="sidebar-nav">
+    <span class="nav-section">Vue globale</span>
+    <a href="dashboard_admin.html" class="nav-item "><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+    <span class="nav-section">Gestion</span>
+    <a href="admin_demande_salle.html" class="nav-item "><span class="nav-icon">🏨</span><span class="nav-label">Demandes de salle</span><span class="nav-badge">4</span></a>
+    <a href="admin_formations.html" class="nav-item "><span class="nav-icon">🎓</span><span class="nav-label">Formations</span></a>
+    <a href="admin_formateurs.html" class="nav-item "><span class="nav-icon">👨‍⚕️</span><span class="nav-label">Formateurs</span></a>
+    <a href="participant_dashboard.html" class="nav-item"><span class="nav-icon">👥</span><span class="nav-label">Participants</span></a>
+    <span class="nav-section">Finance</span>
+    <a href="admin_paiements.html" class="nav-item active"><span class="nav-icon">💳</span><span class="nav-label">Paiements</span></a>
+    <a href="admin_paiements.html" class="nav-item"><span class="nav-icon">📈</span><span class="nav-label">Commissions</span></a>
+    <a href="admin_formateurs.html" class="nav-item"><span class="nav-icon">🔄</span><span class="nav-label">Abonnements</span></a>
+    <span class="nav-section">Support</span>
+    <a href="admin_remboursements.html" class="nav-item "><span class="nav-icon">↩️</span><span class="nav-label">Remboursements</span><span class="nav-badge">2</span></a>
+    <a href="admin_services_devis.html" class="nav-item "><span class="nav-icon">🛠️</span><span class="nav-label">Services devis</span></a>
+  </nav>
+  <div class="sidebar-footer"><div class="admin-tag"><div class="admin-dot"></div><span class="admin-tag-text">Admin · Accès complet</span></div></div>
+</div>
+<div class="main">
+  <div class="topbar"><div class="topbar-left"><a href="dashboard_admin.html" class="topbar-back">← Dashboard</a><div class="tsep"></div><div class="topbar-title">Paiements & commissions</div></div><button class="btn btn-ghost" style="font-size:12px;">📥 Export</button></div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat"><div class="stat-val" style="font-size:18px;">18 640 €</div><div class="stat-label">Revenus plateforme HT</div><div class="stat-trend trend-up">↑ +2 340 € ce mois</div></div>
+      <div class="stat"><div class="stat-val" style="font-size:18px;">93 200 €</div><div class="stat-label">Volume total transactions</div></div>
+      <div class="stat"><div class="stat-val">41</div><div class="stat-label">Abonnements actifs</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--red);">3</div><div class="stat-label">Virements en attente</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'inscriptions')">Inscriptions</div>
+      <div class="tab" onclick="switchTab(this,'commissions')">Commissions</div>
+      <div class="tab" onclick="switchTab(this,'abonnements')">Abonnements</div>
+      <div class="tab" onclick="switchTab(this,'virements')">Virements formateurs</div>
+    </div>
+    <div class="card" style="padding:0;" id="panel-inscriptions">
+      <table>
+        <thead><tr><th>Participant</th><th>Formation</th><th>Montant HT</th><th>Commission (20%)</th><th>Date</th><th>Statut</th></tr></thead>
+        <tbody>
+          <tr><td><div class="td-name">Dr. Sophie Bernard</div></td><td>Cardiologie inter. — Lyon</td><td>450 €</td><td style="color:var(--red);">90 €</td><td>18 oct. 2026</td><td><span class="pill pill-green">Capturé</span></td></tr>
+          <tr><td><div class="td-name">Dr. Marc Lefebvre</div></td><td>Cardiologie inter. — Lyon</td><td>450 €</td><td style="color:var(--red);">90 €</td><td>20 oct. 2026</td><td><span class="pill pill-green">Capturé</span></td></tr>
+          <tr><td><div class="td-name">Dr. Anne Chartier</div></td><td>Cardiologie inter. — Lyon</td><td>450 €</td><td style="color:var(--red);">90 €</td><td>22 oct. 2026</td><td><span class="pill pill-green">Capturé</span></td></tr>
+          <tr><td><div class="td-name">Dr. Thomas Moreau</div></td><td>Stenting — Toulouse</td><td>420 €</td><td style="color:var(--red);">84 €</td><td>15 mai 2026</td><td><span class="pill pill-green">Capturé</span></td></tr>
+          <tr><td><div class="td-name">Dr. Isabelle Petit</div></td><td>Stenting — Toulouse</td><td>420 €</td><td style="color:var(--red);">84 €</td><td>18 mai 2026</td><td><span class="pill pill-green">Capturé</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>function switchTab(el,id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}</script>
+</body></html>

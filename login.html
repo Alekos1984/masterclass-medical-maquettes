@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,800&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;--serif:'Instrument Serif',serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);min-height:100vh;display:flex;flex-direction:column;}
+    nav{background:var(--black);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo-mark{width:30px;height:30px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;}
+    .logo-name{font-size:1rem;font-weight:800;color:white;}
+    .split{display:grid;grid-template-columns:1fr 1fr;flex:1;min-height:calc(100vh - 64px);}
+    .left{background:linear-gradient(135deg,#080810,#1a0408,#0a1018);padding:60px 48px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+    .left::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(200,16,46,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(200,16,46,0.05) 1px,transparent 1px);background-size:56px 56px;}
+    .glow{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:500px;height:400px;background:radial-gradient(ellipse,rgba(200,16,46,0.15) 0%,transparent 65%);pointer-events:none;}
+    .left-inner{position:relative;z-index:2;max-width:380px;}
+    .left-title{font-size:2rem;font-weight:800;color:white;letter-spacing:-0.8px;line-height:1.15;margin-bottom:12px;}
+    .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:#ff8a96;}
+    .left-sub{font-size:14px;color:rgba(255,255,255,0.4);margin-bottom:32px;line-height:1.7;}
+    .feature{display:flex;gap:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+    .feature-icon{font-size:18px;flex-shrink:0;}
+    .feature-text{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.5;}
+    .feature-text strong{color:white;}
+    .right{display:flex;align-items:center;justify-content:center;padding:48px;}
+    .form-box{width:100%;max-width:400px;}
+    .eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px;}
+    .form-title{font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;}
+    .form-sub{font-size:14px;color:var(--gray);margin-bottom:24px;}
+    .role-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px;}
+    .rtab{border:1.5px solid var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
+    .rtab.active{border-color:var(--red);background:#fff5f6;}
+    .rtab-icon{font-size:20px;margin-bottom:4px;}
+    .rtab-label{font-size:12px;font-weight:700;color:var(--black);}
+    .rtab.active .rtab-label{color:var(--red);}
+    .rtab-sub{font-size:10px;color:var(--gray);}
+    .field{margin-bottom:16px;}
+    .field-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+    label{font-size:13px;font-weight:600;color:var(--black);}
+    input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;font-family:var(--sans);color:var(--black);outline:none;transition:border-color .15s;}
+    input:focus{border-color:var(--red);}
+    .forgot{font-size:12px;color:var(--red);text-decoration:none;font-weight:600;}
+    .btn{width:100%;background:var(--red);color:white;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:var(--sans);margin-top:4px;box-shadow:0 4px 16px rgba(200,16,46,0.25);transition:background .15s;}
+    .btn:hover{background:#a50d25;}
+    .divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
+    .divider-line{flex:1;height:1px;background:var(--border);}
+    .divider-text{font-size:12px;color:var(--gray);}
+    .btn-google{width:100%;background:white;border:1.5px solid var(--border);border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:8px;transition:border-color .15s;}
+    .btn-google:hover{border-color:#ccc;}
+    .form-footer{text-align:center;margin-top:20px;font-size:13px;color:var(--gray);}
+    .form-footer a{color:var(--red);font-weight:600;text-decoration:none;}
+    .err{background:#ffebee;border:1.5px solid #ef9a9a;border-radius:9px;padding:10px 14px;font-size:13px;color:#c62828;margin-bottom:16px;display:none;}
+    .err.show{display:block;}
+  </style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo"><div class="logo-mark">M</div><span class="logo-name">Masterclass Médical</span></a>
+  <span style="font-size:13px;color:rgba(255,255,255,.45);">Pas de compte ? <a href="inscription_formateur.html" style="color:#ff8a96;font-weight:600;text-decoration:none;">S'inscrire →</a></span>
+</nav>
+<div class="split">
+  <div class="left">
+    <div class="glow"></div>
+    <div class="left-inner">
+      <div class="left-title">La plateforme de<br><span class="serif">formation médicale</span><br>indépendante.</div>
+      <div class="left-sub">De l'idée à la formation réelle — logistique, documents, inscriptions, attestations. Tout automatisé.</div>
+      <div class="feature"><span class="feature-icon">⚡</span><div class="feature-text"><strong>Documents réglementaires</strong> générés automatiquement</div></div>
+      <div class="feature"><span class="feature-icon">🏨</span><div class="feature-text"><strong>Devis de salle</strong> obtenu sous 72h partout en France</div></div>
+      <div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><strong>IA intégrée</strong> pour programme et objectifs pédagogiques</div></div>
+      <div class="feature"><span class="feature-icon">📄</span><div class="feature-text"><strong>Attestations et émargement</strong> numériques horodatés</div></div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="form-box">
+      <div class="eyebrow">Connexion</div>
+      <div class="form-title">Bon retour 👋</div>
+      <div class="form-sub">Accédez à votre espace formateur ou participant.</div>
+      <div class="role-tabs">
+        <div class="rtab active" onclick="selectRole(this,'formateur')">
+          <div class="rtab-icon">🎓</div><div class="rtab-label">Formateur</div><div class="rtab-sub">Gérez vos formations</div>
+        </div>
+        <div class="rtab" onclick="selectRole(this,'participant')">
+          <div class="rtab-icon">👤</div><div class="rtab-label">Participant</div><div class="rtab-sub">Vos inscriptions</div>
+        </div>
+      </div>
+      <div class="err" id="err">Email ou mot de passe incorrect.</div>
+      <div class="field"><label>Email professionnel</label><input type="email" id="email" placeholder="nom@hopital.fr" style="margin-top:5px;"></div>
+      <div class="field">
+        <div class="field-row"><label>Mot de passe</label><a href="#" class="forgot">Mot de passe oublié ?</a></div>
+        <input type="password" id="pwd" placeholder="••••••••••">
+      </div>
+      <button class="btn" id="loginBtn" onclick="doLogin()">Se connecter →</button>
+      <div class="divider"><div class="divider-line"></div><span class="divider-text">ou</span><div class="divider-line"></div></div>
+      <button class="btn-google">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continuer avec Google
+      </button>
+      <div class="form-footer">Pas encore de compte ? <a href="inscription_formateur.html" id="inscLink">Créer un compte formateur →</a></div>
+    </div>
+  </div>
+</div>
+<script>
+  let role = 'formateur';
+  function selectRole(el, r) {
+    document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active'); role = r;
+    const l = document.getElementById('inscLink');
+    l.href = r==='formateur' ? 'inscription_formateur.html' : 'inscription_participant.html';
+    l.textContent = r==='formateur' ? 'Créer un compte formateur →' : 'Créer un compte participant →';
+  }
+  function doLogin() {
+    const e = document.getElementById('email').value, p = document.getElementById('pwd').value;
+    const btn = document.getElementById('loginBtn');
+    if (!e||!p){document.getElementById('err').classList.add('show');return;}
+    document.getElementById('err').classList.remove('show');
+    btn.textContent='⏳ Connexion…'; btn.disabled=true;
+    setTimeout(()=>{ window.location = role==='formateur' ? 'dashboard_formateur.html' : 'participant_dashboard.html'; },1200);
+  }
+</script>
+</body>
+</html>

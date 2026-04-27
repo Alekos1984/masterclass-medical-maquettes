@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Détail formation — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0F0F0F;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-logo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .slm{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sln{font-size:12px;font-weight:700;color:white;line-height:1.2;}
+    .sls{font-size:10px;color:rgba(255,255,255,0.28);margin-top:1px;}
+    .sidebar-nav{padding:14px 10px;flex:1;}
+    .nl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.18);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:4px;margin-top:14px;display:block;}
+    .nl:first-child{margin-top:0;}
+    .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:1px;text-decoration:none;transition:background 0.15s;}
+    .ni:hover{background:rgba(255,255,255,0.05);}
+    .ni.active{background:rgba(200,16,46,0.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .ni span.ic{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+    .ni span.lb{font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);}
+    .ni.active span.lb{color:white;font-weight:600;}
+    .nb{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,0.06);}
+    .su{display:flex;align-items:center;gap:10px;}
+    .sa{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .sun{font-size:12px;font-weight:600;color:white;}
+    .sur{font-size:10px;color:rgba(255,255,255,0.3);}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .topbar-back{font-size:13px;color:var(--gray);text-decoration:none;display:flex;align-items:center;gap:5px;}
+    .topbar-back:hover{color:var(--black);}
+    .topbar-sep{width:1px;height:18px;background:var(--border);}
+    .topbar-title{font-size:14px;font-weight:700;}
+    .topbar-right{display:flex;align-items:center;gap:8px;}
+    .pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;display:inline-block;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-orange{background:#fff3e0;color:#e65100;}
+    .pill-blue{background:#e3f2fd;color:#1565c0;}
+    .pill-gray{background:#f5f5f5;color:#9e9e9e;}
+    .btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:background 0.15s;display:inline-flex;align-items:center;gap:6px;}
+    .btn-red{background:var(--red);color:white;}
+    .btn-red:hover{background:#a50d25;}
+    .btn-ghost{background:white;color:var(--gray);border:1.5px solid var(--border);}
+    .btn-ghost:hover{border-color:var(--red);color:var(--red);}
+    .content{padding:24px 28px;}
+    /* HERO */
+    .formation-hero{background:linear-gradient(135deg,#080810,#1a0408);border-radius:16px;padding:24px 28px;margin-bottom:20px;position:relative;overflow:hidden;}
+    .formation-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(200,16,46,0.18) 0%,transparent 65%);pointer-events:none;}
+    .formation-hero-title{font-size:20px;font-weight:800;color:white;letter-spacing:-0.5px;margin-bottom:6px;}
+    .formation-hero-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+    .formation-hero-meta span{font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:5px;}
+    .formation-hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .fhs{background:rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;}
+    .fhs-val{font-size:20px;font-weight:800;color:white;letter-spacing:-0.5px;}
+    .fhs-label{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+    /* TABS */
+    .tabs-bar{background:white;border:1px solid var(--border);border-radius:12px;padding:3px;display:flex;gap:2px;margin-bottom:20px;}
+    .tab{flex:1;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;color:var(--gray);cursor:pointer;text-align:center;transition:background 0.15s,color 0.15s;}
+    .tab.active{background:var(--red);color:white;}
+    /* PANELS */
+    .panel{display:none;}
+    .panel.active{display:block;}
+    /* GRID */
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .grid3{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+    /* CARD */
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .card:last-child{margin-bottom:0;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .card-title{font-size:13px;font-weight:700;color:var(--black);}
+    /* INSCRITS TABLE */
+    table{width:100%;border-collapse:collapse;}
+    thead th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);padding:8px 10px;text-align:left;border-bottom:1px solid var(--light-gray);}
+    tbody td{font-size:12px;padding:10px;border-bottom:1px solid var(--light-gray);vertical-align:middle;}
+    tbody tr:last-child td{border-bottom:none;}
+    tbody tr:hover td{background:var(--off-white);}
+    .td-name{font-weight:600;color:var(--black);}
+    .td-sub{font-size:11px;color:var(--gray);margin-top:1px;}
+    /* DOCUMENTS */
+    .doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .doc-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;transition:border-color 0.15s;cursor:pointer;}
+    .doc-item:hover{border-color:var(--red);}
+    .doc-item.ready{border-color:#c8e6c9;}
+    .doc-icon{font-size:18px;flex-shrink:0;}
+    .doc-name{font-size:12px;font-weight:600;color:var(--black);}
+    .doc-status{font-size:10px;margin-top:1px;}
+    .doc-item.ready .doc-status{color:#2e7d32;}
+    .doc-item:not(.ready) .doc-status{color:var(--gray);}
+    .doc-dl{margin-left:auto;font-size:12px;color:var(--gray);}
+    /* JAUGE */
+    .jauge{margin-bottom:8px;}
+    .jauge-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+    .jauge-bar{background:var(--light-gray);border-radius:100px;height:6px;overflow:hidden;}
+    .jauge-fill{height:100%;border-radius:100px;background:var(--red);}
+    /* INFO ROW */
+    .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--light-gray);font-size:12px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{color:var(--gray);}
+    .info-val{font-weight:600;color:var(--black);}
+    /* ÉVALUATIONS */
+    .eval-star{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--light-gray);}
+    .eval-star:last-child{border-bottom:none;}
+    .eval-label{font-size:12px;color:var(--gray);min-width:120px;}
+    .eval-bar{flex:1;background:var(--light-gray);border-radius:100px;height:5px;overflow:hidden;}
+    .eval-fill{height:100%;border-radius:100px;background:#ffc107;}
+    .eval-val{font-size:12px;font-weight:700;color:var(--black);min-width:30px;text-align:right;}
+    /* EMARGEMENT BADGE */
+    .emargt-badge{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--off-white);border-radius:10px;margin-bottom:12px;}
+    .emargt-val{font-size:24px;font-weight:800;color:var(--black);}
+    .emargt-label{font-size:12px;color:var(--gray);}
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sidebar-logo"><div class="slm">M</div><div><div class="sln">Masterclass Médical</div><div class="sls">Espace formateur</div></div></div>
+  <div class="sidebar-nav">
+    <span class="nl">Principal</span>
+    <a href="dashboard_formateur.html" class="ni"><span class="ic">📊</span><span class="lb">Dashboard</span></a>
+    <a href="formateur_mes_formations.html" class="ni active"><span class="ic">🎓</span><span class="lb">Mes formations</span></a>
+    <a href="#" class="ni"><span class="ic">➕</span><span class="lb">Nouvelle formation</span></a>
+    <span class="nl">Gestion</span>
+    <a href="#" class="ni"><span class="ic">👥</span><span class="lb">Participants</span></a>
+    <a href="formateur_emargement.html" class="ni"><span class="ic">✍️</span><span class="lb">Émargement</span><span class="nb">1</span></a>
+    <a href="#" class="ni"><span class="ic">📄</span><span class="lb">Documents</span></a>
+    <a href="formateur_paiements.html" class="ni"><span class="ic">💳</span><span class="lb">Paiements</span></a>
+    <span class="nl">Profil</span>
+    <a href="formateur_portfolio.html" class="ni"><span class="ic">🏆</span><span class="lb">Portfolio</span></a>
+    <a href="formateur_profil.html" class="ni"><span class="ic">⚙️</span><span class="lb">Mon profil</span></a>
+  </div>
+  <div class="sidebar-footer"><div class="su"><div class="sa">PD</div><div><div class="sun">Dr. Pierre Dumont</div><div class="sur">Cardiologue · Lyon</div></div></div></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="formateur_mes_formations.html" class="topbar-back">← Mes formations</a>
+      <div class="topbar-sep"></div>
+      <div class="topbar-title">Cardiologie interventionnelle — Lyon 2026</div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill pill-green">Publiée</span>
+      <button class="btn btn-ghost">Modifier</button>
+      <a href="formateur_emargement.html"><button class="btn btn-red">✍️ Émargement</button></a>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- HERO -->
+    <div class="formation-hero">
+      <div class="formation-hero-title">Cardiologie interventionnelle — Techniques avancées 2026</div>
+      <div class="formation-hero-meta">
+        <span>📅 15 novembre 2026</span>
+        <span>📍 Lyon · Marriott, Salle Rhône</span>
+        <span>🕐 7h · Masterclass</span>
+        <span>🎓 Niveau intermédiaire</span>
+      </div>
+      <div class="formation-hero-stats">
+        <div class="fhs"><div class="fhs-val">12</div><div class="fhs-label">Inscrits / 15</div></div>
+        <div class="fhs"><div class="fhs-val">3</div><div class="fhs-label">Places restantes</div></div>
+        <div class="fhs"><div class="fhs-val" style="font-size:16px;">5 400 €</div><div class="fhs-label">Revenus bruts HT</div></div>
+        <div class="fhs"><div class="fhs-val">20j</div><div class="fhs-label">Avant la formation</div></div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+      <div class="tab active" onclick="switchTab('inscrits',this)">👥 Inscrits (12)</div>
+      <div class="tab" onclick="switchTab('documents',this)">📄 Documents</div>
+      <div class="tab" onclick="switchTab('emargement',this)">✍️ Émargement</div>
+      <div class="tab" onclick="switchTab('evaluations',this)">⭐ Évaluations</div>
+      <div class="tab" onclick="switchTab('infos',this)">ℹ️ Informations</div>
+    </div>
+
+    <!-- INSCRITS -->
+    <div class="panel active" id="panel-inscrits">
+      <div class="grid3">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Liste des participants</span>
+            <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;">📥 Exporter CSV</button>
+          </div>
+          <div class="jauge">
+            <div class="jauge-top"><span>Places occupées</span><span style="font-weight:700;">12 / 15</span></div>
+            <div class="jauge-bar"><div class="jauge-fill" style="width:80%;"></div></div>
+          </div>
+          <table>
+            <thead><tr><th>Participant</th><th>Inscription</th><th>Paiement</th><th>Convention</th></tr></thead>
+            <tbody>
+              <tr><td><div class="td-name">Dr. Sophie Bernard</div><div class="td-sub">Cardiologue · Paris</div></td><td>18 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Marc Lefebvre</div><div class="td-sub">Cardiologue · Lille</div></td><td>20 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Anne Chartier</div><div class="td-sub">Rythmologue · Marseille</div></td><td>22 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-orange">En attente</span></td></tr>
+              <tr><td><div class="td-name">Dr. Thomas Moreau</div><div class="td-sub">Médecin interne · Bordeaux</div></td><td>24 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Isabelle Petit</div><div class="td-sub">Cardiologue · Lyon</div></td><td>25 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Pierre Martin</div><div class="td-sub">Cardiologue · Nantes</div></td><td>26 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Claire Dupont</div><div class="td-sub">Cardiologue · Strasbourg</div></td><td>28 oct.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Nicolas Roy</div><div class="td-sub">Médecin · Toulouse</div></td><td>2 nov.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Émilie Blanc</div><div class="td-sub">Cardiologue · Rennes</div></td><td>4 nov.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Julien Noir</div><div class="td-sub">Cardiologue · Montpellier</div></td><td>6 nov.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Sarah Cohen</div><div class="td-sub">Cardiologue · Nice</div></td><td>8 nov.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-green">Signée</span></td></tr>
+              <tr><td><div class="td-name">Dr. Antoine Lebrun</div><div class="td-sub">Médecin · Grenoble</div></td><td>10 nov.</td><td><span class="pill pill-green">Payé</span></td><td><span class="pill pill-orange">En attente</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Résumé financier</span></div>
+            <div class="info-row"><span class="info-key">Prix unitaire HT</span><span class="info-val">450 €</span></div>
+            <div class="info-row"><span class="info-key">Inscrits payés</span><span class="info-val">12</span></div>
+            <div class="info-row"><span class="info-key">Revenus bruts HT</span><span class="info-val">5 400 €</span></div>
+            <div class="info-row"><span class="info-key">Commission (20%)</span><span class="info-val" style="color:var(--red);">− 1 080 €</span></div>
+            <div class="info-row"><span class="info-key">Revenus nets HT</span><span class="info-val" style="color:#2e7d32;font-size:15px;font-weight:800;">4 320 €</span></div>
+            <div style="margin-top:12px;padding:10px 12px;background:#e8f5e9;border-radius:8px;font-size:12px;color:#2e7d32;">Versement estimé sous 7 jours après la formation.</div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Kit formateur J-7</span></div>
+            <div style="font-size:13px;color:var(--gray);margin-bottom:10px;">Envoyé automatiquement le <strong style="color:var(--black);">8 novembre 2026</strong></div>
+            <div style="font-size:12px;color:#2e7d32;">✓ Liste nominative<br>✓ Adresse et plan d'accès<br>✓ Contacts Marriott<br>✓ Feuille d'émargement PDF backup</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="panel" id="panel-documents">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Documents générés automatiquement</span></div>
+        <div style="font-size:12px;color:var(--gray);margin-bottom:14px;">Tous les documents ont été générés après validation du devis le 1er octobre 2026.</div>
+        <div style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Communication</div>
+        <div class="doc-grid" style="margin-bottom:20px;">
+          <div class="doc-item ready"><div class="doc-icon">🌐</div><div><div class="doc-name">Landing page publique</div><div class="doc-status">✓ En ligne · masterclassmedical.fr/…</div></div><span class="doc-dl">🔗</span></div>
+          <div class="doc-item ready"><div class="doc-icon">📄</div><div><div class="doc-name">Affiche A4 PDF</div><div class="doc-status">✓ Générée · 1,2 Mo</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">📄</div><div><div class="doc-name">Affiche A3 PDF</div><div class="doc-status">✓ Générée · 1,8 Mo</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">📑</div><div><div class="doc-name">Flyer A5 PDF</div><div class="doc-status">✓ Générée · 0,8 Mo</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">🖼️</div><div><div class="doc-name">Visuel LinkedIn</div><div class="doc-status">✓ PNG 1200×628px</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">🖼️</div><div><div class="doc-name">Visuel réseaux sociaux</div><div class="doc-status">✓ PNG carré + story</div></div><span class="doc-dl">↓</span></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Pédagogiques & administratifs</div>
+        <div class="doc-grid" style="margin-bottom:20px;">
+          <div class="doc-item ready"><div class="doc-icon">📋</div><div><div class="doc-name">Programme officiel PDF</div><div class="doc-status">✓ Format réglementaire</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">✍️</div><div><div class="doc-name">Feuille d'émargement</div><div class="doc-status">✓ Numérique initialisé</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">📜</div><div><div class="doc-name">Conventions de formation</div><div class="doc-status">✓ 12 signées · 2 en attente</div></div><span class="doc-dl">↓</span></div>
+          <div class="doc-item ready"><div class="doc-icon">🧳</div><div><div class="doc-name">Kit formateur</div><div class="doc-status">✓ Envoyé le 8 nov. 2026</div></div><span class="doc-dl">↓</span></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Post-formation (J+1)</div>
+        <div class="doc-grid">
+          <div class="doc-item"><div class="doc-icon">📄</div><div><div class="doc-name">Feuille de présence certifiée</div><div class="doc-status">⏳ Générée après émargement</div></div></div>
+          <div class="doc-item"><div class="doc-icon">📋</div><div><div class="doc-name">PV de formation</div><div class="doc-status">⏳ Généré après émargement</div></div></div>
+          <div class="doc-item"><div class="doc-icon">🎓</div><div><div class="doc-name">Attestations participants</div><div class="doc-status">⏳ Envoyées J+1</div></div></div>
+          <div class="doc-item"><div class="doc-icon">📊</div><div><div class="doc-name">Bilan pédagogique</div><div class="doc-status">⏳ Disponible J+3</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMARGEMENT -->
+    <div class="panel" id="panel-emargement">
+      <div class="grid3">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Statut émargement</span></div>
+          <div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#795548;">
+            <strong>Session non ouverte.</strong> Vous pourrez ouvrir l'émargement le jour de la formation. Chaque participant recevra un lien unique sécurisé par email.
+          </div>
+          <div class="emargt-badge"><div><div class="emargt-val">12</div><div class="emargt-label">Participants à émarger</div></div></div>
+          <div class="emargt-badge"><div><div class="emargt-val">0</div><div class="emargt-label">Présences confirmées</div></div></div>
+          <div style="margin-top:16px;">
+            <a href="formateur_emargement.html"><button class="btn btn-red" style="width:100%;justify-content:center;">✍️ Ouvrir la session d'émargement</button></a>
+            <div style="font-size:11px;color:var(--gray);text-align:center;margin-top:6px;">Disponible le jour de la formation · 15 novembre 2026</div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Comment ça marche</span></div>
+            <div style="font-size:13px;color:var(--gray);line-height:1.7;">
+              <strong style="color:var(--black);">1.</strong> Ouvrez la session le matin<br>
+              <strong style="color:var(--black);">2.</strong> Chaque participant reçoit un lien unique<br>
+              <strong style="color:var(--black);">3.</strong> Il clique et confirme sa présence<br>
+              <strong style="color:var(--black);">4.</strong> Vous suivez en temps réel<br>
+              <strong style="color:var(--black);">5.</strong> Clôturez en fin de journée<br>
+              <strong style="color:var(--black);">6.</strong> Feuille de présence certifiée générée
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÉVALUATIONS -->
+    <div class="panel" id="panel-evaluations">
+      <div class="card">
+        <div style="text-align:center;padding:40px;color:var(--gray);">
+          <div style="font-size:40px;margin-bottom:12px;">⭐</div>
+          <div style="font-size:16px;font-weight:700;color:var(--black);margin-bottom:6px;">Les évaluations seront disponibles après la formation</div>
+          <div style="font-size:13px;">Les participants reçoivent le questionnaire de satisfaction automatiquement à J+1. La synthèse sera disponible ici à J+3.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFOS -->
+    <div class="panel" id="panel-infos">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Informations générales</span><button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;">Modifier</button></div>
+          <div class="info-row"><span class="info-key">Titre</span><span class="info-val">Cardiologie interventionnelle — Techniques avancées 2026</span></div>
+          <div class="info-row"><span class="info-key">Thématique</span><span class="info-val">Cardiologie</span></div>
+          <div class="info-row"><span class="info-key">Format</span><span class="info-val">Masterclass · 7 heures</span></div>
+          <div class="info-row"><span class="info-key">Date</span><span class="info-val">15 novembre 2026</span></div>
+          <div class="info-row"><span class="info-key">Lieu</span><span class="info-val">Marriott Lyon, Salle Rhône</span></div>
+          <div class="info-row"><span class="info-key">Participants</span><span class="info-val">Max 15 · Min 8</span></div>
+          <div class="info-row"><span class="info-key">Prix HT</span><span class="info-val">450 €</span></div>
+          <div class="info-row"><span class="info-key">Niveau</span><span class="info-val">Intermédiaire</span></div>
+          <div class="info-row"><span class="info-key">Public cible</span><span class="info-val">Médecins spécialistes</span></div>
+          <div class="info-row"><span class="info-key">COI</span><span class="info-val">Liens déclarés (Medtronic, Abbott)</span></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Frais de salle</span></div>
+          <div class="info-row"><span class="info-key">Établissement</span><span class="info-val">Marriott Lyon Cité Int.</span></div>
+          <div class="info-row"><span class="info-key">Devis salle HT</span><span class="info-val">1 200 €</span></div>
+          <div class="info-row"><span class="info-key">Frais gestion (10%)</span><span class="info-val">120 €</span></div>
+          <div class="info-row"><span class="info-key">Total payé HT</span><span class="info-val" style="font-weight:800;">1 320 €</span></div>
+          <div class="info-row"><span class="info-key">Statut</span><span class="info-val"><span class="pill pill-green">Payé</span></span></div>
+          <div style="margin-top:14px;"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;">📄 Voir la facture salle</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function switchTab(id,el){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+id).classList.add('active');
+  }
+</script>
+</body>
+</html>

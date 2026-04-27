@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Émargement — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{--red:#C8102E;--black:#0F0F0F;--off-white:#F9F7F4;--gray:#6A6A6A;--light-gray:#EBEBEB;--border:#E0E0E0;--sans:'DM Sans',system-ui,sans-serif;}
+    body{font-family:var(--sans);background:var(--off-white);color:var(--black);display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:#0F0F0F;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-logo{padding:22px 18px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .slm{width:28px;height:28px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;}
+    .sln{font-size:12px;font-weight:700;color:white;}.sls{font-size:10px;color:rgba(255,255,255,0.28);margin-top:1px;}
+    .snav{padding:14px 10px;flex:1;}
+    .nl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.18);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:4px;margin-top:14px;display:block;}
+    .nl:first-child{margin-top:0;}
+    .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:1px;text-decoration:none;transition:background 0.15s;}
+    .ni:hover{background:rgba(255,255,255,0.05);}
+    .ni.active{background:rgba(200,16,46,0.18);border-left:2px solid var(--red);border-radius:0 7px 7px 0;padding-left:8px;}
+    .ni .ic{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+    .ni .lb{font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);}
+    .ni.active .lb{color:white;font-weight:600;}
+    .nb{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;}
+    .sft{padding:14px;border-top:1px solid rgba(255,255,255,0.06);}
+    .su{display:flex;align-items:center;gap:10px;}
+    .sa{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),#ff6b7a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .sun{font-size:12px;font-weight:600;color:white;}.sur{font-size:10px;color:rgba(255,255,255,0.3);}
+    .main{flex:1;overflow-x:hidden;min-width:0;}
+    .topbar{background:white;border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .topbar-back{font-size:13px;color:var(--gray);text-decoration:none;}
+    .topbar-back:hover{color:var(--black);}
+    .tsep{width:1px;height:18px;background:var(--border);}
+    .topbar-title{font-size:14px;font-weight:700;}
+    .btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;transition:background 0.15s;}
+    .btn-red{background:var(--red);color:white;}
+    .btn-red:hover{background:#a50d25;}
+    .btn-green{background:#2e7d32;color:white;}
+    .btn-green:hover{background:#1b5e20;}
+    .btn-ghost{background:white;color:var(--gray);border:1.5px solid var(--border);}
+    .btn-ghost:hover{border-color:var(--red);color:var(--red);}
+    .content{padding:24px 28px;}
+    /* SESSION HEADER */
+    .session-header{background:linear-gradient(135deg,#0a2010,#0a1808);border-radius:16px;padding:22px 28px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
+    .session-header::before{content:'';position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(46,204,113,0.18) 0%,transparent 65%);}
+    .session-live{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
+    .live-text{font-size:12px;font-weight:700;color:#4caf50;letter-spacing:1px;text-transform:uppercase;}
+    .session-title{font-size:18px;font-weight:800;color:white;letter-spacing:-0.3px;margin-bottom:4px;}
+    .session-sub{font-size:13px;color:rgba(255,255,255,0.45);}
+    .session-stats{display:flex;gap:20px;}
+    .ss{text-align:center;}
+    .ss-val{font-size:28px;font-weight:800;color:white;letter-spacing:-1px;}
+    .ss-label{font-size:11px;color:rgba(255,255,255,0.4);}
+    /* GRID */
+    .page-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;}
+    .card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .card:last-child{margin-bottom:0;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .card-title{font-size:13px;font-weight:700;color:var(--black);}
+    /* PARTICIPANTS LIST */
+    .participant-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;margin-bottom:6px;transition:background 0.15s;border:1.5px solid var(--border);}
+    .participant-row:last-child{margin-bottom:0;}
+    .participant-row.present{border-color:#c8e6c9;background:#f1f8e9;}
+    .participant-row.absent{border-color:#f5f5f5;background:#fafafa;opacity:0.7;}
+    .participant-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .participant-name{font-size:13px;font-weight:700;color:var(--black);flex:1;}
+    .participant-spec{font-size:11px;color:var(--gray);}
+    .participant-time{font-size:11px;color:#2e7d32;font-weight:600;}
+    .participant-status{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .status-present{background:#e8f5e9;color:#2e7d32;}
+    .status-waiting{background:#f5f5f5;color:#9e9e9e;}
+    .btn-manual{font-size:11px;font-weight:600;padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;background:white;cursor:pointer;font-family:var(--sans);color:var(--gray);}
+    .btn-manual:hover{border-color:var(--red);color:var(--red);}
+    /* DEMI JOURNÉES */
+    .dj-tabs{display:flex;gap:8px;margin-bottom:16px;}
+    .dj-tab{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+    .dj-tab.active{border-color:var(--red);background:#fff5f6;}
+    .dj-tab-title{font-size:13px;font-weight:700;color:var(--black);}
+    .dj-tab.active .dj-tab-title{color:var(--red);}
+    .dj-tab-sub{font-size:11px;color:var(--gray);margin-top:2px;}
+    /* SIDEBAR */
+    .sidebar-sticky{position:sticky;top:80px;}
+    .progress-circle{width:100px;height:100px;border-radius:50%;background:conic-gradient(var(--red) 0% 70%,var(--light-gray) 70% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+    .progress-inner{width:72px;height:72px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+    .progress-val{font-size:18px;font-weight:800;color:var(--black);line-height:1;}
+    .progress-label{font-size:9px;color:var(--gray);}
+    .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--light-gray);font-size:12px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{color:var(--gray);}
+    .info-val{font-weight:600;color:var(--black);}
+    /* ALERT */
+    .alert-green{background:#e8f5e9;border:1.5px solid #c8e6c9;border-radius:10px;padding:12px 14px;font-size:13px;color:#2e7d32;margin-bottom:12px;}
+    /* PILL */
+    .pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;}
+    .pill-green{background:#e8f5e9;color:#2e7d32;}
+    .pill-gray{background:#f5f5f5;color:#9e9e9e;}
+  
+    /* ===== SIDEBAR UNIQUE ===== */
+    .sidebar { width: 220px; background: #0F0F0F; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo-link { display: flex; text-decoration: none; }
+    .sidebar-logo { padding: 22px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); width: 100%; }
+    .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: #C8102E; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
+    .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
+    .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 1px; }
+    .sidebar-nav { padding: 14px 10px; flex: 1; }
+    .nav-section { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.18); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; margin-top: 14px; display: block; }
+    .nav-section:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; cursor: pointer; margin-bottom: 1px; text-decoration: none; transition: background 0.15s; }
+    .nav-item:hover { background: rgba(255,255,255,0.05); }
+    .nav-item.active { background: rgba(200,16,46,0.18); border-left: 2px solid #C8102E; border-radius: 0 7px 7px 0; padding-left: 8px; }
+    .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); }
+    .nav-item.active .nav-label { color: white; font-weight: 600; }
+    .nav-badge { margin-left: auto; background: #C8102E; color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 100px; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 10px; }
+    .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #C8102E, #ff6b7a); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 600; color: white; }
+    .sidebar-user-role { font-size: 10px; color: rgba(255,255,255,0.3); }
+    /* ===== FIN SIDEBAR ===== */
+  </style>
+</head>
+<body>
+<div class="sidebar">
+  <a href="index.html" class="sidebar-logo-link">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">M</div>
+      <div><div class="sidebar-logo-name">Masterclass Médical</div><div class="sidebar-logo-sub">Espace formateur</div></div>
+    </div>
+  </a>
+  <nav class="sidebar-nav">
+    <span class="nav-section">Principal</span>
+    <a href="dashboard_formateur.html" class="nav-item">
+      <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+    </a>
+    <a href="formateur_mes_formations.html" class="nav-item">
+      <span class="nav-icon">🎓</span><span class="nav-label">Mes formations</span>
+    </a>
+    <a href="form_creation_masterclass.html" class="nav-item">
+      <span class="nav-icon">➕</span><span class="nav-label">Nouvelle formation</span>
+    </a>
+    <span class="nav-section">Gestion</span>
+    <a href="formateur_mes_formations.html" class="nav-item">
+      <span class="nav-icon">👥</span><span class="nav-label">Participants</span>
+    </a>
+    <a href="formateur_emargement.html" class="nav-item active">
+      <span class="nav-icon">✍️</span><span class="nav-label">Émargement</span>
+      <span class="nav-badge">1</span>
+    </a>
+    <a href="formateur_detail_formation.html" class="nav-item">
+      <span class="nav-icon">📄</span><span class="nav-label">Documents</span>
+    </a>
+    <a href="formateur_paiements.html" class="nav-item">
+      <span class="nav-icon">💳</span><span class="nav-label">Paiements</span>
+    </a>
+    <span class="nav-section">Profil</span>
+    <a href="formateur_portfolio.html" class="nav-item">
+      <span class="nav-icon">🏆</span><span class="nav-label">Portfolio</span>
+    </a>
+    <a href="formateur_profil.html" class="nav-item">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Mon profil</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">PD</div>
+    <div><div class="sidebar-user-name">Dr. Pierre Dumont</div><div class="sidebar-user-role">Cardiologue · Lyon</div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="formateur_detail_formation.html" class="topbar-back">← Cardiologie inter. — Lyon</a>
+      <div class="tsep"></div>
+      <div class="topbar-title">Émargement · 15 novembre 2026</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="sendReminder()">📧 Renvoyer les liens</button>
+      <button class="btn btn-green" onclick="cloture()" id="btnCloture">🔒 Clôturer la session</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- SESSION HEADER -->
+    <div class="session-header">
+      <div>
+        <div class="session-live"><div class="live-dot"></div><span class="live-text">Session ouverte · En direct</span></div>
+        <div class="session-title">Cardiologie interventionnelle — Techniques avancées 2026</div>
+        <div class="session-sub">15 novembre 2026 · Ouverte à 08h31 · Marriott Lyon, Salle Rhône</div>
+      </div>
+      <div class="session-stats">
+        <div class="ss"><div class="ss-val" id="countPresent">9</div><div class="ss-label">Présents</div></div>
+        <div class="ss"><div class="ss-val" style="color:rgba(255,255,255,0.4);" id="countAbsent">3</div><div class="ss-label">En attente</div></div>
+        <div class="ss"><div class="ss-val" style="color:rgba(255,255,255,0.4);">12</div><div class="ss-label">Total</div></div>
+      </div>
+    </div>
+
+    <div class="page-grid">
+      <div>
+        <!-- DEMI JOURNÉES -->
+        <div class="dj-tabs">
+          <div class="dj-tab active" onclick="switchDJ(this,'matin')">
+            <div class="dj-tab-title">Matin</div>
+            <div class="dj-tab-sub">08h30 – 12h30 · 9/12 présents</div>
+          </div>
+          <div class="dj-tab" onclick="switchDJ(this,'aprem')">
+            <div class="dj-tab-title">Après-midi</div>
+            <div class="dj-tab-sub">13h30 – 17h30 · Non ouvert</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Présences en temps réel</span>
+            <span style="font-size:12px;color:var(--gray);">Mise à jour automatique</span>
+          </div>
+
+          <!-- PRÉSENTS -->
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#2e7d32;margin-bottom:8px;">Présents (9)</div>
+
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#2e7d32,#66bb6a);">SB</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Sophie Bernard</div><div class="participant-spec">Cardiologue · Paris</div></div>
+            <div class="participant-time">Émargé à 08h34</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#1565c0,#42a5f5);">ML</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Marc Lefebvre</div><div class="participant-spec">Cardiologue · Lille</div></div>
+            <div class="participant-time">Émargé à 08h37</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#6a1b9a,#ab47bc);">AC</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Anne Chartier</div><div class="participant-spec">Rythmologue · Marseille</div></div>
+            <div class="participant-time">Émargé à 08h41</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#e65100,#ff9800);">TM</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Thomas Moreau</div><div class="participant-spec">Médecine interne · Bordeaux</div></div>
+            <div class="participant-time">Émargé à 08h43</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#c62828,#ef5350);">IP</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Isabelle Petit</div><div class="participant-spec">Cardiologue · Lyon</div></div>
+            <div class="participant-time">Émargé à 08h47</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#2e7d32,#4caf50);">PM</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Pierre Martin</div><div class="participant-spec">Cardiologue · Nantes</div></div>
+            <div class="participant-time">Émargé à 08h51</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#00695c,#26a69a);">CD</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Claire Dupont</div><div class="participant-spec">Cardiologue · Strasbourg</div></div>
+            <div class="participant-time">Émargé à 09h02</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#4527a0,#7e57c2);">NR</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Nicolas Roy</div><div class="participant-spec">Médecin · Toulouse</div></div>
+            <div class="participant-time">Émargé à 09h05</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+          <div class="participant-row present">
+            <div class="participant-avatar" style="background:linear-gradient(135deg,#ad1457,#f06292);">EB</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Émilie Blanc</div><div class="participant-spec">Cardiologue · Rennes</div></div>
+            <div class="participant-time">Émargé à 09h11</div>
+            <div class="participant-status status-present">✓</div>
+          </div>
+
+          <div style="height:12px;"></div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:8px;">En attente de réponse (3)</div>
+
+          <div class="participant-row absent">
+            <div class="participant-avatar" style="background:#bdbdbd;">JN</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Julien Noir</div><div class="participant-spec">Cardiologue · Montpellier</div></div>
+            <span style="font-size:11px;color:var(--gray);">Lien envoyé à 08h31</span>
+            <button class="btn-manual" onclick="markPresent(this,'JN')">Marquer présent</button>
+          </div>
+          <div class="participant-row absent">
+            <div class="participant-avatar" style="background:#bdbdbd;">SC</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Sarah Cohen</div><div class="participant-spec">Cardiologue · Nice</div></div>
+            <span style="font-size:11px;color:var(--gray);">Lien envoyé à 08h31</span>
+            <button class="btn-manual" onclick="markPresent(this,'SC')">Marquer présent</button>
+          </div>
+          <div class="participant-row absent">
+            <div class="participant-avatar" style="background:#bdbdbd;">AL</div>
+            <div style="flex:1;"><div class="participant-name">Dr. Antoine Lebrun</div><div class="participant-spec">Médecin · Grenoble</div></div>
+            <span style="font-size:11px;color:var(--gray);">Lien envoyé à 08h31</span>
+            <button class="btn-manual" onclick="markPresent(this,'AL')">Marquer présent</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div>
+        <div class="sidebar-sticky">
+          <div class="card">
+            <div class="card-title" style="text-align:center;margin-bottom:16px;">Taux de présence</div>
+            <div class="progress-circle">
+              <div class="progress-inner">
+                <div class="progress-val">75%</div>
+                <div class="progress-label">présents</div>
+              </div>
+            </div>
+            <div class="info-row"><span class="info-key">Présents</span><span class="info-val" style="color:#2e7d32;" id="sidePresent">9</span></div>
+            <div class="info-row"><span class="info-key">En attente</span><span class="info-val" id="sideAbsent">3</span></div>
+            <div class="info-row"><span class="info-key">Session ouverte</span><span class="info-val">08h31</span></div>
+            <div class="info-row"><span class="info-key">Dernière présence</span><span class="info-val">09h11</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Lien d'émargement</div>
+            <div style="font-size:12px;color:var(--gray);margin-bottom:10px;">Partagez ce lien aux participants qui n'ont pas reçu l'email :</div>
+            <div style="background:var(--off-white);border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;color:var(--black);word-break:break-all;margin-bottom:8px;">masterclassmedical.fr/emarger/[token-unique]</div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px;" onclick="copyLink()">📋 Copier le lien</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Notes admin</div>
+            <textarea style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:13px;font-family:var(--sans);resize:none;min-height:80px;outline:none;" placeholder="Notes sur le déroulement de la journée…"></textarea>
+          </div>
+
+          <div style="background:#f1f8e9;border:1.5px solid #c8e6c9;border-radius:12px;padding:14px 16px;">
+            <div style="font-size:13px;font-weight:700;color:#2e7d32;margin-bottom:8px;">À la clôture</div>
+            <div style="font-size:12px;color:#388e3c;line-height:1.7;">✓ Feuille de présence certifiée générée<br>✓ PV de formation créé<br>✓ Attestations envoyées J+1<br>✓ Questionnaire de satisfaction J+1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL CLOTURE -->
+<div id="modalCloture" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:36px;max-width:440px;width:90%;text-align:center;">
+    <div style="font-size:44px;margin-bottom:14px;">📋</div>
+    <div style="font-size:20px;font-weight:800;color:var(--black);margin-bottom:8px;">Clôturer l'émargement ?</div>
+    <div style="font-size:13px;color:var(--gray);line-height:1.6;margin-bottom:24px;">9 présences confirmées sur 12 participants.<br>3 participants seront marqués absents.<br><br>Une fois clôturée, la feuille de présence certifiée et le PV de formation seront générés automatiquement.</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('modalCloture').style.display='none'" style="flex:1;border:1.5px solid var(--border);background:white;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);">Annuler</button>
+      <button onclick="confirmCloture()" style="flex:1;background:#2e7d32;color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);">✓ Confirmer la clôture</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalSuccess" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:36px;max-width:440px;width:90%;text-align:center;">
+    <div style="font-size:44px;margin-bottom:14px;">✅</div>
+    <div style="font-size:20px;font-weight:800;color:var(--black);margin-bottom:8px;">Session clôturée !</div>
+    <div style="font-size:13px;color:var(--gray);line-height:1.6;margin-bottom:24px;">Feuille de présence certifiée générée · PV de formation créé<br>Les attestations seront envoyées automatiquement demain matin.</div>
+    <button onclick="window.location='formateur_detail_formation.html'" style="background:var(--black);color:white;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);">Retour à la formation →</button>
+  </div>
+</div>
+
+<script>
+  let presences = 9;
+  function markPresent(btn, initials) {
+    const row = btn.closest('.participant-row');
+    row.classList.remove('absent');
+    row.classList.add('present');
+    const avatar = row.querySelector('.participant-avatar');
+    avatar.style.background = 'linear-gradient(135deg,#2e7d32,#66bb6a)';
+    const time = document.createElement('div');
+    time.className = 'participant-time';
+    time.textContent = 'Manuel · ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    row.insertBefore(time, btn);
+    btn.remove();
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'participant-status status-present';
+    statusDiv.textContent = '✓';
+    row.appendChild(statusDiv);
+    presences++;
+    document.getElementById('countPresent').textContent = presences;
+    document.getElementById('countAbsent').textContent = 12 - presences;
+    document.getElementById('sidePresent').textContent = presences;
+    document.getElementById('sideAbsent').textContent = 12 - presences;
+  }
+  function cloture() { document.getElementById('modalCloture').style.display = 'flex'; }
+  function confirmCloture() {
+    document.getElementById('modalCloture').style.display = 'none';
+    setTimeout(() => document.getElementById('modalSuccess').style.display = 'flex', 1000);
+  }
+  function switchDJ(el, dj) {
+    document.querySelectorAll('.dj-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function copyLink() { alert('Lien copié dans le presse-papiers'); }
+  function sendReminder() {
+    const btn = event.target;
+    btn.textContent = '✓ Envoyé';
+    btn.style.background = '#e8f5e9';
+    btn.style.color = '#2e7d32';
+  }
+</script>
+</body>
+</html>

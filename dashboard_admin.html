@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin — Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #C8102E; --black: #0F0F0F; --off-white: #F9F7F4;
+      --gray: #6A6A6A; --light-gray: #EBEBEB; --border: #E0E0E0;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    html, body { height: 100%; }
+    body { font-family: var(--sans); background: var(--off-white); color: var(--black); display: flex; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: 220px; background: #0a0a0a; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo { padding: 22px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
+    .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
+    .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 1px; }
+    .sidebar-nav { padding: 14px 10px; flex: 1; }
+    .nav-section-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.18); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; margin-top: 14px; display: block; }
+    .nav-section-label:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; cursor: pointer; margin-bottom: 1px; text-decoration: none; transition: background 0.15s; }
+    .nav-item:hover { background: rgba(255,255,255,0.05); }
+    .nav-item.active { background: rgba(200,16,46,0.18); border-left: 2px solid var(--red); border-radius: 0 7px 7px 0; padding-left: 8px; }
+    .nav-item-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-item-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); }
+    .nav-item.active .nav-item-label { color: white; font-weight: 600; }
+    .nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 100px; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .admin-tag { display: inline-flex; align-items: center; gap: 6px; background: rgba(200,16,46,0.15); border: 1px solid rgba(200,16,46,0.3); border-radius: 6px; padding: 5px 10px; }
+    .admin-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff8a96; }
+    .admin-tag-text { font-size: 11px; font-weight: 600; color: #ff8a96; }
+
+    /* MAIN */
+    .main { flex: 1; overflow-x: hidden; min-width: 0; }
+    .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .topbar-title { font-size: 15px; font-weight: 700; color: var(--black); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-date { font-size: 12px; color: var(--gray); }
+    .topbar-notif { position: relative; width: 34px; height: 34px; border-radius: 7px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; }
+    .notif-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); border: 1.5px solid white; }
+    .content { padding: 24px 28px; }
+
+    /* METRICS */
+    .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    .metric-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+    .metric-label { font-size: 10px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+    .metric-val { font-size: 24px; font-weight: 800; color: var(--black); letter-spacing: -0.8px; line-height: 1; }
+    .metric-sub { font-size: 11px; color: var(--gray); margin-top: 4px; }
+    .metric-trend { font-size: 10px; font-weight: 600; margin-top: 3px; }
+    .trend-up { color: #2e7d32; }
+    .trend-warn { color: #e65100; }
+
+    /* LAYOUT */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .three-col { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+    /* CARD */
+    .card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--black); }
+    .card-action { font-size: 11px; font-weight: 600; color: var(--red); cursor: pointer; text-decoration: none; }
+    .card-action:hover { text-decoration: underline; }
+
+    /* TABLE */
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gray); padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--light-gray); }
+    tbody td { font-size: 12px; color: var(--black); padding: 10px 10px; border-bottom: 1px solid var(--light-gray); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--off-white); cursor: pointer; }
+    .td-name { font-weight: 600; }
+    .td-sub { font-size: 11px; color: var(--gray); margin-top: 1px; }
+
+    /* PILLS */
+    .pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; display: inline-block; white-space: nowrap; }
+    .pill-green { background: #e8f5e9; color: #2e7d32; }
+    .pill-orange { background: #fff3e0; color: #e65100; }
+    .pill-red { background: #ffebee; color: #c62828; }
+    .pill-blue { background: #e3f2fd; color: #1565c0; }
+    .pill-gray { background: #f5f5f5; color: #9e9e9e; }
+
+    /* BTNS */
+    .btn-sm { border: none; border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: opacity 0.15s; }
+    .btn-sm:hover { opacity: 0.8; }
+    .btn-primary-sm { background: var(--red); color: white; }
+    .btn-ghost-sm { background: var(--off-white); color: var(--gray); border: 1px solid var(--border); }
+    .btn-success-sm { background: #e8f5e9; color: #2e7d32; }
+
+    /* SLA */
+    .sla-bar { display: flex; align-items: center; gap: 8px; }
+    .sla-track { flex: 1; background: var(--light-gray); border-radius: 100px; height: 4px; overflow: hidden; }
+    .sla-fill { height: 100%; border-radius: 100px; }
+    .sla-text { font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+    /* REVENUE CHART */
+    .rev-bars { display: flex; align-items: flex-end; gap: 6px; height: 70px; margin-top: 8px; }
+    .rev-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .rev-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--red); opacity: 0.7; transition: opacity 0.15s; }
+    .rev-bar:hover { opacity: 1; }
+    .rev-bar-label { font-size: 9px; color: var(--gray); }
+
+    /* NOTIFS */
+    .notif-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--light-gray); }
+    .notif-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .notif-item:first-child { padding-top: 0; }
+    .notif-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+    .ni-orange { background: #fff3e0; }
+    .ni-green { background: #e8f5e9; }
+    .ni-blue { background: #e3f2fd; }
+    .ni-red { background: #ffebee; }
+    .notif-text { font-size: 12px; color: var(--black); line-height: 1.4; flex: 1; }
+    .notif-time { font-size: 10px; color: var(--gray); margin-top: 2px; }
+    .notif-new { width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex-shrink: 0; margin-top: 5px; }
+
+    /* TRAITEMENT LINK */
+    .traitement-link { color: var(--red); font-size: 11px; font-weight: 700; text-decoration: none; }
+    .traitement-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-mark">M</div>
+    <div>
+      <div class="sidebar-logo-name">Masterclass Médical</div>
+      <div class="sidebar-logo-sub">Administration</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <span class="nav-section-label">Vue globale</span>
+    <a href="#" class="nav-item active">
+      <span class="nav-item-icon">📊</span>
+      <span class="nav-item-label">Dashboard</span>
+    </a>
+    <span class="nav-section-label">Gestion</span>
+    <a href="admin_demande_salle.html" class="nav-item">
+      <span class="nav-item-icon">🏨</span>
+      <span class="nav-item-label">Demandes de salle</span>
+      <span class="nav-badge">4</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">🎓</span>
+      <span class="nav-item-label">Formations</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">👨‍⚕️</span>
+      <span class="nav-item-label">Formateurs</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">👥</span>
+      <span class="nav-item-label">Participants</span>
+    </a>
+    <span class="nav-section-label">Finance</span>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">💳</span>
+      <span class="nav-item-label">Paiements</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">📈</span>
+      <span class="nav-item-label">Commissions</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">🔄</span>
+      <span class="nav-item-label">Abonnements</span>
+    </a>
+    <span class="nav-section-label">Support</span>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">↩️</span>
+      <span class="nav-item-label">Remboursements</span>
+      <span class="nav-badge">2</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">🛠️</span>
+      <span class="nav-item-label">Services devis</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="admin-tag">
+      <div class="admin-tag-dot"></div>
+      <span class="admin-tag-text">Admin · Accès complet</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard Administration</div>
+    <div class="topbar-right">
+      <div class="topbar-date">Dimanche 26 avril 2026</div>
+      <div class="topbar-notif">🔔<div class="notif-dot"></div></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- METRICS -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Formations actives</div>
+        <div class="metric-val">23</div>
+        <div class="metric-sub">8 publiées · 15 en cours</div>
+        <div class="metric-trend trend-up">↑ +3 ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Formateurs</div>
+        <div class="metric-val">41</div>
+        <div class="metric-sub">34 actifs · 7 inactifs</div>
+        <div class="metric-trend trend-up">↑ +5 ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Inscriptions</div>
+        <div class="metric-val">312</div>
+        <div class="metric-sub">Total toutes formations</div>
+        <div class="metric-trend trend-up">↑ +47 ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Revenus plateforme</div>
+        <div class="metric-val" style="font-size:18px;">18 640 €</div>
+        <div class="metric-sub">Commissions + frais gestion</div>
+        <div class="metric-trend trend-up">↑ +2 340 € ce mois</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Devis en attente</div>
+        <div class="metric-val" style="color:var(--red);">4</div>
+        <div class="metric-sub">SLA : 72h ouvrées</div>
+        <div class="metric-trend trend-warn">⚠ 1 expire demain</div>
+      </div>
+    </div>
+
+    <!-- DEMANDES DE SALLE + ACTIVITÉ -->
+    <div class="three-col">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Demandes de salle à traiter</span>
+          <a href="admin_demande_salle.html" class="card-action">Voir tout →</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Formateur · Lieu</th>
+              <th>Capacité</th>
+              <th>SLA restant</th>
+              <th>Statut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="window.location='admin_demande_salle.html'">
+              <td>
+                <div class="td-name">Dr. Dumont · Paris</div>
+                <div class="td-sub">Hôtel Lutetia · Salle conférence</div>
+              </td>
+              <td>10–25 pers.</td>
+              <td>
+                <div class="sla-bar">
+                  <div class="sla-track"><div class="sla-fill" style="width:85%;background:#e65100;"></div></div>
+                  <span class="sla-text" style="color:#e65100;">20h ⚠</span>
+                </div>
+              </td>
+              <td><span class="pill pill-orange">Contacté</span></td>
+              <td><a href="admin_demande_salle.html" class="traitement-link">Traiter →</a></td>
+            </tr>
+            <tr onclick="window.location='admin_demande_salle.html'">
+              <td>
+                <div class="td-name">Dr. Bernard · Bordeaux</div>
+                <div class="td-sub">Centre de Congrès · Grande salle</div>
+              </td>
+              <td>25–50 pers.</td>
+              <td>
+                <div class="sla-bar">
+                  <div class="sla-track"><div class="sla-fill" style="width:40%;background:#2e7d32;"></div></div>
+                  <span class="sla-text" style="color:#2e7d32;">48h</span>
+                </div>
+              </td>
+              <td><span class="pill pill-gray">En attente</span></td>
+              <td><a href="admin_demande_salle.html" class="traitement-link">Traiter →</a></td>
+            </tr>
+            <tr onclick="window.location='admin_demande_salle.html'">
+              <td>
+                <div class="td-name">Dr. Lefebvre · Lille</div>
+                <div class="td-sub">Novotel · Salle modulable</div>
+              </td>
+              <td>10–25 pers.</td>
+              <td>
+                <div class="sla-bar">
+                  <div class="sla-track"><div class="sla-fill" style="width:20%;background:#2e7d32;"></div></div>
+                  <span class="sla-text" style="color:#2e7d32;">60h</span>
+                </div>
+              </td>
+              <td><span class="pill pill-gray">En attente</span></td>
+              <td><a href="admin_demande_salle.html" class="traitement-link">Traiter →</a></td>
+            </tr>
+            <tr onclick="window.location='admin_demande_salle.html'">
+              <td>
+                <div class="td-name">Dr. Chartier · Nantes</div>
+                <div class="td-sub">Mercure · Salle de réunion</div>
+              </td>
+              <td>Moins de 10</td>
+              <td>
+                <div class="sla-bar">
+                  <div class="sla-track"><div class="sla-fill" style="width:10%;background:#2e7d32;"></div></div>
+                  <span class="sla-text" style="color:#2e7d32;">68h</span>
+                </div>
+              </td>
+              <td><span class="pill pill-gray">En attente</span></td>
+              <td><a href="admin_demande_salle.html" class="traitement-link">Traiter →</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-header">
+            <span class="card-title">Activité récente</span>
+            <a class="card-action">Tout voir</a>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon ni-green">💳</div>
+            <div>
+              <div class="notif-text">Paiement confirmé — <strong>Dr. Dumont · Lyon</strong> — 1 440 € HT</div>
+              <div class="notif-time">Il y a 1h</div>
+            </div>
+            <div class="notif-new"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon ni-blue">👨‍⚕️</div>
+            <div>
+              <div class="notif-text">Nouveau formateur — <strong>Dr. Anne Chartier</strong> · Marseille</div>
+              <div class="notif-time">Il y a 3h</div>
+            </div>
+            <div class="notif-new"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon ni-red">↩️</div>
+            <div>
+              <div class="notif-text">Remboursement demandé — <strong>Dr. Martin</strong> · Toulouse</div>
+              <div class="notif-time">Il y a 5h</div>
+            </div>
+            <div class="notif-new"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon ni-orange">🏨</div>
+            <div>
+              <div class="notif-text">Nouvelle demande salle — <strong>Dr. Chartier</strong> · Nantes</div>
+              <div class="notif-time">Hier 17h32</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Revenus mensuels (HT)</span></div>
+          <div style="font-size:11px;color:var(--gray);margin-bottom:6px;">Commissions + frais gestion</div>
+          <div class="rev-bars">
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:30%;"></div><div class="rev-bar-label">Nov</div></div>
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:45%;"></div><div class="rev-bar-label">Déc</div></div>
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:35%;"></div><div class="rev-bar-label">Jan</div></div>
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:60%;"></div><div class="rev-bar-label">Fév</div></div>
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:50%;"></div><div class="rev-bar-label">Mar</div></div>
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:75%;"></div><div class="rev-bar-label">Avr</div></div>
+            <div class="rev-bar-wrap"><div class="rev-bar" style="height:100%;opacity:1;"></div><div class="rev-bar-label" style="font-weight:700;color:var(--black);">Mai</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORMATIONS + FORMATEURS -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Formations récentes</span>
+          <a class="card-action">Voir tout →</a>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Formation</th><th>Inscrits</th><th>Revenus comm.</th><th>Statut</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="td-name">Cardiologie inter. — Lyon</div><div class="td-sub">15 nov. 2026 · Dr. Dumont</div></td>
+              <td>12 / 15</td><td>1 080 € HT</td>
+              <td><span class="pill pill-green">Publiée</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Échocardiographie — Paris</div><div class="td-sub">3 déc. 2026 · Dr. Bernard</div></td>
+              <td>6 / 15</td><td>384 € HT</td>
+              <td><span class="pill pill-orange">Devis reçu</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Rythmologie — Marseille</div><div class="td-sub">8 fév. 2027 · Dr. Chartier</div></td>
+              <td>3 / 15</td><td>234 € HT</td>
+              <td><span class="pill pill-blue">Validée</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Stenting — Toulouse</div><div class="td-sub">Juin 2026 · Dr. Dumont</div></td>
+              <td>14 / 15</td><td>3 360 € HT</td>
+              <td><span class="pill pill-gray">Archivée</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Formateurs actifs</span>
+          <a class="card-action">Voir tout →</a>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Formateur</th><th>Formations</th><th>Abonnement</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="td-name">Dr. P. Dumont</div><div class="td-sub">Cardiologue · Lyon</div></td>
+              <td>4</td><td><span class="pill pill-green">Actif</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Dr. S. Bernard</div><div class="td-sub">Cardiologue · Paris</div></td>
+              <td>2</td><td><span class="pill pill-green">Actif</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Dr. M. Lefebvre</div><div class="td-sub">Cardiologue · Lille</div></td>
+              <td>3</td><td><span class="pill pill-orange">Impayé</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Dr. A. Chartier</div><div class="td-sub">Rythmologue · Marseille</div></td>
+              <td>1</td><td><span class="pill pill-blue">1ère formation</span></td>
+            </tr>
+            <tr>
+              <td><div class="td-name">Dr. T. Moreau</div><div class="td-sub">Neurologue · Bordeaux</div></td>
+              <td>2</td><td><span class="pill pill-green">Actif</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cardiologie interventionnelle — Techniques avancées 2026 · Masterclass Médical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #C8102E; --red-light: #E8394A;
+      --black: #0F0F0F; --white: #FFFFFF;
+      --off-white: #F9F7F4; --gray: #6A6A6A;
+      --light-gray: #EBEBEB; --border: #E0E0E0;
+      --sans: 'DM Sans', system-ui, sans-serif;
+      --serif: 'Instrument Serif', serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); background: var(--white); color: var(--black); }
+
+    /* NAV */
+    nav { background: var(--black); padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; }
+    .nav-logo-name { font-size: 1rem; font-weight: 800; color: white; }
+    .nav-back { font-size: 13px; color: rgba(255,255,255,0.45); cursor: pointer; text-decoration: none; }
+    .nav-back:hover { color: rgba(255,255,255,0.75); }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #080810 0%, #1a0408 50%, #0a1018 100%); padding: 48px 40px 0; position: relative; overflow: hidden; }
+    .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(200,16,46,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(200,16,46,0.055) 1px, transparent 1px); background-size: 64px 64px; }
+    .hero-glow { position: absolute; top: -80px; right: -80px; width: 440px; height: 440px; background: radial-gradient(circle, rgba(200,16,46,0.18) 0%, transparent 65%); pointer-events: none; }
+    .hero-inner { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 320px; gap: 40px; align-items: start; }
+    .hero-breadcrumb { font-size: 12px; color: rgba(255,255,255,0.3); margin-bottom: 16px; }
+    .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .hero-badge { padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+    .badge-spec { background: rgba(200,16,46,0.15); border: 1px solid rgba(200,16,46,0.35); color: #ff8a96; }
+    .badge-date { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.65); }
+    .badge-places { background: rgba(46,204,113,0.12); border: 1px solid rgba(46,204,113,0.3); color: #7fe5a0; }
+    .hero-title { font-size: clamp(1.8rem, 3vw, 2.8rem); font-weight: 800; color: white; line-height: 1.1; letter-spacing: -1px; margin-bottom: 12px; }
+    .hero-title .serif { font-family: var(--serif); font-style: italic; font-weight: 400; color: #ff8a96; }
+    .hero-sub { font-size: 14px; color: rgba(255,255,255,0.48); line-height: 1.7; margin-bottom: 24px; max-width: 500px; }
+    .hero-meta { display: flex; gap: 20px; flex-wrap: wrap; padding-bottom: 0; }
+    .hero-meta-item { display: flex; align-items: center; gap: 7px; color: rgba(255,255,255,0.55); font-size: 13px; }
+    .hero-meta-item strong { color: white; font-weight: 600; }
+    .hero-formateur { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 20px; }
+    .formateur-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--red), #ff6b7a); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: white; flex-shrink: 0; }
+    .formateur-name { font-size: 14px; font-weight: 700; color: white; }
+    .formateur-spec { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+    .formateur-rating { font-size: 11px; color: #ffd700; margin-top: 2px; }
+
+    /* HERO CARD */
+    .hero-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 8px 40px rgba(0,0,0,0.3); }
+    .hero-card-price { font-size: 30px; font-weight: 800; color: var(--black); letter-spacing: -1px; margin-bottom: 2px; }
+    .hero-card-price span { font-size: 14px; font-weight: 400; color: var(--gray); letter-spacing: 0; }
+    .hero-card-tva { font-size: 11px; color: var(--gray); margin-bottom: 14px; }
+    .jauge { margin-bottom: 14px; }
+    .jauge-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .jauge-label { color: var(--gray); }
+    .jauge-count { font-weight: 700; color: var(--black); }
+    .jauge-bar { background: var(--light-gray); border-radius: 100px; height: 5px; overflow: hidden; }
+    .jauge-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--red), var(--red-light)); width: 80%; }
+    .jauge-urgence { font-size: 11px; color: var(--red); font-weight: 600; margin-top: 4px; }
+    .btn-inscrire { width: 100%; background: var(--red); color: white; border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: var(--sans); margin-bottom: 8px; box-shadow: 0 4px 14px rgba(200,16,46,0.3); transition: background 0.15s; }
+    .btn-inscrire:hover { background: #a50d25; }
+    .btn-contact { width: 100%; background: transparent; color: var(--gray); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: border-color 0.15s; }
+    .btn-contact:hover { border-color: #ccc; }
+    .card-infos { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--light-gray); }
+    .card-info-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--gray); margin-bottom: 6px; }
+    .card-info-row:last-child { margin-bottom: 0; }
+    .card-info-row strong { color: var(--black); }
+    .card-reassure { font-size: 11px; color: var(--gray); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--light-gray); text-align: center; }
+
+    /* TABS */
+    .tabs-bar { background: white; border-bottom: 1px solid var(--border); position: sticky; top: 64px; z-index: 90; }
+    .tabs-inner { max-width: 1100px; margin: 0 auto; padding: 0 40px; display: flex; }
+    .tab { padding: 16px 20px; font-size: 14px; font-weight: 600; color: var(--gray); cursor: pointer; border-bottom: 3px solid transparent; transition: color 0.15s, border-color 0.15s; white-space: nowrap; user-select: none; }
+    .tab.active { color: var(--black); border-bottom-color: var(--red); }
+    .tab:hover { color: var(--black); }
+
+    /* CONTENT */
+    .content-wrap { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+    .content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 40px; padding-top: 40px; padding-bottom: 60px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* TYPOGRAPHY */
+    .section-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--red); margin-bottom: 6px; }
+    .section-title { font-size: 20px; font-weight: 800; color: var(--black); letter-spacing: -0.3px; margin-bottom: 16px; }
+    .section-text { font-size: 14px; color: var(--gray); line-height: 1.75; }
+    .section-text p { margin-bottom: 12px; }
+    .section-text p:last-child { margin-bottom: 0; }
+    .sep { height: 1px; background: var(--light-gray); margin: 28px 0; }
+
+    /* OBJECTIFS */
+    .obj-list { display: flex; flex-direction: column; gap: 8px; }
+    .obj-item { display: flex; align-items: flex-start; gap: 12px; padding: 13px 16px; background: var(--off-white); border-radius: 12px; border-left: 3px solid var(--red); }
+    .obj-num { width: 22px; height: 22px; border-radius: 50%; background: var(--red); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .obj-text { font-size: 13px; color: var(--black); line-height: 1.55; font-weight: 500; }
+
+    /* PROGRAMME */
+    .prog-slot { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--light-gray); }
+    .prog-slot:last-child { border-bottom: none; }
+    .prog-time { font-size: 12px; font-weight: 700; color: var(--red); min-width: 100px; flex-shrink: 0; padding-top: 2px; }
+    .prog-title { font-size: 14px; font-weight: 700; color: var(--black); margin-bottom: 3px; }
+    .prog-desc { font-size: 13px; color: var(--gray); line-height: 1.5; }
+    .prog-type { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-top: 5px; display: inline-block; }
+    .type-cours { background: #e3f2fd; color: #1565c0; }
+    .type-atelier { background: #fce4ec; color: #880e4f; }
+    .type-pause { background: #f3e5f5; color: #6a1b9a; }
+    .type-table { background: #e8f5e9; color: #1b5e20; }
+
+    /* FORMATEUR */
+    .formateur-card { background: var(--off-white); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+    .formateur-card-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+    .formateur-card-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--red), #ff6b7a); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; color: white; flex-shrink: 0; }
+    .formateur-card-name { font-size: 17px; font-weight: 800; color: var(--black); margin-bottom: 2px; }
+    .formateur-card-spec { font-size: 13px; color: var(--gray); }
+    .formateur-stats { display: flex; gap: 20px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .formateur-stat { text-align: center; }
+    .formateur-stat-val { font-size: 18px; font-weight: 800; color: var(--black); }
+    .formateur-stat-label { font-size: 11px; color: var(--gray); margin-top: 1px; }
+    .formateur-bio { font-size: 13px; color: var(--gray); line-height: 1.65; }
+    .formateur-links { display: flex; gap: 8px; margin-top: 12px; }
+    .formateur-link { font-size: 12px; font-weight: 600; color: var(--black); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; text-decoration: none; transition: border-color 0.15s; }
+    .formateur-link:hover { border-color: var(--red); }
+
+    /* COI */
+    .coi-block { background: #fff8e1; border: 1.5px solid #ffe082; border-radius: 12px; padding: 14px 18px; }
+    .coi-title { font-size: 12px; font-weight: 700; color: #795548; margin-bottom: 6px; }
+    .coi-text { font-size: 13px; color: #795548; line-height: 1.6; }
+
+    /* LIEU */
+    .lieu-card { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+    .lieu-map { width: 100%; height: 160px; background: linear-gradient(135deg, #e8eaf6, #c5cae9); display: flex; align-items: center; justify-content: center; color: #5c6bc0; font-size: 13px; font-weight: 600; }
+    .lieu-info { padding: 18px; }
+    .lieu-name { font-size: 15px; font-weight: 800; color: var(--black); margin-bottom: 3px; }
+    .lieu-adresse { font-size: 13px; color: var(--gray); margin-bottom: 10px; }
+    .lieu-features { display: flex; flex-wrap: wrap; gap: 6px; }
+    .lieu-feature { font-size: 12px; color: var(--gray); background: var(--off-white); border: 1px solid var(--light-gray); border-radius: 6px; padding: 3px 9px; }
+
+    /* INFOS */
+    .infos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .info-card { background: var(--off-white); border-radius: 12px; padding: 14px; }
+    .info-card-icon { font-size: 18px; margin-bottom: 6px; }
+    .info-card-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+    .info-card-val { font-size: 13px; font-weight: 600; color: var(--black); }
+    .info-card-sub { font-size: 11px; color: var(--gray); margin-top: 2px; line-height: 1.4; }
+
+    /* BIBLIO */
+    .biblio-item { font-size: 13px; color: var(--gray); line-height: 1.5; padding: 10px 0 10px 14px; border-bottom: 1px solid var(--light-gray); position: relative; }
+    .biblio-item:last-child { border-bottom: none; }
+    .biblio-item::before { content: ''; position: absolute; left: 0; top: 18px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+
+    /* SIDEBAR */
+    .sidebar-sticky { position: sticky; top: 120px; }
+    .sidebar-card { background: white; border: 1.5px solid var(--border); border-radius: 14px; padding: 20px; }
+    .sidebar-card-price { font-size: 26px; font-weight: 800; color: var(--black); letter-spacing: -1px; margin-bottom: 2px; }
+    .sidebar-card-price span { font-size: 13px; font-weight: 400; color: var(--gray); letter-spacing: 0; }
+    .sidebar-docs { background: var(--off-white); border-radius: 14px; padding: 18px; margin-top: 16px; }
+    .sidebar-docs-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 10px; }
+    .sidebar-doc-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--black); margin-bottom: 7px; }
+    .sidebar-doc-item:last-child { margin-bottom: 0; }
+    .sidebar-share { background: var(--off-white); border-radius: 14px; padding: 16px; margin-top: 14px; }
+    .share-btns { display: flex; gap: 8px; margin-top: 8px; }
+    .share-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1.5px solid var(--border); background: white; font-size: 11px; font-weight: 600; color: var(--gray); cursor: pointer; font-family: var(--sans); text-align: center; transition: border-color 0.15s, color 0.15s; }
+    .share-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* FOOTER */
+    footer { background: var(--black); padding: 28px 40px; margin-top: 0; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-logo { display: flex; align-items: center; gap: 10px; }
+    .footer-logo-mark { width: 26px; height: 26px; border-radius: 6px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: white; }
+    .footer-logo-name { font-size: 14px; font-weight: 700; color: white; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-link { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-link:hover { color: white; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: white; border-radius: 20px; padding: 32px; max-width: 440px; width: 90%; position: relative; }
+    .modal-title { font-size: 18px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: var(--gray); margin-bottom: 20px; line-height: 1.5; }
+    .modal-price { background: var(--off-white); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+    .modal-price-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+    .modal-price-row:last-child { margin-bottom: 0; padding-top: 7px; border-top: 1px solid var(--border); font-weight: 700; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-field label { display: block; font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 4px; }
+    .modal-field input, .modal-field select { width: 100%; border: 1.5px solid var(--border); border-radius: 9px; padding: 9px 13px; font-size: 13px; font-family: var(--sans); outline: none; transition: border-color 0.15s; }
+    .modal-field input:focus, .modal-field select:focus { border-color: var(--red); }
+    .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-modal-submit { width: 100%; background: var(--red); color: white; border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: var(--sans); margin-top: 6px; box-shadow: 0 4px 14px rgba(200,16,46,0.3); transition: background 0.15s; }
+    .btn-modal-submit:hover:not(:disabled) { background: #a50d25; }
+    .btn-modal-submit:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+    .btn-modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray); }
+    .modal-success { text-align: center; padding: 12px 0; }
+    .modal-success-icon { font-size: 40px; margin-bottom: 12px; }
+    .modal-success-title { font-size: 18px; font-weight: 800; color: #2e7d32; margin-bottom: 8px; }
+    .modal-success-sub { font-size: 13px; color: var(--gray); line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-mark">M</div>
+    <span class="nav-logo-name">Masterclass Médical</span>
+  </a>
+  <a href="catalogue_formations.html" class="nav-back">← Catalogue des formations</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-breadcrumb">Formations → Cardiologie</div>
+      <div class="hero-badges">
+        <span class="hero-badge badge-spec">Cardiologie</span>
+        <span class="hero-badge badge-date">📅 15 novembre 2026</span>
+        <span class="hero-badge badge-places">● 3 places restantes</span>
+      </div>
+      <h1 class="hero-title">Cardiologie interventionnelle<br><span class="serif">Techniques avancées 2026</span></h1>
+      <p class="hero-sub">Une journée intensive pour maîtriser les techniques de coronarographie diagnostique et interventionnelle, animée par des experts de référence.</p>
+      <div class="hero-meta">
+        <div class="hero-meta-item">🕐 <strong>7 heures</strong> · Journée</div>
+        <div class="hero-meta-item">📍 <strong>Lyon</strong> · Marriott</div>
+        <div class="hero-meta-item">👥 <strong>15 max</strong> · Format premium</div>
+        <div class="hero-meta-item">🎓 Niveau <strong>intermédiaire</strong></div>
+      </div>
+      <div class="hero-formateur">
+        <div class="formateur-avatar">PD</div>
+        <div>
+          <div class="formateur-name">Dr. Pierre Dumont</div>
+          <div class="formateur-spec">Cardiologue interventionnel · CHU Lyon</div>
+          <div class="formateur-rating">⭐ 4.9 · 12 formations · 18 ans d'expérience</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-card-price">450 € <span>HT / participant</span></div>
+      <div class="hero-card-tva">Exonéré de TVA (art. 261-4-4° CGI)</div>
+      <div class="jauge">
+        <div class="jauge-top"><span class="jauge-label">Places réservées</span><span class="jauge-count">12 / 15</span></div>
+        <div class="jauge-bar"><div class="jauge-fill"></div></div>
+        <div class="jauge-urgence">⚡ Plus que 3 places disponibles</div>
+      </div>
+      <button class="btn-inscrire" onclick="document.getElementById('modal').classList.add('show')">S'inscrire maintenant →</button>
+      <button class="btn-contact">Poser une question</button>
+      <div class="card-infos">
+        <div class="card-info-row">📅 <span><strong>15 nov. 2026</strong> · 08h30–17h30</span></div>
+        <div class="card-info-row">📍 <span>Lyon · <strong>Marriott, Salle Rhône</strong></span></div>
+        <div class="card-info-row">🍽️ <span>Pause café + <strong>déjeuner inclus</strong></span></div>
+        <div class="card-info-row">📄 <span><strong>Attestation</strong> envoyée sous 24h</span></div>
+      </div>
+      <div class="card-reassure">🔒 Paiement sécurisé · Remboursement J-14</div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS BAR -->
+<div class="tabs-bar">
+  <div class="tabs-inner">
+    <div class="tab active" onclick="switchTab('programme', this)">Programme</div>
+    <div class="tab" onclick="switchTab('formateur', this)">Formateur</div>
+    <div class="tab" onclick="switchTab('lieu', this)">Lieu</div>
+    <div class="tab" onclick="switchTab('infos', this)">Infos pratiques</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+  <div class="content-grid">
+    <div>
+
+      <!-- PROGRAMME -->
+      <div class="tab-panel active" id="tab-programme">
+        <div class="section-eyebrow">Contenu</div>
+        <div class="section-title">Présentation & objectifs</div>
+        <div class="section-text">
+          <p>La cardiologie interventionnelle connaît des évolutions majeures dans la prise en charge des syndromes coronariens aigus et chroniques. Cette masterclass propose une mise à jour complète des pratiques de coronarographie diagnostique et interventionnelle, à destination des cardiologues souhaitant consolider leur expertise procédurale et décisionnelle.</p>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="obj-list">
+            <div class="obj-item"><div class="obj-num">1</div><div class="obj-text">Maîtriser les indications et contre-indications de la coronarographie diagnostique et interventionnelle</div></div>
+            <div class="obj-item"><div class="obj-num">2</div><div class="obj-text">Interpréter les résultats angiographiques et adapter la stratégie de revascularisation au profil du patient</div></div>
+            <div class="obj-item"><div class="obj-num">3</div><div class="obj-text">Gérer les complications péri-procédurales et connaître les protocoles d'urgence associés</div></div>
+            <div class="obj-item"><div class="obj-num">4</div><div class="obj-text">Intégrer les dernières recommandations ESC/ACC dans votre pratique quotidienne</div></div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="section-eyebrow">Déroulé</div>
+        <div class="section-title">Programme de la journée</div>
+        <div>
+          <div class="prog-slot"><div class="prog-time">08h30 – 09h00</div><div><div class="prog-title">Accueil & café</div><div class="prog-desc">Émargement et distribution des supports de cours.</div><span class="prog-type type-pause">Accueil</span></div></div>
+          <div class="prog-slot"><div class="prog-time">09h00 – 10h30</div><div><div class="prog-title">Indications & contre-indications de la coronarographie</div><div class="prog-desc">Présentation théorique : indications actuelles, stratification du risque, contre-indications absolues et relatives.</div><span class="prog-type type-cours">Cours magistral</span></div></div>
+          <div class="prog-slot"><div class="prog-time">10h30 – 10h45</div><div><div class="prog-title">Pause café</div><span class="prog-type type-pause">Pause</span></div></div>
+          <div class="prog-slot"><div class="prog-time">10h45 – 12h30</div><div><div class="prog-title">Interprétation angiographique — cas cliniques</div><div class="prog-desc">Analyse de 8 cas cliniques : lecture des images, scoring SYNTAX, décision thérapeutique en groupe.</div><span class="prog-type type-atelier">Atelier pratique</span></div></div>
+          <div class="prog-slot"><div class="prog-time">12h30 – 13h30</div><div><div class="prog-title">Déjeuner (inclus)</div><span class="prog-type type-pause">Pause</span></div></div>
+          <div class="prog-slot"><div class="prog-time">13h30 – 15h30</div><div><div class="prog-title">Stratégies de revascularisation — table ronde</div><div class="prog-desc">Discussion interactive : CABG vs PCI, lésions complexes, décision heart team.</div><span class="prog-type type-table">Table ronde</span></div></div>
+          <div class="prog-slot"><div class="prog-time">15h30 – 17h00</div><div><div class="prog-title">Gestion des complications péri-procédurales</div><div class="prog-desc">Protocoles d'urgence, no-reflow, perforation coronaire, tamponnade — simulation sur cas.</div><span class="prog-type type-cours">Cours + simulation</span></div></div>
+          <div class="prog-slot"><div class="prog-time">17h00 – 17h30</div><div><div class="prog-title">Synthèse & évaluation</div><div class="prog-desc">Récapitulatif des points clés, questions/réponses, remise des attestations.</div><span class="prog-type type-cours">Clôture</span></div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="section-eyebrow">Références</div>
+        <div class="section-title">Bibliographie scientifique</div>
+        <div>
+          <div class="biblio-item">Neumann FJ, et al. 2018 ESC/EACTS Guidelines on myocardial revascularization. <em>Eur Heart J.</em> 2019;40(2):87-165.</div>
+          <div class="biblio-item">Collet JP, et al. 2020 ESC Guidelines for the management of acute coronary syndromes. <em>Eur Heart J.</em> 2021;42(14):1289-1367.</div>
+          <div class="biblio-item">Lawton JS, et al. 2021 ACC/AHA/SCAI Guideline for Coronary Artery Revascularization. <em>J Am Coll Cardiol.</em> 2022;79(2):e21-e129.</div>
+          <div class="biblio-item">Mehran R, et al. Standardized Bleeding Definitions for Cardiovascular Clinical Trials. <em>Circulation.</em> 2011;123(23):2736-47.</div>
+        </div>
+      </div>
+
+      <!-- FORMATEUR -->
+      <div class="tab-panel" id="tab-formateur">
+        <div class="section-eyebrow">Votre formateur</div>
+        <div class="section-title">Qui anime cette masterclass ?</div>
+        <div class="formateur-card">
+          <div class="formateur-card-top">
+            <div class="formateur-card-avatar">PD</div>
+            <div>
+              <div class="formateur-card-name">Dr. Pierre Dumont</div>
+              <div class="formateur-card-spec">Cardiologue interventionnel · CHU de Lyon-Sud · Service de Cardiologie</div>
+            </div>
+          </div>
+          <div class="formateur-stats">
+            <div class="formateur-stat"><div class="formateur-stat-val">12</div><div class="formateur-stat-label">Formations</div></div>
+            <div class="formateur-stat"><div class="formateur-stat-val">4.9</div><div class="formateur-stat-label">Note moyenne</div></div>
+            <div class="formateur-stat"><div class="formateur-stat-val">18</div><div class="formateur-stat-label">Ans d'expérience</div></div>
+            <div class="formateur-stat"><div class="formateur-stat-val">34</div><div class="formateur-stat-label">Publications</div></div>
+          </div>
+          <div class="formateur-bio">Cardiologue interventionnel au CHU de Lyon-Sud depuis 2008, le Dr. Dumont est spécialisé dans la prise en charge des syndromes coronariens aigus et des techniques de revascularisation complexes. Auteur de 34 publications internationales, il intervient régulièrement dans des congrès européens de cardiologie (EuroPCR, ESC Congress).</div>
+          <div class="formateur-links">
+            <a href="#" class="formateur-link">🔗 LinkedIn</a>
+            <a href="#" class="formateur-link">🔬 ResearchGate</a>
+            <a href="#" class="formateur-link">📚 PubMed</a>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="section-eyebrow">Transparence</div>
+        <div class="section-title">Déclaration de conflits d'intérêt</div>
+        <div class="coi-block">
+          <div class="coi-title">⚠️ Liens d'intérêt déclarés</div>
+          <div class="coi-text">Le Dr. Pierre Dumont déclare avoir des liens d'intérêt avec les sociétés suivantes en rapport avec le contenu de cette formation : <strong>Medtronic</strong> (consultant, frais de congrès) · <strong>Abbott Vascular</strong> (honoraires de formation). Cette déclaration a été établie conformément aux recommandations du Conseil National de l'Ordre des Médecins.</div>
+        </div>
+      </div>
+
+      <!-- LIEU -->
+      <div class="tab-panel" id="tab-lieu">
+        <div class="section-eyebrow">Lieu de la formation</div>
+        <div class="section-title">Où se déroule la masterclass ?</div>
+        <div class="lieu-card">
+          <div class="lieu-map">📍 Marriott Lyon Cité Internationale · Vue carte interactive</div>
+          <div class="lieu-info">
+            <div class="lieu-name">Marriott Lyon Cité Internationale</div>
+            <div class="lieu-adresse">70 Quai Charles de Gaulle, 69006 Lyon · Salle Rhône (2e étage)</div>
+            <div class="lieu-features">
+              <span class="lieu-feature">🚗 Parking disponible</span>
+              <span class="lieu-feature">🚇 T1 Cité Internationale</span>
+              <span class="lieu-feature">📶 Wi-Fi haut débit</span>
+              <span class="lieu-feature">🎤 Sono & micro</span>
+              <span class="lieu-feature">📽️ Vidéoprojecteur</span>
+              <span class="lieu-feature">🍽️ Restauration incluse</span>
+            </div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="section-eyebrow">Accès</div>
+        <div class="section-title">Comment venir ?</div>
+        <div class="infos-grid">
+          <div class="info-card"><div class="info-card-icon">🚇</div><div class="info-card-title">Tramway</div><div class="info-card-val">T1 — Cité Internationale</div><div class="info-card-sub">Arrêt à 2 min à pied de l'hôtel</div></div>
+          <div class="info-card"><div class="info-card-icon">🚗</div><div class="info-card-title">Parking</div><div class="info-card-val">Parking Cité Internationale</div><div class="info-card-sub">Accès direct depuis l'hôtel</div></div>
+          <div class="info-card"><div class="info-card-icon">✈️</div><div class="info-card-title">Aéroport</div><div class="info-card-val">Lyon-Saint Exupéry</div><div class="info-card-sub">30 min en Rhônexpress</div></div>
+          <div class="info-card"><div class="info-card-icon">🚄</div><div class="info-card-title">Gare</div><div class="info-card-val">Lyon Part-Dieu</div><div class="info-card-sub">20 min en tramway T1</div></div>
+        </div>
+      </div>
+
+      <!-- INFOS PRATIQUES -->
+      <div class="tab-panel" id="tab-infos">
+        <div class="section-eyebrow">Tout ce qu'il faut savoir</div>
+        <div class="section-title">Informations pratiques</div>
+        <div class="infos-grid">
+          <div class="info-card"><div class="info-card-icon">📄</div><div class="info-card-title">Attestation</div><div class="info-card-val">Envoyée sous 24h</div><div class="info-card-sub">PDF nominatif envoyé par email après la formation</div></div>
+          <div class="info-card"><div class="info-card-icon">💳</div><div class="info-card-title">Paiement</div><div class="info-card-val">Sécurisé en ligne</div><div class="info-card-sub">Carte bancaire via Stripe · Facture PDF immédiate</div></div>
+          <div class="info-card"><div class="info-card-icon">❌</div><div class="info-card-title">Annulation</div><div class="info-card-val">Remboursement J-14</div><div class="info-card-sub">Remboursement intégral si annulation 14 jours avant</div></div>
+          <div class="info-card"><div class="info-card-icon">🎯</div><div class="info-card-title">Public cible</div><div class="info-card-val">Médecins spécialistes</div><div class="info-card-sub">Niveau intermédiaire requis · RPPS recommandé</div></div>
+          <div class="info-card"><div class="info-card-icon">📋</div><div class="info-card-title">Convention</div><div class="info-card-val">Signature électronique</div><div class="info-card-sub">Convention de formation envoyée via YouSign</div></div>
+          <div class="info-card"><div class="info-card-icon">🍽️</div><div class="info-card-title">Restauration</div><div class="info-card-val">Incluse</div><div class="info-card-sub">Pause café matin + déjeuner pris en charge</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <div class="sidebar-sticky">
+        <div class="sidebar-card">
+          <div class="sidebar-card-price">450 € <span>HT</span></div>
+          <div style="font-size:11px;color:var(--gray);margin-bottom:12px;">Exonéré de TVA (art. 261-4-4° CGI)</div>
+          <div class="jauge">
+            <div class="jauge-top"><span class="jauge-label">Places réservées</span><span class="jauge-count">12 / 15</span></div>
+            <div class="jauge-bar"><div class="jauge-fill"></div></div>
+            <div class="jauge-urgence">⚡ Plus que 3 places disponibles</div>
+          </div>
+          <button class="btn-inscrire" onclick="document.getElementById('modal').classList.add('show')">S'inscrire maintenant →</button>
+          <button class="btn-contact">Poser une question</button>
+          <div class="card-infos">
+            <div class="card-info-row">📅 <span><strong>15 nov. 2026</strong> · 08h30–17h30</span></div>
+            <div class="card-info-row">📍 <span>Lyon · <strong>Marriott, Salle Rhône</strong></span></div>
+            <div class="card-info-row">🍽️ <span>Pause café + <strong>déjeuner inclus</strong></span></div>
+            <div class="card-info-row">📄 <span><strong>Attestation</strong> envoyée sous 24h</span></div>
+          </div>
+          <div class="card-reassure">🔒 Paiement sécurisé · Remboursement J-14</div>
+        </div>
+
+        <div class="sidebar-docs">
+          <div class="sidebar-docs-title">Documents remis</div>
+          <div class="sidebar-doc-item"><span style="color:#2e7d32;font-size:14px;">✓</span> Convention de formation</div>
+          <div class="sidebar-doc-item"><span style="color:#2e7d32;font-size:14px;">✓</span> Facture participant PDF</div>
+          <div class="sidebar-doc-item"><span style="color:#2e7d32;font-size:14px;">✓</span> Programme officiel PDF</div>
+          <div class="sidebar-doc-item"><span style="color:#2e7d32;font-size:14px;">✓</span> Attestation de participation</div>
+          <div class="sidebar-doc-item"><span style="color:#2e7d32;font-size:14px;">✓</span> Questionnaire de satisfaction</div>
+        </div>
+
+        <div class="sidebar-share">
+          <div class="sidebar-docs-title">Partager cette formation</div>
+          <div class="share-btns">
+            <button class="share-btn">LinkedIn</button>
+            <button class="share-btn">Copier</button>
+            <button class="share-btn">Email</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <div class="footer-logo-mark">M</div>
+      <span class="footer-logo-name">Masterclass Médical</span>
+    </div>
+    <div class="footer-links">
+      <a href="catalogue_formations.html" class="footer-link">Catalogue des formations</a>
+      <a href="form_creation_masterclass.html" class="footer-link">Devenir formateur</a>
+      <a href="#" class="footer-link">CGU</a>
+      <a href="#" class="footer-link">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL INSCRIPTION -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="btn-modal-close" onclick="document.getElementById('modal').classList.remove('show')">×</button>
+    <div id="modal-form">
+      <div class="modal-title">Inscription à la formation</div>
+      <div class="modal-sub">Cardiologie interventionnelle — 15 novembre 2026 · Lyon</div>
+      <div class="modal-price">
+        <div class="modal-price-row"><span style="color:var(--gray);">Prix HT</span><span>450 €</span></div>
+        <div class="modal-price-row"><span style="color:var(--gray);">TVA</span><span>Exonérée</span></div>
+        <div class="modal-price-row"><span>Total à régler</span><span style="color:var(--red);">450 €</span></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field"><label>Prénom <span style="color:var(--red);">*</span></label><input type="text" placeholder="Jean"></div>
+        <div class="modal-field"><label>Nom <span style="color:var(--red);">*</span></label><input type="text" placeholder="Martin"></div>
+      </div>
+      <div class="modal-field"><label>Email professionnel <span style="color:var(--red);">*</span></label><input type="email" placeholder="jean.martin@hopital.fr"></div>
+      <div class="modal-field">
+        <label>Spécialité <span style="color:var(--red);">*</span></label>
+        <select><option value="">Sélectionner</option><option>Cardiologie</option><option>Médecine interne</option><option>Anesthésie-réanimation</option><option>Autre</option></select>
+      </div>
+      <div class="modal-field"><label>Numéro RPPS <span style="color:var(--gray);font-weight:400;font-size:12px;">(recommandé)</span></label><input type="text" placeholder="10 chiffres"></div>
+      <button class="btn-modal-submit" id="submitBtn" onclick="handleInscription()">Procéder au paiement →</button>
+      <div style="font-size:11px;color:var(--gray);text-align:center;margin-top:8px;">🔒 Paiement sécurisé Stripe · Convention de formation envoyée par email</div>
+    </div>
+    <div id="modal-success" style="display:none;" class="modal-success">
+      <div class="modal-success-icon">✅</div>
+      <div class="modal-success-title">Inscription confirmée !</div>
+      <div class="modal-success-sub">Vous recevrez dans quelques minutes :<br><strong>Email de confirmation</strong> · <strong>Facture PDF</strong> · <strong>Convention de formation</strong><br><br>À très bientôt à Lyon !</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(id, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-' + id).classList.add('active');
+    window.scrollTo({ top: document.querySelector('.tabs-bar').offsetTop - 64, behavior: 'smooth' });
+  }
+
+  function handleInscription() {
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = '⏳ Redirection vers le paiement…';
+    btn.disabled = true;
+    setTimeout(() => {
+      document.getElementById('modal-form').style.display = 'none';
+      document.getElementById('modal-success').style.display = 'block';
+    }, 1800);
+  }
+
+  // Close modal on overlay click
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+</script>
+</body>
+</html>
