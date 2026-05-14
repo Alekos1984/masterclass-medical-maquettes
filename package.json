@@ -8,7 +8,7 @@
   },
   "scripts": {
     "install": "cd web && npm install --include=dev",
-    "build": "cd web && npm run build",
+    "build": "cd web && npm run build && npm prune --production",
     "start": "cd web && npm start"
   }
 }
