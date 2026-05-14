@@ -1,81 +1,87 @@
-"use client";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-import { useState } from "react";
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
 
-const participants = [
-  {
-    initials: "SB", name: "Dr. Sophie Bernard", spec: "Cardiologue · Paris",
-    formation: "Cardiologie inter. — Lyon", date: "15 nov. 2026",
-    inscrit: "18 oct. 2026", paiement: "Payé · 450 €", convention: "Signée", attestation: "À venir",
-    actions: ["Email", "↓ Conv."],
-    avatarBg: "linear-gradient(135deg,#1565c0,#42a5f5)",
-    payClass: "pill-green", convClass: "pill-green", attestClass: "pill-orange",
-  },
-  {
-    initials: "ML", name: "Dr. Marc Lefebvre", spec: "Cardiologue · Lille",
-    formation: "Cardiologie inter. — Lyon", date: "15 nov. 2026",
-    inscrit: "20 oct. 2026", paiement: "Payé · 450 €", convention: "En attente", attestation: "À venir",
-    actions: ["Relancer", "↓ Conv."],
-    avatarBg: "linear-gradient(135deg,#2e7d32,#66bb6a)",
-    payClass: "pill-green", convClass: "pill-orange", attestClass: "pill-orange",
-  },
-  {
-    initials: "AC", name: "Dr. Anne Chartier", spec: "Rythmologue · Marseille",
-    formation: "Cardiologie inter. — Lyon", date: "15 nov. 2026",
-    inscrit: "22 oct. 2026", paiement: "Payé · 450 €", convention: "Signée", attestation: "À venir",
-    actions: ["Email", "↓ Conv."],
-    avatarBg: "linear-gradient(135deg,#6a1b9a,#ab47bc)",
-    payClass: "pill-green", convClass: "pill-green", attestClass: "pill-orange",
-  },
-  {
-    initials: "TM", name: "Dr. Thomas Moreau", spec: "Médecine interne · Bordeaux",
-    formation: "Cardiologie inter. — Lyon", date: "15 nov. 2026",
-    inscrit: "24 oct. 2026", paiement: "Payé · 450 €", convention: "Signée", attestation: "À venir",
-    actions: ["Email"],
-    avatarBg: "linear-gradient(135deg,#e65100,#ff9800)",
-    payClass: "pill-green", convClass: "pill-green", attestClass: "pill-orange",
-  },
-  {
-    initials: "IP", name: "Dr. Isabelle Petit", spec: "Cardiologue · Lyon",
-    formation: "Cardiologie inter. — Lyon", date: "15 nov. 2026",
-    inscrit: "25 oct. 2026", paiement: "Payé · 450 €", convention: "En attente", attestation: "À venir",
-    actions: ["Relancer"],
-    avatarBg: "linear-gradient(135deg,#ad1457,#f06292)",
-    payClass: "pill-green", convClass: "pill-orange", attestClass: "pill-orange",
-    separator: true,
-    separatorLabel: "Stenting coronarien — Toulouse · juin 2026 (terminée)",
-  },
-  {
-    initials: "NR", name: "Dr. Nicolas Roy", spec: "Médecin · Toulouse",
-    formation: "Stenting coronarien — Toulouse", date: "14 juin 2026",
-    inscrit: "15 mai 2026", paiement: "Payé · 420 €", convention: "Signée", attestation: "Envoyée",
-    actions: ["↓ Attest.", "↓ Facture"],
-    avatarBg: "linear-gradient(135deg,#00695c,#26a69a)",
-    payClass: "pill-green", convClass: "pill-green", attestClass: "pill-green",
-  },
-  {
-    initials: "EB", name: "Dr. Émilie Blanc", spec: "Cardiologue · Rennes",
-    formation: "Stenting coronarien — Toulouse", date: "14 juin 2026",
-    inscrit: "18 mai 2026", paiement: "Payé · 420 €", convention: "Signée", attestation: "Envoyée",
-    actions: ["↓ Attest.", "↓ Facture"],
-    avatarBg: "linear-gradient(135deg,#4527a0,#7e57c2)",
-    payClass: "pill-green", convClass: "pill-green", attestClass: "pill-green",
-  },
-];
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
-export default function FormateurParticipantsPage() {
-  const [search, setSearch] = useState("");
-  const [formation, setFormation] = useState("Toutes les formations");
-  const [statut, setStatut] = useState("Tous les statuts");
+function conventionPillClass(signed: boolean): string {
+  return signed ? "pill-green" : "pill-orange";
+}
 
-  const filtered = participants.filter((p) => {
-    const q = search.toLowerCase();
-    return (
-      (p.name.toLowerCase().includes(q) || p.spec.toLowerCase().includes(q) || !q) &&
-      (formation === "Toutes les formations" || p.formation.includes(formation.split("—")[0].trim())) &&
-      (statut === "Tous les statuts" || p.convention === statut || p.attestation === statut || p.paiement.startsWith(statut))
-    );
+function paiementPillClass(statut: string): string {
+  switch (statut) {
+    case "CONFIRMEE":
+      return "pill-green";
+    case "EN_ATTENTE_PAIEMENT":
+      return "pill-orange";
+    default:
+      return "pill-gray";
+  }
+}
+
+function paiementLabel(statut: string, montant: number): string {
+  switch (statut) {
+    case "CONFIRMEE":
+      return `Payé · ${montant.toLocaleString("fr-FR")} €`;
+    case "EN_ATTENTE_PAIEMENT":
+      return "En attente";
+    case "ANNULEE":
+      return "Annulée";
+    case "REMBOURSEE":
+      return "Remboursée";
+    default:
+      return statut;
+  }
+}
+
+export default async function FormateurParticipantsPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/auth/login");
+
+  const profil = await prisma.formateurProfile.findUnique({
+    where: { userId: session.user.id },
   });
+  if (!profil) redirect("/formateur/dashboard");
+
+  const inscriptions = await prisma.inscription.findMany({
+    where: {
+      formation: { formateurId: profil.id },
+    },
+    include: {
+      participant: {
+        include: { user: true },
+      },
+      formation: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Compute stats
+  const total = inscriptions.length;
+  const enCours = inscriptions.filter(
+    (i) =>
+      i.statut === "CONFIRMEE" &&
+      i.formation.date >= new Date()
+  ).length;
+  const conventionsEnAttente = inscriptions.filter(
+    (i) => i.statut === "CONFIRMEE" && !i.conventionSignee
+  ).length;
+  const attestationsEnvoyees = inscriptions.filter(
+    (i) => i.attestationUrl
+  ).length;
 
   return (
     <>
@@ -83,9 +89,15 @@ export default function FormateurParticipantsPage() {
         <div className="topbar-title">Mes participants</div>
         <button
           style={{
-            background: "white", border: "1.5px solid #E0E0E0", borderRadius: 8,
-            padding: "7px 14px", fontSize: 12, fontWeight: 600, color: "var(--gray)",
-            cursor: "pointer", fontFamily: "inherit",
+            background: "white",
+            border: "1.5px solid #E0E0E0",
+            borderRadius: 8,
+            padding: "7px 14px",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--gray)",
+            cursor: "pointer",
+            fontFamily: "inherit",
           }}
         >
           📥 Exporter CSV
@@ -94,130 +106,231 @@ export default function FormateurParticipantsPage() {
 
       <div className="content">
         {/* STATS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4,1fr)",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
           {[
-            { val: "34", label: "Total participants", color: undefined },
-            { val: "12", label: "Formation en cours", color: undefined },
-            { val: "31", label: "Attestations envoyées", color: "#2e7d32" },
-            { val: "3", label: "Conventions en attente", color: "var(--red)" },
+            { val: String(total), label: "Total participants", color: undefined },
+            { val: String(enCours), label: "Formation en cours", color: undefined },
+            {
+              val: String(attestationsEnvoyees),
+              label: "Attestations envoyées",
+              color: "#2e7d32",
+            },
+            {
+              val: String(conventionsEnAttente),
+              label: "Conventions en attente",
+              color: conventionsEnAttente > 0 ? "var(--red)" : undefined,
+            },
           ].map((s, i) => (
-            <div key={i} style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 12, padding: "16px 18px" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: s.color || "var(--black)" }}>{s.val}</div>
-              <div style={{ fontSize: 11, color: "var(--gray)", marginTop: 3 }}>{s.label}</div>
+            <div
+              key={i}
+              style={{
+                background: "white",
+                border: "1px solid #E0E0E0",
+                borderRadius: 12,
+                padding: "16px 18px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  letterSpacing: -0.5,
+                  color: s.color || "var(--black)",
+                }}
+              >
+                {s.val}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--gray)", marginTop: 3 }}>
+                {s.label}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* FILTERS */}
-        <div style={{
-          background: "white", border: "1px solid #E0E0E0", borderRadius: 12,
-          padding: "14px 18px", marginBottom: 20, display: "flex", gap: 10,
-          alignItems: "center", flexWrap: "wrap",
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8, background: "var(--off-white)",
-            border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "7px 12px",
-            flex: 1, minWidth: 200,
-          }}>
-            <span>🔍</span>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nom, email, spécialité…"
-              style={{ border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", background: "transparent", width: "100%" }}
-            />
+        {/* TABLE OR EMPTY STATE */}
+        {inscriptions.length === 0 ? (
+          <div
+            style={{
+              background: "white",
+              border: "1.5px dashed #E0E0E0",
+              borderRadius: 14,
+              padding: "60px 40px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 14 }}>👥</div>
+            <div
+              style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}
+            >
+              Aucun participant pour l&apos;instant
+            </div>
+            <div style={{ fontSize: 13, color: "var(--gray)", maxWidth: 380, margin: "0 auto" }}>
+              Les participants inscrits à vos formations apparaîtront ici.
+            </div>
           </div>
-          <select
-            value={formation}
-            onChange={(e) => setFormation(e.target.value)}
-            style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", background: "white" }}
+        ) : (
+          <div
+            style={{
+              background: "white",
+              border: "1px solid #E0E0E0",
+              borderRadius: 14,
+              overflow: "hidden",
+            }}
           >
-            <option>Toutes les formations</option>
-            <option>Cardiologie inter. — Lyon (nov. 2026)</option>
-            <option>Stenting — Toulouse (juin 2026)</option>
-          </select>
-          <select
-            value={statut}
-            onChange={(e) => setStatut(e.target.value)}
-            style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "7px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", background: "white" }}
-          >
-            <option>Tous les statuts</option>
-            <option>Payé</option>
-            <option>Signée</option>
-            <option>En attente</option>
-            <option>Envoyée</option>
-          </select>
-        </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Formation</th>
+                  <th>Inscription</th>
+                  <th>Paiement</th>
+                  <th>Convention</th>
+                  <th>Attestation</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {inscriptions.map((insc) => {
+                  const user = insc.participant.user;
+                  const name = user.name ?? user.email ?? "—";
+                  const initials = getInitials(name);
+                  const montant = Number(insc.montantHT);
+                  const attestLabel = insc.attestationUrl
+                    ? "Envoyée"
+                    : "À venir";
+                  const attestClass = insc.attestationUrl
+                    ? "pill-green"
+                    : "pill-orange";
 
-        {/* TABLE */}
-        <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, overflow: "hidden" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Participant</th>
-                <th>Formation</th>
-                <th>Inscription</th>
-                <th>Paiement</th>
-                <th>Convention</th>
-                <th>Attestation</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p, i) => (
-                <>
-                  {p.separator && (
-                    <tr key={`sep-${i}`} style={{ background: "#fafafa" }}>
-                      <td colSpan={7} style={{
-                        fontSize: 11, fontWeight: 700, color: "var(--gray)",
-                        textTransform: "uppercase", letterSpacing: 0.8, padding: "8px 14px",
-                      }}>
-                        {p.separatorLabel}
+                  return (
+                    <tr key={insc.id}>
+                      <td>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "white",
+                              flexShrink: 0,
+                              background:
+                                "linear-gradient(135deg,#1565c0,#42a5f5)",
+                            }}
+                          >
+                            {initials}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>
+                              {name}
+                            </div>
+                            {insc.participant.specialite && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "var(--gray)",
+                                  marginTop: 1,
+                                }}
+                              >
+                                {insc.participant.specialite}
+                                {insc.participant.ville
+                                  ? ` · ${insc.participant.ville}`
+                                  : ""}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, fontSize: 12 }}>
+                          {insc.formation.titre}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--gray)" }}>
+                          {formatDate(insc.formation.date)}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: 13 }}>
+                        {formatDate(insc.createdAt)}
+                      </td>
+                      <td>
+                        <span
+                          className={`pill ${paiementPillClass(insc.statut)}`}
+                        >
+                          {paiementLabel(insc.statut, montant)}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`pill ${conventionPillClass(insc.conventionSignee)}`}
+                        >
+                          {insc.conventionSignee ? "Signée" : "En attente"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`pill ${attestClass}`}>
+                          {attestLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: 5 }}>
+                          <button
+                            style={{
+                              border: "1px solid #E0E0E0",
+                              background: "white",
+                              borderRadius: 6,
+                              padding: "4px 9px",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              color: "var(--gray)",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            Email
+                          </button>
+                          {!insc.conventionSignee && (
+                            <button
+                              style={{
+                                border: "1px solid #E0E0E0",
+                                background: "white",
+                                borderRadius: 6,
+                                padding: "4px 9px",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                color: "var(--gray)",
+                                fontFamily: "inherit",
+                              }}
+                            >
+                              Relancer
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  )}
-                  <tr key={p.initials}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: "50%", display: "flex",
-                          alignItems: "center", justifyContent: "center", fontSize: 11,
-                          fontWeight: 700, color: "white", flexShrink: 0, background: p.avatarBg,
-                        }}>{p.initials}</div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
-                          <div style={{ fontSize: 11, color: "var(--gray)", marginTop: 1 }}>{p.spec}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, fontSize: 12 }}>{p.formation}</div>
-                      <div style={{ fontSize: 11, color: "var(--gray)" }}>{p.date}</div>
-                    </td>
-                    <td style={{ fontSize: 13 }}>{p.inscrit}</td>
-                    <td><span className={`pill ${p.payClass}`}>{p.paiement}</span></td>
-                    <td><span className={`pill ${p.convClass}`}>{p.convention}</span></td>
-                    <td><span className={`pill ${p.attestClass}`}>{p.attestation}</span></td>
-                    <td>
-                      <div style={{ display: "flex", gap: 5 }}>
-                        {p.actions.map((a, j) => (
-                          <button key={j} style={{
-                            border: "1px solid #E0E0E0", background: "white", borderRadius: 6,
-                            padding: "4px 9px", fontSize: 11, fontWeight: 600, cursor: "pointer",
-                            color: "var(--gray)", fontFamily: "inherit",
-                          }}>
-                            {a}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                </>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

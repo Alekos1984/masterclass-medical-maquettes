@@ -440,7 +440,7 @@ export default function InscriptionFormateurPage() {
                 borderRadius: 10, padding: "13px 28px", fontSize: 15,
                 fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
               }}
-              onClick={() => router.push("/auth/login")}
+              onClick={() => { window.location.href = "/auth/redirect"; }}
             >
               Accéder à mon espace →
             </button>
