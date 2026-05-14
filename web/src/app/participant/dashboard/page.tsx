@@ -1,10 +1,90 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { StatutInscription } from "@/generated/prisma/enums";
 
-export default function ParticipantDashboardPage() {
-  const [calAdded, setCalAdded] = useState(false);
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(date);
+}
+
+function formatDateLong(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(date);
+}
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function daysUntil(date: Date): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function statutPillClass(statut: string): { label: string; className: string } {
+  switch (statut) {
+    case StatutInscription.CONFIRMEE:
+      return { label: "Confirmée", className: "pill-green" };
+    case StatutInscription.EN_ATTENTE_PAIEMENT:
+      return { label: "En attente de paiement", className: "pill-orange" };
+    case StatutInscription.ANNULEE:
+      return { label: "Annulée", className: "pill-gray" };
+    case StatutInscription.REMBOURSEE:
+      return { label: "Remboursée", className: "pill-gray" };
+    default:
+      return { label: statut, className: "pill-gray" };
+  }
+}
+
+export default async function ParticipantDashboardPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/auth/login");
+  }
+
+  const profil = await prisma.participantProfile.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const inscriptions = profil
+    ? await prisma.inscription.findMany({
+        where: { participantId: profil.id },
+        include: { formation: true },
+        orderBy: { formation: { date: "asc" } },
+      })
+    : [];
+
+  const now = new Date();
+
+  const inscriptionsAVenir = inscriptions.filter(
+    (i) =>
+      i.formation.date >= now &&
+      i.statut !== StatutInscription.ANNULEE &&
+      i.statut !== StatutInscription.REMBOURSEE
+  );
+  const inscriptionsPassees = inscriptions.filter(
+    (i) =>
+      i.formation.date < now &&
+      i.statut !== StatutInscription.ANNULEE &&
+      i.statut !== StatutInscription.REMBOURSEE
+  );
+
+  const attestationsCount = inscriptionsPassees.filter((i) => i.attestationUrl).length;
+  const notesGiven = inscriptionsPassees.filter((i) => i.noteSatisfaction !== null);
+  const noteMoyenne =
+    notesGiven.length > 0
+      ? (notesGiven.reduce((sum, i) => sum + (i.noteSatisfaction ?? 0), 0) / notesGiven.length).toFixed(1)
+      : null;
+
+  const prochaineFormation = inscriptionsAVenir[0];
+  const userName = session.user.name ?? "Participant";
+  const initials = getInitials(userName);
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 40px 60px" }}>
@@ -22,24 +102,36 @@ export default function ParticipantDashboardPage() {
         }} />
         <div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "white", letterSpacing: -0.3, marginBottom: 4 }}>
-            Bonjour, Dr. Bernard 👋
+            Bonjour, {userName} 👋
           </div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>
-            Vous avez une formation dans 20 jours. Pensez à vérifier vos documents.
+            {prochaineFormation
+              ? (() => {
+                  const days = daysUntil(prochaineFormation.formation.date);
+                  if (days === 0) return "Votre formation a lieu aujourd'hui !";
+                  if (days === 1) return "Votre formation a lieu demain.";
+                  return `Vous avez une formation dans ${days} jours. Pensez à vérifier vos documents.`;
+                })()
+              : inscriptionsPassees.length > 0
+              ? "Retrouvez l'historique de vos formations ci-dessous."
+              : "Découvrez nos formations disponibles et inscrivez-vous."}
           </div>
-          <div style={{
-            background: "rgba(21,101,192,0.2)", border: "1px solid rgba(21,101,192,0.4)",
-            color: "#90caf9", padding: "4px 12px", borderRadius: 100, fontSize: 11,
-            fontWeight: 700, marginTop: 10, display: "inline-block",
-          }}>
-            📅 Prochaine formation : 15 novembre 2026 · Lyon
-          </div>
+          {prochaineFormation && (
+            <div style={{
+              background: "rgba(21,101,192,0.2)", border: "1px solid rgba(21,101,192,0.4)",
+              color: "#90caf9", padding: "4px 12px", borderRadius: 100, fontSize: 11,
+              fontWeight: 700, marginTop: 10, display: "inline-block",
+            }}>
+              📅 Prochaine formation : {formatDateLong(prochaineFormation.formation.date)}
+              {prochaineFormation.formation.lieuVille ? ` · ${prochaineFormation.formation.lieuVille}` : ""}
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: 20, position: "relative", zIndex: 1 }}>
           {[
-            { val: "3", label: "Formations suivies" },
-            { val: "3", label: "Attestations" },
-            { val: "4.9", label: "Note moy. reçue" },
+            { val: String(inscriptions.filter(i => i.statut !== StatutInscription.ANNULEE && i.statut !== StatutInscription.REMBOURSEE).length), label: "Formations suivies" },
+            { val: String(attestationsCount), label: "Attestations" },
+            { val: noteMoyenne ?? "—", label: "Note moy. donnée" },
           ].map((s, i) => (
             <div key={i} style={{ textAlign: "center", background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "14px 20px" }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: "white", letterSpacing: -0.5 }}>{s.val}</div>
@@ -61,215 +153,140 @@ export default function ParticipantDashboardPage() {
               </Link>
             </div>
 
+            {/* À VENIR */}
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, color: "var(--red)", marginBottom: 8 }}>
-              À venir (1)
+              À venir ({inscriptionsAVenir.length})
             </div>
 
-            <div style={{ border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>
-              <div style={{ padding: "14px 16px", display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <div style={{ width: 4, borderRadius: 100, flexShrink: 0, alignSelf: "stretch", minHeight: 50, background: "var(--red)" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                        <span className="pill pill-green">Confirmée</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", background: "#fff5f6", border: "1px solid #ffc5cc", padding: "3px 10px", borderRadius: 100 }}>⏰ Dans 20 jours</span>
-                      </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.2 }}>
-                        Cardiologie interventionnelle — Techniques avancées 2026
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 800, flexShrink: 0 }}>
-                      450 € <span style={{ fontSize: 11, fontWeight: 400, color: "var(--gray)" }}>HT</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-                    {["📅 15 novembre 2026 · 08h30–17h30", "📍 Lyon · Marriott, Salle Rhône", "🍽️ Déjeuner inclus"].map((m, i) => (
-                      <span key={i} style={{ fontSize: 12, color: "var(--gray)", display: "flex", alignItems: "center", gap: 4 }}>{m}</span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg,var(--red),#ff6b7a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "white", flexShrink: 0 }}>PD</div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600 }}>Dr. Pierre Dumont</div>
-                      <div style={{ fontSize: 10, color: "var(--gray)" }}>Cardiologue interventionnel · CHU Lyon</div>
-                    </div>
-                  </div>
-                </div>
+            {inscriptionsAVenir.length === 0 ? (
+              <div style={{ border: "1.5px dashed #E0E0E0", borderRadius: 12, padding: "24px 20px", textAlign: "center", color: "#6A6A6A", marginBottom: 16 }}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>📅</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Aucune formation à venir</div>
+                <div style={{ fontSize: 12, marginBottom: 12 }}>Découvrez notre catalogue et inscrivez-vous à une formation.</div>
+                <Link href="/formations" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>
+                  Voir les formations disponibles →
+                </Link>
               </div>
-              <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11, color: "#2e7d32", display: "flex", alignItems: "center", gap: 4 }}>✓ Facture</span>
-                <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>
-                <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Rappel J-7 reçu</span>
-                <span style={{ fontSize: 11, color: "var(--gray)" }}>⏳ Émargement (jour J)</span>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                  <Link href="/formations" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
-                    Voir la formation
-                  </Link>
-                  <button
-                    onClick={() => { setCalAdded(true); setTimeout(() => setCalAdded(false), 2000); }}
-                    style={{ border: "1.5px solid #E0E0E0", background: calAdded ? "#e8f5e9" : "white", color: calAdded ? "#2e7d32" : "var(--black)", borderColor: calAdded ? "#c8e6c9" : "#E0E0E0", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    {calAdded ? "✓ Ajouté" : "📅 Ajouter au calendrier"}
-                  </button>
-                  <button
-                    onClick={() => alert("Ouverture dans Google Maps : Marriott Lyon Cité Internationale")}
-                    style={{ background: "var(--red)", color: "white", border: "1.5px solid var(--red)", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    🗺️ Itinéraire
-                  </button>
-                </div>
-              </div>
-            </div>
+            ) : (
+              inscriptionsAVenir.map((insc) => {
+                const f = insc.formation;
+                const days = daysUntil(f.date);
+                const { label: statutLabel, className: statutClass } = statutPillClass(insc.statut);
+                return (
+                  <div key={insc.id} style={{ border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>
+                    <div style={{ padding: "14px 16px", display: "flex", alignItems: "flex-start", gap: 14 }}>
+                      <div style={{ width: 4, borderRadius: 100, flexShrink: 0, alignSelf: "stretch", minHeight: 50, background: "var(--red)" }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                              <span className={`pill ${statutClass}`}>{statutLabel}</span>
+                              {days >= 0 && (
+                                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", background: "#fff5f6", border: "1px solid #ffc5cc", padding: "3px 10px", borderRadius: 100 }}>
+                                  ⏰ {days === 0 ? "Aujourd'hui !" : days === 1 ? "Demain" : `Dans ${days} jours`}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.2 }}>
+                              {f.titre}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 18, fontWeight: 800, flexShrink: 0 }}>
+                            {Number(insc.montantHT).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €{" "}
+                            <span style={{ fontSize: 11, fontWeight: 400, color: "var(--gray)" }}>HT</span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const, marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, color: "var(--gray)", display: "flex", alignItems: "center", gap: 4 }}>
+                            📅 {formatDateLong(f.date)} · {f.heureDebut}–{f.heureFin}
+                          </span>
+                          {f.lieuVille && (
+                            <span style={{ fontSize: 12, color: "var(--gray)", display: "flex", alignItems: "center", gap: 4 }}>
+                              📍 {f.lieuVille}{f.lieuNom ? ` · ${f.lieuNom}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
+                      {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
+                      {!insc.conventionSignee && <span style={{ fontSize: 11, color: "var(--gray)" }}>⏳ Convention en attente</span>}
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        <Link href={`/formations/${f.slug}`} style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                          Voir la formation
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
 
+            {/* PASSÉES */}
             <div style={{ height: 16 }} />
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, color: "var(--gray)", marginBottom: 8 }}>
-              Passées (2)
+              Passées ({inscriptionsPassees.length})
             </div>
 
-            {[
-              { title: "Stenting coronarien avancé — Toulouse 2026", date: "14 juin 2026", lieu: "Toulouse · Novotel Wilson", price: "420 € HT", note: "5/5", attestation: true },
-              { title: "Urgences cardiologiques — Simulation pratique", date: "10 octobre 2025", lieu: "Lyon · Radisson Blu", price: "300 € HT", note: "4/5", attestation: true },
-            ].map((f, i) => (
-              <div key={i} style={{ border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden", marginBottom: i === 0 ? 10 : 0, opacity: 0.85 }}>
-                <div style={{ padding: "14px 16px", display: "flex", alignItems: "flex-start", gap: 14 }}>
-                  <div style={{ width: 4, borderRadius: 100, flexShrink: 0, alignSelf: "stretch", minHeight: 50, background: "#1565c0" }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                          <span className="pill pill-blue">Terminée</span>
-                          <span style={{ fontSize: 11, color: "var(--gray)" }}>Attestation envoyée</span>
+            {inscriptionsPassees.length === 0 ? (
+              <div style={{ padding: "20px 0", textAlign: "center", color: "#6A6A6A", fontSize: 13 }}>
+                Aucune formation passée.
+              </div>
+            ) : (
+              inscriptionsPassees.map((insc, i) => {
+                const f = insc.formation;
+                return (
+                  <div key={insc.id} style={{ border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden", marginBottom: i < inscriptionsPassees.length - 1 ? 10 : 0, opacity: 0.85 }}>
+                    <div style={{ padding: "14px 16px", display: "flex", alignItems: "flex-start", gap: 14 }}>
+                      <div style={{ width: 4, borderRadius: 100, flexShrink: 0, alignSelf: "stretch", minHeight: 50, background: "#1565c0" }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                              <span className="pill pill-blue">Terminée</span>
+                              {insc.attestationUrl && (
+                                <span style={{ fontSize: 11, color: "var(--gray)" }}>Attestation disponible</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 800 }}>{f.titre}</div>
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--gray)" }}>
+                            {Number(insc.montantHT).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} € HT
+                          </div>
                         </div>
-                        <div style={{ fontSize: 14, fontWeight: 800 }}>{f.title}</div>
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
+                          <span style={{ fontSize: 12, color: "var(--gray)" }}>📅 {formatDate(f.date)}</span>
+                          {f.lieuVille && (
+                            <span style={{ fontSize: 12, color: "var(--gray)" }}>📍 {f.lieuVille}</span>
+                          )}
+                          {insc.noteSatisfaction && (
+                            <span style={{ fontSize: 12, color: "#ffc107", fontWeight: 600 }}>
+                              ⭐ Votre note : {insc.noteSatisfaction}/5
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--gray)" }}>{f.price}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12, color: "var(--gray)" }}>📅 {f.date}</span>
-                      <span style={{ fontSize: 12, color: "var(--gray)" }}>📍 {f.lieu}</span>
-                      <span style={{ fontSize: 12, color: "#ffc107", fontWeight: 600 }}>⭐ Votre note : {f.note}</span>
+                    <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
+                      {insc.attestationUrl && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Attestation reçue</span>}
+                      {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        {insc.attestationUrl && (
+                          <a
+                            href={insc.attestationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
+                          >
+                            ↓ Attestation PDF
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Attestation reçue</span>
-                  <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Facture</span>
-                  <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Évaluation envoyée</span>
-                  <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                    <button style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>↓ Attestation PDF</button>
-                    <button style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>↓ Facture</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ATTESTATIONS */}
-          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, padding: "20px 22px", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>Mes attestations</span>
-              <button style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📥 Tout télécharger</button>
-            </div>
-            {[
-              { title: "Cardiologie interventionnelle — Lyon 2026", meta: "15 novembre 2026 · 7h · Dr. Pierre Dumont", status: "À venir", statusBg: "#fff3e0", statusColor: "#e65100", dl: null },
-              { title: "Stenting coronarien avancé — Toulouse", meta: "14 juin 2026 · 7h · Dr. Pierre Dumont", status: null, statusBg: null, statusColor: null, dl: "↓ PDF" },
-              { title: "Urgences cardiologiques — Lyon", meta: "10 oct. 2025 · 4h · Dr. A. Chartier", status: null, statusBg: null, statusColor: null, dl: "↓ PDF" },
-            ].map((a, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < 2 ? "1px solid #EBEBEB" : "none" }}>
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: "#e8f5e9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🎓</div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{a.title}</div>
-                  <div style={{ fontSize: 11, color: "var(--gray)", marginTop: 1 }}>{a.meta}</div>
-                </div>
-                {a.status && (
-                  <span style={{ fontSize: 10, fontWeight: 700, background: a.statusBg || undefined, color: a.statusColor || undefined, padding: "2px 8px", borderRadius: 100, marginRight: 8, flexShrink: 0 }}>
-                    {a.status}
-                  </span>
-                )}
-                {a.dl && <a href="#" style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--red)", cursor: "pointer", textDecoration: "none", flexShrink: 0 }}>{a.dl}</a>}
-              </div>
-            ))}
-          </div>
-
-          {/* SUGGESTIONS */}
-          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, padding: "20px 22px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>Formations recommandées pour vous</span>
-              <Link href="/formations" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>Voir tout →</Link>
-            </div>
-            {[
-              { tag: "Cardiologie", avail: "Places disponibles", availBg: "#e8f5e9", availColor: "#2e7d32", title: "Échocardiographie transthoracique — Cas cliniques avancés", meta: "📅 3 déc. 2026 · Paris · Dr. S. Moreau · ⭐ 4.8", price: "320 €" },
-              { tag: "Cardiologie", avail: "⚡ 3 places", availBg: "#fff3e0", availColor: "#e65100", title: "Rythmologie clinique — Arythmies et prise en charge urgente", meta: "📅 8 fév. 2027 · Marseille · Dr. A. Chartier · ⭐ 4.7", price: "390 €" },
-            ].map((s, i) => (
-              <div key={i} style={{ border: "1.5px solid #E0E0E0", borderRadius: 12, padding: "14px 16px", marginBottom: i === 0 ? 8 : 0, display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: "#fff0f2", color: "var(--red)", padding: "2px 8px", borderRadius: 100 }}>{s.tag}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: s.availBg, color: s.availColor, padding: "2px 7px", borderRadius: 100 }}>{s.avail}</span>
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{s.title}</div>
-                  <div style={{ fontSize: 11, color: "var(--gray)" }}>{s.meta}</div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
-                  {s.price}<span style={{ fontSize: 11, fontWeight: 400, color: "var(--gray)" }}> HT</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT SIDEBAR */}
-        <div>
-          {/* PROFIL */}
-          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, padding: "20px 22px", marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Mon profil</div>
-            <div style={{ background: "var(--off-white)", borderRadius: 12, padding: "14px 16px", marginBottom: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg,#1565c0,#42a5f5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "white", flexShrink: 0 }}>SB</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800 }}>Dr. Sophie Bernard</div>
-                  <div style={{ fontSize: 12, color: "var(--gray)" }}>Cardiologue · CHU Paris-Necker</div>
-                </div>
-              </div>
-              {[
-                { key: "Email", val: "s.bernard@chu-paris.fr" },
-                { key: "Spécialité", val: "Cardiologie" },
-                { key: "RPPS", val: "1020304050" },
-                { key: "Ville", val: "Paris" },
-              ].map((r, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: i < 3 ? "1px solid #E0E0E0" : "none" }}>
-                  <span style={{ color: "var(--gray)" }}>{r.key}</span>
-                  <span style={{ fontWeight: 600 }}>{r.val}</span>
-                </div>
-              ))}
-              <Link href="/participant/profil" style={{
-                width: "100%", background: "white", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                padding: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                marginTop: 10, display: "block", textAlign: "center", textDecoration: "none", color: "var(--black)",
-              }}>
-                ✏️ Modifier mon profil
-              </Link>
-            </div>
-          </div>
-
-          {/* RAPPELS */}
-          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, padding: "20px 22px", marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Rappels & notifications</div>
-            {[
-              { dot: "var(--red)", title: "🎓 Formation dans 20 jours", sub: "Cardiologie inter. — Lyon · 15 nov. 2026", time: "Rappel J-7 automatique prévu le 8 nov." },
-              { dot: "#2e7d32", title: "✓ Convention signée", sub: "Formation Lyon · Signée via YouSign le 18 oct.", time: "Il y a 18 jours" },
-              { dot: "#1565c0", title: "📊 Bilan pédagogique disponible", sub: "Formation Toulouse — Synthèse disponible", time: "Il y a 4 mois" },
-            ].map((r, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < 2 ? "1px solid #EBEBEB" : "none" }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: r.dot, flexShrink: 0, marginTop: 4 }} />
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>{r.title}</div>
-                  <div style={{ fontSize: 11, color: "var(--gray)", marginTop: 2, lineHeight: 1.4 }}>{r.sub}</div>
-                  <div style={{ fontSize: 10, color: "var(--gray)", marginTop: 3 }}>{r.time}</div>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
 
           {/* AIDE */}
@@ -281,6 +298,70 @@ export default function ParticipantDashboardPage() {
             <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>
               ✉️ Contacter le support →
             </a>
+          </div>
+        </div>
+
+        {/* RIGHT SIDEBAR */}
+        <div>
+          {/* PROFIL */}
+          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, padding: "20px 22px", marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Mon profil</div>
+            <div style={{ background: "var(--off-white)", borderRadius: 12, padding: "14px 16px", marginBottom: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg,#1565c0,#42a5f5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "white", flexShrink: 0 }}>
+                  {initials}
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800 }}>{userName}</div>
+                  {profil?.specialite && (
+                    <div style={{ fontSize: 12, color: "var(--gray)" }}>{profil.specialite}</div>
+                  )}
+                </div>
+              </div>
+              {profil ? (
+                [
+                  { key: "Email", val: session.user.email ?? "—" },
+                  profil.specialite ? { key: "Spécialité", val: profil.specialite } : null,
+                  profil.rpps ? { key: "RPPS", val: profil.rpps } : null,
+                  profil.ville ? { key: "Ville", val: profil.ville } : null,
+                ]
+                  .filter(Boolean)
+                  .map((r, i, arr) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: i < arr.length - 1 ? "1px solid #E0E0E0" : "none" }}>
+                      <span style={{ color: "var(--gray)" }}>{r!.key}</span>
+                      <span style={{ fontWeight: 600 }}>{r!.val}</span>
+                    </div>
+                  ))
+              ) : (
+                <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 8 }}>
+                  Profil non complété
+                </div>
+              )}
+              <Link href="/participant/profil" style={{
+                width: "100%", background: "white", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                padding: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                marginTop: 10, display: "block", textAlign: "center", textDecoration: "none", color: "var(--black)",
+              }}>
+                ✏️ Modifier mon profil
+              </Link>
+            </div>
+          </div>
+
+          {/* SUGGESTIONS */}
+          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 14, padding: "20px 22px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Découvrir des formations</span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 12, lineHeight: 1.5 }}>
+              Parcourez notre catalogue de masterclasses médicales pour développer vos compétences.
+            </div>
+            <Link href="/formations" style={{
+              width: "100%", background: "var(--red)", border: "1.5px solid var(--red)", borderRadius: 8,
+              padding: 9, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              display: "block", textAlign: "center", textDecoration: "none", color: "white",
+            }}>
+              🔍 Voir le catalogue →
+            </Link>
           </div>
         </div>
       </div>
