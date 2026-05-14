@@ -168,10 +168,10 @@ footer { background: #060606; padding: 72px 48px 36px; }
 /* ═══════════════════════════════════════════════════
    DASHBOARD LAYOUT (sidebar + main)
    ═══════════════════════════════════════════════════ */
-.dashboard-root { display: flex; min-height: 100vh; background: var(--off-white); font-family: var(--font-sans, 'DM Sans', sans-serif); color: var(--black); }
+.dashboard-root { display: flex; height: 100vh; overflow: hidden; background: var(--off-white); font-family: var(--font-sans, 'DM Sans', sans-serif); color: var(--black); }
 
 /* SIDEBAR */
-.sidebar { width: 220px; background: #0F0F0F; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar { width: 220px; background: #0F0F0F; display: flex; flex-direction: column; flex-shrink: 0; height: 100%; overflow-y: auto; }
 .sidebar-logo { padding: 22px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
 .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
@@ -183,7 +183,7 @@ footer { background: #060606; padding: 72px 48px 36px; }
 .nav-item:hover { background: rgba(255,255,255,0.05); }
 .nav-item.active { background: rgba(200,16,46,0.18); border-left: 2px solid var(--red); border-radius: 0 7px 7px 0; padding-left: 8px; }
 .nav-item-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
-.nav-item-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); }
+.nav-item-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.72); }
 .nav-item.active .nav-item-label { color: white; font-weight: 600; }
 .nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 100px; }
 .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); }
@@ -196,7 +196,7 @@ footer { background: #060606; padding: 72px 48px 36px; }
 .admin-tag-text { font-size: 11px; font-weight: 600; color: #ff8a96; }
 
 /* TOPBAR */
-.main { flex: 1; overflow-x: hidden; min-width: 0; display: flex; flex-direction: column; }
+.main { flex: 1; overflow-y: auto; overflow-x: hidden; min-width: 0; display: flex; flex-direction: column; }
 .topbar { background: white; border-bottom: 1px solid var(--border, #E0E0E0); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
 .topbar-title { font-size: 15px; font-weight: 700; color: var(--black); }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
