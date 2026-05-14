@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
+function checkPin(pin: unknown): boolean {
+  const adminPin = process.env.ADMIN_PIN;
+  if (!adminPin) return true; // PIN not configured — skip check
+  return pin === adminPin;
+}
+
 // PATCH /api/admin/users/[id] — update role
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const session = await auth();
@@ -12,31 +18,27 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const { role } = await req.json();
+  const body = await req.json();
+  const { role, pin } = body;
+
+  if (!checkPin(pin)) {
+    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  }
 
   if (!["PARTICIPANT", "FORMATEUR", "ADMIN"].includes(role)) {
     return NextResponse.json({ error: "Rôle invalide" }, { status: 400 });
   }
 
-  const user = await prisma.user.update({
-    where: { id },
-    data: { role },
-  });
+  const user = await prisma.user.update({ where: { id }, data: { role } });
 
-  // Create profile if switching to FORMATEUR and none exists
   if (role === "FORMATEUR") {
     const existing = await prisma.formateurProfile.findUnique({ where: { userId: id } });
-    if (!existing) {
-      await prisma.formateurProfile.create({ data: { userId: id } });
-    }
+    if (!existing) await prisma.formateurProfile.create({ data: { userId: id } });
   }
 
-  // Create profile if switching to PARTICIPANT and none exists
   if (role === "PARTICIPANT") {
     const existing = await prisma.participantProfile.findUnique({ where: { userId: id } });
-    if (!existing) {
-      await prisma.participantProfile.create({ data: { userId: id } });
-    }
+    if (!existing) await prisma.participantProfile.create({ data: { userId: id } });
   }
 
   return NextResponse.json({ message: "Rôle mis à jour", user });
@@ -51,7 +53,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  // Prevent deleting yourself
   if (id === session.user.id) {
     return NextResponse.json(
       { error: "Impossible de supprimer votre propre compte" },
@@ -59,7 +60,16 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     );
   }
 
-  await prisma.user.delete({ where: { id } });
+  let pin: unknown;
+  try {
+    const body = await req.json();
+    pin = body.pin;
+  } catch { pin = undefined; }
 
+  if (!checkPin(pin)) {
+    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  }
+
+  await prisma.user.delete({ where: { id } });
   return NextResponse.json({ message: "Compte supprimé" });
 }

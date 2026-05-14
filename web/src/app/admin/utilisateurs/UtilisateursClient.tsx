@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 type User = {
   id: string;
@@ -33,6 +32,10 @@ function initials(name: string | null) {
     : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+type PendingAction =
+  | { type: "role"; userId: string; newRole: string }
+  | { type: "delete"; userId: string; name: string | null };
+
 export default function UtilisateursClient({
   users: initial,
   currentUserId,
@@ -40,11 +43,16 @@ export default function UtilisateursClient({
   users: User[];
   currentUserId: string;
 }) {
-  const router = useRouter();
   const [users, setUsers] = useState(initial);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "ADMIN" | "FORMATEUR" | "PARTICIPANT">("ALL");
   const [loading, setLoading] = useState<string | null>(null);
+
+  // PIN modal state
+  const [pending, setPending] = useState<PendingAction | null>(null);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
 
   const filtered = users.filter((u) => {
     const matchSearch =
@@ -55,35 +63,54 @@ export default function UtilisateursClient({
     return matchSearch && matchFilter;
   });
 
-  async function changeRole(userId: string, newRole: string) {
-    if (!confirm(`Changer le rôle vers "${ROLE_LABELS[newRole]}" ?`)) return;
-    setLoading(userId + "_role");
-    const res = await fetch(`/api/admin/users/${userId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: newRole }),
-    });
-    setLoading(null);
-    if (res.ok) {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role: newRole as User["role"] } : u))
-      );
-    } else {
-      alert("Erreur lors du changement de rôle");
-    }
+  function openPin(action: PendingAction) {
+    setPin("");
+    setPinError("");
+    setPending(action);
   }
 
-  async function deleteUser(userId: string, name: string | null) {
-    if (!confirm(`Supprimer définitivement le compte de "${name ?? userId}" ? Cette action est irréversible.`))
-      return;
-    setLoading(userId + "_del");
-    const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
-    setLoading(null);
-    if (res.ok) {
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
+  function closePin() {
+    setPending(null);
+    setPin("");
+    setPinError("");
+  }
+
+  async function confirmWithPin() {
+    if (!pending) return;
+    setPinLoading(true);
+    setPinError("");
+
+    if (pending.type === "role") {
+      const res = await fetch(`/api/admin/users/${pending.userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: pending.newRole, pin }),
+      });
+      setPinLoading(false);
+      if (res.ok) {
+        const newRole = pending.newRole as User["role"];
+        setUsers((prev) =>
+          prev.map((u) => (u.id === pending.userId ? { ...u, role: newRole } : u))
+        );
+        closePin();
+      } else {
+        const data = await res.json();
+        setPinError(data.error ?? "Erreur lors du changement de rôle");
+      }
     } else {
-      const data = await res.json();
-      alert(data.error ?? "Erreur lors de la suppression");
+      const res = await fetch(`/api/admin/users/${pending.userId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      setPinLoading(false);
+      if (res.ok) {
+        setUsers((prev) => prev.filter((u) => u.id !== pending.userId));
+        closePin();
+      } else {
+        const data = await res.json();
+        setPinError(data.error ?? "Erreur lors de la suppression");
+      }
     }
   }
 
@@ -96,6 +123,65 @@ export default function UtilisateursClient({
 
   return (
     <>
+      {/* PIN modal */}
+      {pending && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+        }}>
+          <div className="card" style={{ width: 340, padding: "32px 28px" }}>
+            <div style={{ fontSize: 28, textAlign: "center", marginBottom: 12 }}>🔒</div>
+            <div style={{ fontWeight: 800, fontSize: 16, textAlign: "center", marginBottom: 6 }}>
+              Confirmation requise
+            </div>
+            <div style={{ fontSize: 13, color: "var(--gray)", textAlign: "center", marginBottom: 20 }}>
+              {pending.type === "role"
+                ? `Passage vers le rôle "${ROLE_LABELS[pending.newRole]}"`
+                : `Suppression du compte "${pending.name ?? pending.userId}"`}
+            </div>
+            <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 6 }}>
+              Code PIN administrateur
+            </label>
+            <input
+              type="password"
+              inputMode="numeric"
+              className="auth-input"
+              placeholder="••••"
+              value={pin}
+              onChange={(e) => { setPin(e.target.value); setPinError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && confirmWithPin()}
+              autoFocus
+              style={{ width: "100%", marginBottom: 8, letterSpacing: 6, textAlign: "center" }}
+            />
+            {pinError && (
+              <div style={{ color: "#c62828", fontSize: 12, marginBottom: 10 }}>{pinError}</div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button
+                className="btn-sm btn-ghost-sm"
+                style={{ flex: 1 }}
+                onClick={closePin}
+                disabled={pinLoading}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn-sm"
+                style={{
+                  flex: 1,
+                  background: pending.type === "delete" ? "#c62828" : "var(--red)",
+                  color: "white",
+                }}
+                onClick={confirmWithPin}
+                disabled={pinLoading || !pin}
+              >
+                {pinLoading ? "…" : "Confirmer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="metrics-grid metrics-grid-4" style={{ marginBottom: 20 }}>
         {(["ALL", "ADMIN", "FORMATEUR", "PARTICIPANT"] as const).map((r) => (
@@ -147,14 +233,12 @@ export default function UtilisateursClient({
                 <tr key={u.id}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 32, height: 32, borderRadius: "50%",
-                          background: "linear-gradient(135deg, var(--red), #ff6b7a)",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 11, fontWeight: 700, color: "white", flexShrink: 0,
-                        }}
-                      >
+                      <div style={{
+                        width: 32, height: 32, borderRadius: "50%",
+                        background: "linear-gradient(135deg, var(--red), #ff6b7a)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 11, fontWeight: 700, color: "white", flexShrink: 0,
+                      }}>
                         {initials(u.name)}
                       </div>
                       <div>
@@ -181,12 +265,11 @@ export default function UtilisateursClient({
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {/* Role change */}
                       {u.role !== "FORMATEUR" && (
                         <button
                           className="btn-sm btn-ghost-sm"
                           disabled={loading === u.id + "_role"}
-                          onClick={() => changeRole(u.id, "FORMATEUR")}
+                          onClick={() => openPin({ type: "role", userId: u.id, newRole: "FORMATEUR" })}
                         >
                           → Formateur
                         </button>
@@ -195,7 +278,7 @@ export default function UtilisateursClient({
                         <button
                           className="btn-sm btn-ghost-sm"
                           disabled={loading === u.id + "_role"}
-                          onClick={() => changeRole(u.id, "PARTICIPANT")}
+                          onClick={() => openPin({ type: "role", userId: u.id, newRole: "PARTICIPANT" })}
                         >
                           → Participant
                         </button>
@@ -204,20 +287,19 @@ export default function UtilisateursClient({
                         <button
                           className="btn-sm btn-ghost-sm"
                           disabled={loading === u.id + "_role"}
-                          onClick={() => changeRole(u.id, "ADMIN")}
+                          onClick={() => openPin({ type: "role", userId: u.id, newRole: "ADMIN" })}
                         >
                           → Admin
                         </button>
                       )}
-                      {/* Delete */}
                       {u.id !== currentUserId && (
                         <button
                           className="btn-sm"
                           style={{ background: "#ffebee", color: "#c62828" }}
                           disabled={loading === u.id + "_del"}
-                          onClick={() => deleteUser(u.id, u.name)}
+                          onClick={() => openPin({ type: "delete", userId: u.id, name: u.name })}
                         >
-                          {loading === u.id + "_del" ? "…" : "Supprimer"}
+                          Supprimer
                         </button>
                       )}
                     </div>

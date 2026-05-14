@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const navItems = [
   { href: "/admin/dashboard", icon: "📊", label: "Dashboard" },
@@ -42,10 +43,23 @@ export default function AdminNav() {
         ))}
       </nav>
       <div className="sidebar-footer">
-        <div className="admin-tag">
+        <div className="admin-tag" style={{ marginBottom: 10 }}>
           <div className="admin-tag-dot" />
           <span className="admin-tag-text">Admin</span>
         </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          style={{
+            width: "100%", background: "rgba(255,255,255,0.06)", border: "none",
+            borderRadius: 7, padding: "8px 12px", color: "rgba(255,255,255,0.5)",
+            fontSize: 12, fontWeight: 500, cursor: "pointer", textAlign: "left",
+            fontFamily: "inherit", transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+        >
+          🚪 Se déconnecter
+        </button>
       </div>
     </aside>
   );
