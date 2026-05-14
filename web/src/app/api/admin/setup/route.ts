@@ -5,10 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     // Only works if no admin exists yet
-    const existingAdmin = await prisma.user.findFirst({
-      where: { role: "ADMIN" },
-    });
-
+    const existingAdmin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
     if (existingAdmin) {
       return NextResponse.json(
         { error: "Un administrateur existe déjà. Endpoint désactivé." },
@@ -17,34 +14,36 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, nom, prenom, secret } = body;
+    const { email, secret, password, nom, prenom } = body;
 
-    // Require a setup secret to prevent unauthorized admin creation
     const setupSecret = process.env.ADMIN_SETUP_SECRET;
     if (!setupSecret || secret !== setupSecret) {
-      return NextResponse.json(
-        { error: "Secret invalide." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Secret invalide." }, { status: 401 });
     }
 
-    if (!email || !password || !nom || !prenom) {
+    if (!email) {
+      return NextResponse.json({ error: "email obligatoire" }, { status: 400 });
+    }
+
+    // If user already exists → simply promote to ADMIN
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      const updated = await prisma.user.update({
+        where: { email },
+        data: { role: "ADMIN" },
+      });
+      return NextResponse.json({ message: "Compte promu administrateur.", userId: updated.id });
+    }
+
+    // Otherwise create a brand-new admin account
+    if (!password || !nom || !prenom) {
       return NextResponse.json(
-        { error: "Champs obligatoires manquants (email, password, nom, prenom)" },
+        { error: "Compte inexistant — fournir password, nom, prenom pour le créer." },
         { status: 400 }
       );
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json(
-        { error: "Cet email est déjà utilisé." },
-        { status: 409 }
-      );
-    }
-
     const hashedPassword = await bcrypt.hash(password, 12);
-
     const admin = await prisma.user.create({
       data: {
         email,
