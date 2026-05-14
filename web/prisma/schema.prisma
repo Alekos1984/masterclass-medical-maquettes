@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  PARTICIPANT
+  FORMATEUR
+  ADMIN
+}
+
+enum StatutFormation {
+  BROUILLON
+  EN_ATTENTE_SALLE
+  SALLE_CONFIRMEE
+  PUBLIEE
+  COMPLETE
+  ANNULEE
+}
+
+enum StatutInscription {
+  EN_ATTENTE_PAIEMENT
+  CONFIRMEE
+  ANNULEE
+  REMBOURSEE
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  CAPTE
+  REMBOURSE
+  ECHOUE
+}
+
+enum TypePaiement {
+  INSCRIPTION
+  FRAIS_SALLE
+  ABONNEMENT
+}
+
+enum StatutDemandeSalle {
+  EN_ATTENTE
+  CONTACT_HOTEL
+  DEVIS_RECU
+  VALIDE
+  TRANSMIS_FORMATEUR
+  PAYE
+}
+
+enum StatutVirement {
+  EN_ATTENTE
+  EFFECTUE
+}
+
+enum StatutRemboursement {
+  EN_ATTENTE
+  APPROUVE
+  REFUSE
+  EFFECTUE
+}
+
+enum StatutAbonnement {
+  INACTIF
+  ACTIF
+  SUSPENDU
+  RESILIE
+}
+
+// ─── NEXTAUTH ─────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  name          String?
+  image         String?
+  role          Role      @default(PARTICIPANT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  formateurProfile   FormateurProfile?
+  participantProfile ParticipantProfile?
+}
+
+model FormateurProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Identité professionnelle
+  titre      String?
+  specialite String?
+  rpps       String?  @unique
+  phone      String?
+  adresse    String?
+  ville      String?
+  codePostal String?
+
+  // CV scientifique
+  bio             String?  @db.Text
+  experienceAns   Int?
+  publications    Int?     @default(0)
+  linkedinUrl     String?
+  researchgateUrl String?
+  pubmedUrl       String?
+
+  // Infos légales
+  siret         String?
+  raisonSociale String?
+  iban          String?
+  bic           String?
+
+  // Stripe
+  stripeCustomerId String? @unique
+  stripeAccountId  String? @unique // Stripe Connect Express
+
+  // Abonnement (actif à partir de la 4e formation)
+  statutAbonnement     StatutAbonnement @default(INACTIF)
+  stripeSubscriptionId String?          @unique
+  abonnementDebut      DateTime?
+  abonnementFin        DateTime?
+
+  // Compteur formations (3 premières gratuites)
+  formationsTotal Int     @default(0)
+  portfolioPublic Boolean @default(true)
+
+  formations Formation[]
+  virements  Virement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ParticipantProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  titre      String?
+  specialite String?
+  rpps       String?
+  phone      String?
+
+  // Facturation
+  adresse    String?
+  ville      String?
+  codePostal String?
+  pays       String? @default("France")
+
+  // Stripe
+  stripeCustomerId String? @unique
+
+  // Préférences notifications
+  notifEmail   Boolean @default(true)
+  notifRappels Boolean @default(true)
+
+  inscriptions Inscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── FORMATIONS ───────────────────────────────────────────────────────────────
+
+model Formation {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  formateurId String
+  formateur   FormateurProfile @relation(fields: [formateurId], references: [id])
+
+  // Infos générales
+  titre         String
+  specialite    String
+  niveau        String // debutant | intermediaire | expert
+  description   String  @db.Text
+  objectifs     Json // string[]
+  programme     Json // { heure, titre, description, type }[]
+  bibliographie Json?
+
+  // Logistique
+  date            DateTime
+  heureDebut      String // "08:30"
+  heureFin        String // "17:30"
+  dureeHeures     Int
+  placesTotal     Int
+  placesRestantes Int
+
+  // Lieu (rempli après confirmation salle par l'admin)
+  lieuNom      String?
+  lieuAdresse  String?
+  lieuVille    String?
+  lieuSalle    String?
+  lieuFeatures Json? // string[]
+
+  // Tarif
+  prixHT         Decimal @db.Decimal(10, 2)
+  exonerationTVA Boolean @default(true) // art. 261-4-4° CGI
+
+  statut StatutFormation @default(BROUILLON)
+
+  // Déclaration de conflits d'intérêts
+  conflitsInterets String? @db.Text
+  declarationCoi   Boolean @default(false)
+
+  // Documents
+  programmeDocUrl String?
+  supportCoursUrl String?
+
+  // Les 3 premières formations du formateur sont gratuites (pas d'abonnement requis)
+  gratuite Boolean @default(false)
+
+  inscriptions Inscription[]
+  demandeSalle DemandeSalle?
+  paiements    Paiement[]
+  virements    Virement[]
+  emargements  Emargement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── DEMANDES DE SALLE ────────────────────────────────────────────────────────
+
+model DemandeSalle {
+  id          String    @id @default(cuid())
+  formationId String    @unique
+  formation   Formation @relation(fields: [formationId], references: [id])
+
+  statut StatutDemandeSalle @default(EN_ATTENTE)
+
+  // Contact hôtel
+  hotelNom     String?
+  hotelEmail   String?
+  hotelPhone   String?
+  emailEnvoye  Boolean   @default(false)
+  dateContact  DateTime?
+
+  // Devis
+  devisHT      Decimal?  @db.Decimal(10, 2)
+  fraisGestion Decimal?  @db.Decimal(10, 2) // 10% du devis HT
+  totalHT      Decimal?  @db.Decimal(10, 2)
+  devisUrl     String?
+  dateDevis    DateTime?
+
+  // Validation et transmission au formateur
+  dateValidation   DateTime?
+  dateTransmission DateTime?
+
+  paiement Paiement?
+  notes    String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── INSCRIPTIONS ─────────────────────────────────────────────────────────────
+
+model Inscription {
+  id            String             @id @default(cuid())
+  participantId String
+  participant   ParticipantProfile @relation(fields: [participantId], references: [id])
+  formationId   String
+  formation     Formation          @relation(fields: [formationId], references: [id])
+
+  statut StatutInscription @default(EN_ATTENTE_PAIEMENT)
+
+  // Montants calculés à l'inscription
+  montantHT    Decimal @db.Decimal(10, 2)
+  commission   Decimal @db.Decimal(10, 2) // 20% plateforme
+  netFormateur Decimal @db.Decimal(10, 2) // 80% au formateur
+
+  // Stripe
+  stripePaymentIntentId String? @unique
+  stripeSessionId       String? @unique
+
+  // Documents
+  conventionSignee Boolean @default(false)
+  conventionUrl    String?
+  attestationUrl   String?
+
+  // Évaluation post-formation
+  noteSatisfaction Int?    // 1-5
+  commentaire      String? @db.Text
+
+  paiement      Paiement?
+  remboursement Remboursement?
+  emargements   Emargement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([participantId, formationId])
+}
+
+// ─── PAIEMENTS ────────────────────────────────────────────────────────────────
+
+model Paiement {
+  id     String         @id @default(cuid())
+  type   TypePaiement
+  statut StatutPaiement @default(EN_ATTENTE)
+
+  montantHT  Decimal  @db.Decimal(10, 2)
+  stripeFees Decimal? @db.Decimal(10, 2)
+
+  stripeId String? @unique // PaymentIntent ID ou Invoice ID Stripe
+
+  // Un seul lien sera non-null selon le type
+  inscriptionId  String?      @unique
+  inscription    Inscription? @relation(fields: [inscriptionId], references: [id])
+  demandeSalleId String?      @unique
+  demandeSalle   DemandeSalle? @relation(fields: [demandeSalleId], references: [id])
+  formationId    String?
+  formation      Formation?   @relation(fields: [formationId], references: [id])
+
+  // Facture générée
+  numeroFacture String? @unique
+  factureUrl    String?
+
+  datePaiement DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ─── VIREMENTS FORMATEURS (J+7 après formation) ───────────────────────────────
+
+model Virement {
+  id          String           @id @default(cuid())
+  formateurId String
+  formateur   FormateurProfile @relation(fields: [formateurId], references: [id])
+  formationId String
+  formation   Formation        @relation(fields: [formationId], references: [id])
+
+  montantNet Decimal        @db.Decimal(10, 2)
+  statut     StatutVirement @default(EN_ATTENTE)
+
+  stripeTransferId String? @unique
+  ibanDestinataire String?
+
+  dateVirement DateTime?
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── REMBOURSEMENTS ───────────────────────────────────────────────────────────
+
+model Remboursement {
+  id            String      @id @default(cuid())
+  inscriptionId String      @unique
+  inscription   Inscription @relation(fields: [inscriptionId], references: [id])
+
+  motif         String
+  statut        StatutRemboursement @default(EN_ATTENTE)
+  montant       Decimal             @db.Decimal(10, 2)
+  eligible      Boolean // J-14 ou formation annulée
+  raisonRefus   String?
+
+  stripeRefundId String? @unique
+
+  dateDemande    DateTime @default(now())
+  dateTraitement DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── ÉMARGEMENT ───────────────────────────────────────────────────────────────
+
+model Emargement {
+  id            String      @id @default(cuid())
+  formationId   String
+  formation     Formation   @relation(fields: [formationId], references: [id])
+  inscriptionId String
+  inscription   Inscription @relation(fields: [inscriptionId], references: [id])
+
+  token       String   @unique @default(cuid()) // lien unique envoyé par email le jour J
+  tokenExpire DateTime
+
+  presentMatin       Boolean   @default(false)
+  presentApresMidi   Boolean   @default(false)
+  signatureMatin     DateTime?
+  signatureApresMidi DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([formationId, inscriptionId])
+}
+
