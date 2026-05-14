@@ -168,10 +168,10 @@ footer { background: #060606; padding: 72px 48px 36px; }
 /* ═══════════════════════════════════════════════════
    DASHBOARD LAYOUT (sidebar + main)
    ═══════════════════════════════════════════════════ */
-.dashboard-root { display: flex; height: 100vh; overflow: hidden; background: var(--off-white); font-family: var(--font-sans, 'DM Sans', sans-serif); color: var(--black); }
+.dashboard-root { display: block; min-height: 100vh; background: var(--off-white); font-family: var(--font-sans, 'DM Sans', sans-serif); color: var(--black); }
 
 /* SIDEBAR */
-.sidebar { width: 220px; background: #0F0F0F; display: flex; flex-direction: column; flex-shrink: 0; height: 100%; overflow-y: auto; }
+.sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; background: #0F0F0F; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
 .sidebar-logo { padding: 22px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
 .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
@@ -196,7 +196,7 @@ footer { background: #060606; padding: 72px 48px 36px; }
 .admin-tag-text { font-size: 11px; font-weight: 600; color: #ff8a96; }
 
 /* TOPBAR */
-.main { flex: 1; overflow-y: auto; overflow-x: hidden; min-width: 0; display: flex; flex-direction: column; }
+.main { margin-left: 220px; min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
 .topbar { background: white; border-bottom: 1px solid var(--border, #E0E0E0); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
 .topbar-title { font-size: 15px; font-weight: 700; color: var(--black); }
 .topbar-right { display: flex; align-items: center; gap: 10px; }

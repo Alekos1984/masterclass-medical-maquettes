@@ -1,8 +1,16 @@
 # Maquettes HTML (inutiles en production)
 *.html
 
+# node_modules non nécessaires en mode standalone
+# Le standalone embarque ses propres dépendances minimales
+web/node_modules
+
 # Cache de build Next.js (lourd, inutile au runtime)
 web/.next/cache
+
+# Parties de .next non nécessaires (standalone se suffit)
+web/.next/server
+web/.next/static
 
 # Fichiers de dev
 web/src/**/*.test.*
