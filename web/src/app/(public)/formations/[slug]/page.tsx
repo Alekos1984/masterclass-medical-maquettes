@@ -395,7 +395,6 @@ export default function FormationDetailPage({ params }: { params: Promise<{ slug
                 fontWeight: 600,
                 color: activeTab === tab ? "#0F0F0F" : "#6A6A6A",
                 cursor: "pointer",
-                borderBottom: `3px solid ${activeTab === tab ? "#C8102E" : "transparent"}`,
                 background: "none",
                 border: "none",
                 borderBottom: `3px solid ${activeTab === tab ? "#C8102E" : "transparent"}`,
