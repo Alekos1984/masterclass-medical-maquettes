@@ -1,0 +1,10 @@
+# Maquettes HTML (inutiles en production)
+*.html
+
+# Cache de build Next.js (lourd, inutile au runtime)
+web/.next/cache
+
+# Fichiers de dev
+web/src/**/*.test.*
+web/src/**/*.spec.*
+*.md
