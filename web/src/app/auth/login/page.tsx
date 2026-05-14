@@ -29,9 +29,8 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Email ou mot de passe incorrect.");
       } else {
-        router.push(
-          role === "formateur" ? "/formateur/dashboard" : "/participant/dashboard"
-        );
+        // Full page reload via server-side redirect page — reads actual role from session
+        window.location.href = "/auth/redirect";
       }
     } catch {
       setError("Une erreur est survenue. Veuillez réessayer.");

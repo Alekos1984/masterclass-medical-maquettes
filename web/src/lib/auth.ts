@@ -47,8 +47,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id as string;
         token.role = (user as { role: Role }).role;
-        token.id = user.id;
+      }
+      // Fallback: fetch role from DB if not in token (safety net)
+      if (token.id && !token.role) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true },
+          });
+          if (dbUser) token.role = dbUser.role;
+        } catch {
+          // DB unavailable, skip
+        }
       }
       return token;
     },
