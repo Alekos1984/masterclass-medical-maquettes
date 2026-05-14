@@ -157,11 +157,6 @@ export default function NouvelleFormationPage() {
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  borderBottom: isActive
-                    ? "3px solid #C8102E"
-                    : isDone
-                    ? "3px solid #EBEBEB"
-                    : "3px solid transparent",
                   cursor: "pointer",
                   background: "transparent",
                   border: "none",

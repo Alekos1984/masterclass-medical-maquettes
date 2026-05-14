@@ -3,7 +3,33 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const formations = [
+type MetaItem = { icon?: string; text: string; green?: boolean; orange?: boolean; blue?: boolean; gray?: boolean };
+type ActionItem = { label: string; href: string; primary: boolean; orange?: boolean };
+
+type Formation = {
+  id: string;
+  colorBar: string;
+  status: string;
+  statusClass: string;
+  format: string;
+  title: string;
+  price: string;
+  priceGray?: boolean;
+  gaugePct: number | null;
+  gaugeText: string | null;
+  gaugeColor?: string;
+  meta: MetaItem[];
+  stepLabel?: string;
+  progressPct?: number;
+  progressColor?: string;
+  docs: { label: string; ready: boolean }[];
+  actions: ActionItem[];
+  borderColor?: string;
+  opacity: number;
+  tab: string;
+};
+
+const formations: Formation[] = [
   {
     id: "1",
     colorBar: "#C8102E",
