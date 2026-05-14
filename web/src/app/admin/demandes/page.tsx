@@ -1,134 +1,129 @@
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
-const demandes = [
-  {
-    id: "DR-2026-0041",
-    formateur: "Dr. Dumont",
-    ville: "Paris",
-    hotel: "Hôtel Lutetia",
-    salle: "Salle conférence",
-    capacite: "10–25 pers.",
-    slaWidth: "85%",
-    slaColor: "#e65100",
-    slaText: "20h ⚠",
-    statut: "Contacté",
-    pillClass: "pill-orange",
-  },
-  {
-    id: "DR-2026-0042",
-    formateur: "Dr. Bernard",
-    ville: "Bordeaux",
-    hotel: "Centre de Congrès",
-    salle: "Grande salle",
-    capacite: "25–50 pers.",
-    slaWidth: "40%",
-    slaColor: "#2e7d32",
-    slaText: "48h",
-    statut: "En attente",
-    pillClass: "pill-gray",
-  },
-  {
-    id: "DR-2026-0043",
-    formateur: "Dr. Lefebvre",
-    ville: "Lille",
-    hotel: "Novotel",
-    salle: "Salle modulable",
-    capacite: "10–25 pers.",
-    slaWidth: "20%",
-    slaColor: "#2e7d32",
-    slaText: "60h",
-    statut: "En attente",
-    pillClass: "pill-gray",
-  },
-  {
-    id: "DR-2026-0044",
-    formateur: "Dr. Chartier",
-    ville: "Nantes",
-    hotel: "Mercure",
-    salle: "Salle de réunion",
-    capacite: "Moins de 10",
-    slaWidth: "10%",
-    slaColor: "#2e7d32",
-    slaText: "68h",
-    statut: "En attente",
-    pillClass: "pill-gray",
-  },
-];
+const STATUT_LABELS: Record<string, { label: string; pillClass: string }> = {
+  EN_ATTENTE:          { label: "En attente",          pillClass: "pill-gray" },
+  CONTACT_HOTEL:       { label: "Hôtel contacté",      pillClass: "pill-orange" },
+  DEVIS_RECU:          { label: "Devis reçu",           pillClass: "pill-blue" },
+  VALIDE:              { label: "Validé",               pillClass: "pill-green" },
+  TRANSMIS_FORMATEUR:  { label: "Transmis formateur",  pillClass: "pill-green" },
+  PAYE:                { label: "Payé",                 pillClass: "pill-green" },
+};
 
-export default function AdminDemandesPage() {
+export default async function AdminDemandesPage() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") redirect("/auth/login");
+
+  const demandes = await prisma.demandeSalle.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      formation: {
+        select: {
+          titre: true,
+          lieuVille: true,
+          lieuNom: true,
+          capaciteMin: true,
+          capaciteMax: true,
+          formateur: { select: { user: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+
+  const enAttente = demandes.filter((d) => d.statut === "EN_ATTENTE").length;
+  const contacte  = demandes.filter((d) => d.statut === "CONTACT_HOTEL").length;
+
   return (
     <>
       <div className="topbar">
         <div className="topbar-left">
           <Link href="/admin/dashboard" className="topbar-back">← Dashboard</Link>
-          <div className="topbar-sep"></div>
+          <div className="topbar-sep" />
           <span className="topbar-title">Demandes de salle</span>
+        </div>
+        <div className="topbar-right">
+          <span className="topbar-date">{demandes.length} demande{demandes.length !== 1 ? "s" : ""}</span>
         </div>
       </div>
 
       <div className="content">
         {/* STATS */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-card-val" style={{ color: "var(--red)" }}>4</div>
-            <div className="stat-card-label">Demandes en attente</div>
+        <div className="metrics-grid metrics-grid-4" style={{ marginBottom: 20 }}>
+          <div className="metric-card">
+            <div className="metric-label">Total</div>
+            <div className="metric-val">{demandes.length}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-val">1</div>
-            <div className="stat-card-label">SLA critique ({"<"}24h)</div>
-            <div className="stat-card-trend trend-warn">⚠ Action requise</div>
+          <div className="metric-card">
+            <div className="metric-label">En attente</div>
+            <div className="metric-val" style={{ color: enAttente > 0 ? "var(--red)" : undefined }}>{enAttente}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-val">72h</div>
-            <div className="stat-card-label">SLA garanti formateurs</div>
+          <div className="metric-card">
+            <div className="metric-label">Hôtel contacté</div>
+            <div className="metric-val">{contacte}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-val">12</div>
-            <div className="stat-card-label">Traitées ce mois</div>
-            <div className="stat-card-trend trend-up">↑ +4 ce mois</div>
+          <div className="metric-card">
+            <div className="metric-label">Validées / Payées</div>
+            <div className="metric-val">
+              {demandes.filter((d) => d.statut === "VALIDE" || d.statut === "TRANSMIS_FORMATEUR" || d.statut === "PAYE").length}
+            </div>
           </div>
         </div>
 
         {/* TABLE */}
-        <div className="card" style={{ padding: 0 }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Référence</th>
-                <th>Formateur · Lieu</th>
-                <th>Capacité</th>
-                <th>SLA restant</th>
-                <th>Statut</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {demandes.map((d) => (
-                <tr key={d.id}>
-                  <td>
-                    <div className="td-name" style={{ fontFamily: "monospace", fontSize: 11 }}>{d.id}</div>
-                  </td>
-                  <td>
-                    <div className="td-name">{d.formateur} · {d.ville}</div>
-                    <div className="td-sub">{d.hotel} · {d.salle}</div>
-                  </td>
-                  <td>{d.capacite}</td>
-                  <td>
-                    <div className="sla-bar">
-                      <div className="sla-track">
-                        <div className="sla-fill" style={{ width: d.slaWidth, background: d.slaColor }}></div>
-                      </div>
-                      <span className="sla-text" style={{ color: d.slaColor }}>{d.slaText}</span>
-                    </div>
-                  </td>
-                  <td><span className={`pill ${d.pillClass}`}>{d.statut}</span></td>
-                  <td>
-                    <Link href={`/admin/demandes/${d.id}`} className="card-action">Traiter →</Link>
-                  </td>
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          {demandes.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--gray)" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🏨</div>
+              <div style={{ fontWeight: 700 }}>Aucune demande de salle pour l&apos;instant</div>
+              <div style={{ fontSize: 13, marginTop: 6 }}>Les demandes apparaîtront ici dès qu&apos;un formateur créera une formation.</div>
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Formation</th>
+                  <th>Formateur · Ville</th>
+                  <th>Capacité</th>
+                  <th>Hôtel</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {demandes.map((d) => {
+                  const statut = STATUT_LABELS[d.statut] ?? { label: d.statut, pillClass: "pill-gray" };
+                  const capacite = d.formation.capaciteMin && d.formation.capaciteMax
+                    ? `${d.formation.capaciteMin}–${d.formation.capaciteMax} pers.`
+                    : d.formation.capaciteMax
+                    ? `≤ ${d.formation.capaciteMax} pers.`
+                    : "—";
+                  return (
+                    <tr key={d.id}>
+                      <td><div className="td-name">{d.formation.titre}</div></td>
+                      <td>
+                        <div className="td-name">{d.formation.formateur.user.name ?? "—"}</div>
+                        <div className="td-sub">{d.formation.lieuVille ?? "—"}</div>
+                      </td>
+                      <td style={{ fontSize: 12 }}>{capacite}</td>
+                      <td style={{ fontSize: 12, color: "var(--gray)" }}>
+                        {d.hotelNom ?? <span style={{ fontStyle: "italic" }}>Non renseigné</span>}
+                      </td>
+                      <td><span className={`pill ${statut.pillClass}`}>{statut.label}</span></td>
+                      <td style={{ fontSize: 11, color: "var(--gray)" }}>
+                        {new Date(d.createdAt).toLocaleDateString("fr-FR")}
+                      </td>
+                      <td>
+                        <Link href={`/admin/demandes/${d.id}`} className="card-action">Traiter →</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </>
