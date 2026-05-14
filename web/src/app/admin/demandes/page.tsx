@@ -24,8 +24,7 @@ export default async function AdminDemandesPage() {
           titre: true,
           lieuVille: true,
           lieuNom: true,
-          capaciteMin: true,
-          capaciteMax: true,
+          placesTotal: true,
           formateur: { select: { user: { select: { name: true } } } },
         },
       },
@@ -95,10 +94,8 @@ export default async function AdminDemandesPage() {
               <tbody>
                 {demandes.map((d) => {
                   const statut = STATUT_LABELS[d.statut] ?? { label: d.statut, pillClass: "pill-gray" };
-                  const capacite = d.formation.capaciteMin && d.formation.capaciteMax
-                    ? `${d.formation.capaciteMin}–${d.formation.capaciteMax} pers.`
-                    : d.formation.capaciteMax
-                    ? `≤ ${d.formation.capaciteMax} pers.`
+                  const capacite = d.formation.placesTotal
+                    ? `${d.formation.placesTotal} places`
                     : "—";
                   return (
                     <tr key={d.id}>
