@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=22.0.0",
-    "npm": ">=10.0.0"
+    "node": "24.x",
+    "npm": "10.x"
   },
   "scripts": {
-    "install": "cd web && npm install",
+    "install": "cd web && npm install --include=dev",
     "build": "cd web && npm run build",
     "start": "cd web && npm start"
   }
