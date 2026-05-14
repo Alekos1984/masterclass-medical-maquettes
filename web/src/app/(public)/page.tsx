@@ -108,8 +108,11 @@ export default function LandingPage() {
           <a href="#comment" className="nav-pill" onClick={scrollTo("#comment")}>Comment ça marche</a>
           <Link href="/formations" className="nav-pill">Formations</Link>
           <a href="#formateurs" className="nav-pill" onClick={scrollTo("#formateurs")}>Pour qui</a>
-          <Link href="/auth/inscription/formateur" className="nav-cta">Organiser une formation</Link>
         </nav>
+        <div className="header-right">
+          <Link href="/auth/login" className="nav-pill">Se connecter</Link>
+          <Link href="/auth/inscription/formateur" className="nav-cta">Organiser une formation</Link>
+        </div>
       </header>
 
       {/* HERO */}
