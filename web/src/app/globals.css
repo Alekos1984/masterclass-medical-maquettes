@@ -176,7 +176,7 @@ footer { background: #060606; padding: 72px 48px 36px; }
 .sidebar-logo-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: white; flex-shrink: 0; }
 .sidebar-logo-name { font-size: 12px; font-weight: 700; color: white; line-height: 1.2; }
 .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 1px; }
-.sidebar-nav { padding: 14px 10px; flex: 1; }
+.sidebar-nav { padding: 14px 10px; flex: 1; display: flex; flex-direction: column; }
 .nav-section-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.18); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; margin-top: 14px; display: block; }
 .nav-section-label:first-child { margin-top: 0; }
 .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; cursor: pointer; margin-bottom: 1px; text-decoration: none; transition: background 0.15s; }
