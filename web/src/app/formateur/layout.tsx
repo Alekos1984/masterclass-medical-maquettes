@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const navItems = [
   { href: "/formateur/dashboard", icon: "📊", label: "Dashboard" },
@@ -12,8 +13,19 @@ const navItems = [
   { href: "/formateur/profil", icon: "⚙️", label: "Profil" },
 ];
 
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function FormateurLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const userName = session?.user?.name ?? "Formateur";
+  const initials = getInitials(session?.user?.name);
 
   return (
     <div className="dashboard-root">
@@ -51,9 +63,9 @@ export default function FormateurLayout({ children }: { children: React.ReactNod
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="sidebar-avatar">DR</div>
+            <div className="sidebar-avatar">{initials}</div>
             <div>
-              <div className="sidebar-user-name">Dr. Formateur</div>
+              <div className="sidebar-user-name">{userName}</div>
               <div className="sidebar-user-role">Formateur</div>
             </div>
           </div>
