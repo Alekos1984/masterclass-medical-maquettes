@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/admin/dashboard", icon: "📊", label: "Dashboard" },
-  { href: "/admin/demandes", icon: "🏨", label: "Demandes salles", badge: "3" },
+  { href: "/admin/demandes", icon: "🏨", label: "Demandes salles" },
   { href: "/admin/formations", icon: "🎓", label: "Formations" },
   { href: "/admin/formateurs", icon: "👨‍⚕️", label: "Formateurs" },
   { href: "/admin/paiements", icon: "💶", label: "Paiements" },
@@ -38,7 +38,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <span className="nav-item-icon">{item.icon}</span>
               <span className="nav-item-label">{item.label}</span>
-              {item.badge && <span className="nav-badge">{item.badge}</span>}
             </Link>
           ))}
         </nav>

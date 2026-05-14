@@ -1,99 +1,97 @@
-"use client";
-
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { StatutFormation, StatutInscription } from "@/generated/prisma/enums";
 
-const formations = [
-  {
-    color: "#C8102E",
-    title: "Cardiologie interventionnelle — Lyon",
-    meta: "15 nov. 2026 · Marriott Lyon",
-    gauge: 80,
-    status: "Publiée",
-    statusClass: "pill-green",
-    inscrits: "12 / 15 inscrits",
-  },
-  {
-    color: "#e65100",
-    title: "Échocardiographie — Paris",
-    meta: "12 jan. 2027 · Hôtel Lutetia",
-    gauge: 20,
-    status: "Devis reçu",
-    statusClass: "pill-orange",
-    inscrits: "3 / 15 inscrits",
-  },
-  {
-    color: "#9e9e9e",
-    title: "Insuffisance cardiaque — Bordeaux",
-    meta: "Mars 2027 · À confirmer",
-    gauge: null,
-    status: "Brouillon",
-    statusClass: "pill-gray",
-    inscrits: "—",
-  },
-  {
-    color: "#1565c0",
-    title: "Stenting coronarien — Toulouse",
-    meta: "Juin 2026 · Novotel Toulouse",
-    gauge: null,
-    status: "Terminée",
-    statusClass: "pill-blue",
-    inscrits: "14 / 15",
-  },
-];
+function statutLabel(statut: string): { label: string; className: string } {
+  switch (statut) {
+    case StatutFormation.PUBLIEE:
+      return { label: "Publiée", className: "pill-green" };
+    case StatutFormation.COMPLETE:
+      return { label: "Complète", className: "pill-blue" };
+    case StatutFormation.ANNULEE:
+      return { label: "Annulée", className: "pill-gray" };
+    case StatutFormation.BROUILLON:
+      return { label: "Brouillon", className: "pill-gray" };
+    case "EN_ATTENTE_SALLE":
+      return { label: "En attente salle", className: "pill-orange" };
+    case "SALLE_CONFIRMEE":
+      return { label: "Salle confirmée", className: "pill-orange" };
+    default:
+      return { label: statut, className: "pill-gray" };
+  }
+}
 
-const notifications = [
-  {
-    iconBg: "#fff3e0",
-    icon: "💰",
-    textStr: "Devis reçu pour Paris · Hôtel Lutetia — 1 400 € HT",
-    time: "Il y a 2 heures",
-    isNew: true,
-  },
-  {
-    iconBg: "#e8f5e9",
-    icon: "👤",
-    textStr: "Nouvelle inscription — Dr. Sophie Bernard · Lyon",
-    time: "Il y a 4 heures",
-    isNew: true,
-  },
-  {
-    iconBg: "#e3f2fd",
-    icon: "📅",
-    textStr: "Rappel — Formation Lyon dans 20 jours. Kit formateur envoyé J-7.",
-    time: "Hier",
-    isNew: false,
-  },
-];
+function colorBarForStatut(statut: string): string {
+  switch (statut) {
+    case StatutFormation.PUBLIEE:
+      return "#C8102E";
+    case StatutFormation.COMPLETE:
+      return "#1565c0";
+    case StatutFormation.BROUILLON:
+      return "#9e9e9e";
+    case StatutFormation.ANNULEE:
+      return "#9e9e9e";
+    case "EN_ATTENTE_SALLE":
+    case "SALLE_CONFIRMEE":
+      return "#e65100";
+    default:
+      return "#9e9e9e";
+  }
+}
 
-const priorityActions = [
-  {
-    iconBg: "#fff0f2",
-    icon: "💰",
-    title: "Valider le devis — Paris · Hôtel Lutetia",
-    sub: "1 400 € HT + 140 € frais gestion · Expire dans 5 jours",
-  },
-  {
-    iconBg: "#fff3e0",
-    icon: "✍️",
-    title: "Préparer l'émargement — Lyon · 15 nov.",
-    sub: "12 participants confirmés · Formation dans 20 jours",
-  },
-  {
-    iconBg: "#e3f2fd",
-    icon: "📋",
-    title: "Compléter le brouillon — Bordeaux",
-    sub: "Étape 3/6 · Contenu pédagogique manquant",
-  },
-];
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(date);
+}
 
-const statsData = [
-  { label: "Taux de remplissage moyen", value: "78%", pct: 78 },
-  { label: "Satisfaction moyenne", value: "4.9 / 5", pct: 98 },
-  { label: "Taux de présence", value: "93%", pct: 93 },
-  { label: "Taux de recommandation", value: "96%", pct: 96 },
-];
+export default async function DashboardFormateur() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/auth/login");
+  }
 
-export default function DashboardFormateur() {
+  const profil = await prisma.formateurProfile.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const formateurId = profil?.id ?? "";
+
+  const [formationsCount, inscriptionsCount, revenusAgg, formations] = await Promise.all([
+    prisma.formation.count({ where: { formateurId } }),
+    prisma.inscription.count({
+      where: { formation: { formateurId } },
+    }),
+    formateurId
+      ? prisma.inscription.aggregate({
+          where: {
+            formation: { formateurId },
+            statut: StatutInscription.CONFIRMEE,
+          },
+          _sum: { netFormateur: true },
+        })
+      : Promise.resolve({ _sum: { netFormateur: null } }),
+    prisma.formation.findMany({
+      where: { formateurId },
+      orderBy: { date: "desc" },
+      take: 5,
+      include: {
+        _count: { select: { inscriptions: true } },
+      },
+    }),
+  ]);
+
+  const revenus = revenusAgg._sum.netFormateur
+    ? Number(revenusAgg._sum.netFormateur)
+    : 0;
+
+  const revenusFormatted = revenus.toLocaleString("fr-FR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }) + " €";
+
+  const userName = session.user.name ?? "Formateur";
+
   return (
     <>
       {/* TOPBAR */}
@@ -102,7 +100,6 @@ export default function DashboardFormateur() {
         <div className="topbar-right">
           <div className="topbar-notif">
             🔔
-            <div className="notif-dot" />
           </div>
           <Link href="/formateur/formations/new" className="btn-new">
             + Nouvelle formation
@@ -115,11 +112,15 @@ export default function DashboardFormateur() {
         {/* WELCOME BANNER */}
         <div className="welcome-banner">
           <div>
-            <div className="welcome-title">Bonjour, Dr. Dumont 👋</div>
+            <div className="welcome-title">Bonjour, {userName} 👋</div>
             <div className="welcome-sub">
-              Vous avez 1 devis en attente de validation et 2 nouvelles inscriptions.
+              {formationsCount === 0
+                ? "Créez votre première formation pour démarrer."
+                : `Vous avez ${formationsCount} formation${formationsCount > 1 ? "s" : ""} et ${inscriptionsCount} participant${inscriptionsCount > 1 ? "s" : ""} au total.`}
             </div>
-            <div className="welcome-pill">⚡ Formation active · Lyon · 15 nov. 2026</div>
+            {!profil && (
+              <div className="welcome-pill">⚠️ Complétez votre profil pour activer toutes les fonctionnalités</div>
+            )}
           </div>
           <Link
             href="/formateur/formations/new"
@@ -134,136 +135,134 @@ export default function DashboardFormateur() {
         <div className="metrics-grid metrics-grid-4">
           <div className="metric-card">
             <div className="metric-label">Formations</div>
-            <div className="metric-val">3</div>
-            <div className="metric-sub">2 publiées · 1 en cours</div>
-            <div className="metric-trend trend-up">↑ +1 ce mois</div>
+            <div className="metric-val">{formationsCount}</div>
+            <div className="metric-sub">Total créées</div>
           </div>
           <div className="metric-card">
             <div className="metric-label">Participants total</div>
-            <div className="metric-val">34</div>
+            <div className="metric-val">{inscriptionsCount}</div>
             <div className="metric-sub">Toutes formations</div>
-            <div className="metric-trend trend-up">↑ +7 ce mois</div>
           </div>
           <div className="metric-card">
             <div className="metric-label">Revenus HT</div>
             <div className="metric-val" style={{ fontSize: 20 }}>
-              6 480 €
+              {revenusFormatted}
             </div>
-            <div className="metric-sub">Après commission (20%)</div>
-            <div className="metric-trend trend-up">↑ +1 440 € ce mois</div>
+            <div className="metric-sub">Inscriptions confirmées (80%)</div>
           </div>
           <div className="metric-card">
-            <div className="metric-label">Note moyenne</div>
-            <div className="metric-val">4.9</div>
-            <div className="metric-sub">Sur 28 évaluations</div>
-            <div className="metric-trend trend-neutral">⭐ Excellent</div>
+            <div className="metric-label">Abonnement</div>
+            <div className="metric-val" style={{ fontSize: 16 }}>
+              {profil?.statutAbonnement === "ACTIF" ? "Actif" : profil ? "Inactif" : "—"}
+            </div>
+            <div className="metric-sub">
+              {profil
+                ? `${profil.formationsTotal} formation${profil.formationsTotal !== 1 ? "s" : ""} créée${profil.formationsTotal !== 1 ? "s" : ""}`
+                : "Profil incomplet"}
+            </div>
           </div>
         </div>
 
-        {/* FORMATIONS + NOTIFS */}
+        {/* FORMATIONS + RIGHT COL */}
         <div className="three-col">
           {/* Formations list */}
           <div className="card">
             <div className="card-header">
-              <span className="card-title">Mes formations</span>
+              <span className="card-title">Mes formations récentes</span>
               <Link href="/formateur/formations" className="card-action">
                 Voir tout →
               </Link>
             </div>
-            {formations.map((f, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "12px 0",
-                  borderBottom: i < formations.length - 1 ? "1px solid #EBEBEB" : "none",
-                }}
-              >
-                <div
-                  style={{
-                    width: 4,
-                    height: 44,
-                    borderRadius: 100,
-                    background: f.color,
-                    flexShrink: 0,
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
+            {formations.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--gray)" }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🎓</div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Aucune formation pour l&apos;instant</div>
+                <Link href="/formateur/formations/new" className="btn-new">Créer ma première formation</Link>
+              </div>
+            ) : (
+              formations.map((f, i) => {
+                const { label, className } = statutLabel(f.statut);
+                const color = colorBarForStatut(f.statut);
+                const inscrits = f._count.inscriptions;
+                const gaugePct = f.placesTotal > 0 ? Math.round((inscrits / f.placesTotal) * 100) : null;
+                return (
                   <div
+                    key={f.id}
                     style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      marginBottom: 3,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      padding: "12px 0",
+                      borderBottom: i < formations.length - 1 ? "1px solid #EBEBEB" : "none",
                     }}
                   >
-                    {f.title}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#6A6A6A" }}>{f.meta}</div>
-                  {f.gauge !== null && (
-                    <div style={{ marginTop: 4 }}>
+                    <div
+                      style={{
+                        width: 4,
+                        height: 44,
+                        borderRadius: 100,
+                        background: color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          background: "#EBEBEB",
-                          borderRadius: 100,
-                          height: 3,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
                           overflow: "hidden",
-                          width: 80,
+                          textOverflow: "ellipsis",
+                          marginBottom: 3,
                         }}
                       >
-                        <div
-                          style={{
-                            height: "100%",
-                            borderRadius: 100,
-                            background: "#C8102E",
-                            width: `${f.gauge}%`,
-                          }}
-                        />
+                        {f.titre}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#6A6A6A" }}>
+                        {formatDate(f.date)}{f.lieuVille ? ` · ${f.lieuVille}` : ""}
+                      </div>
+                      {gaugePct !== null && (
+                        <div style={{ marginTop: 4 }}>
+                          <div
+                            style={{
+                              background: "#EBEBEB",
+                              borderRadius: 100,
+                              height: 3,
+                              overflow: "hidden",
+                              width: 80,
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: "100%",
+                                borderRadius: 100,
+                                background: "#C8102E",
+                                width: `${gaugePct}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <span
+                        className={`pill ${className}`}
+                        style={{ display: "inline-block", marginBottom: 4 }}
+                      >
+                        {label}
+                      </span>
+                      <div style={{ fontSize: 11, color: "#6A6A6A" }}>
+                        {inscrits} / {f.placesTotal} inscrits
                       </div>
                     </div>
-                  )}
-                </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <span
-                    className={`pill ${f.statusClass}`}
-                    style={{ display: "inline-block", marginBottom: 4 }}
-                  >
-                    {f.status}
-                  </span>
-                  <div style={{ fontSize: 11, color: "#6A6A6A" }}>{f.inscrits}</div>
-                </div>
-              </div>
-            ))}
+                  </div>
+                );
+              })
+            )}
           </div>
 
-          {/* Right column: notifications + abonnement */}
+          {/* Right column: abonnement */}
           <div>
-            <div className="card" style={{ marginBottom: 14 }}>
-              <div className="card-header">
-                <span className="card-title">Notifications</span>
-                <a href="#" className="card-action">
-                  Tout lire
-                </a>
-              </div>
-              {notifications.map((n, i) => (
-                <div className="notif-item" key={i}>
-                  <div className="notif-icon" style={{ background: n.iconBg }}>
-                    {n.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="notif-text">{n.textStr}</div>
-                    <div className="notif-time">{n.time}</div>
-                  </div>
-                  {n.isNew && <div className="notif-new" />}
-                </div>
-              ))}
-            </div>
-
-            {/* Abonnement card */}
             <div
               style={{
                 background: "linear-gradient(135deg, #0F0F0F, #1a0408)",
@@ -284,16 +283,21 @@ export default function DashboardFormateur() {
                 Abonnement
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "white", marginBottom: 2 }}>
-                Formateur Actif
+                {profil?.statutAbonnement === "ACTIF" ? "Formateur Actif" : "Formateur"}
               </div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginBottom: 14 }}>
-                20 € HT / mois
+                {profil?.statutAbonnement === "ACTIF" ? "20 € HT / mois" : "3 formations gratuites"}
               </div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>
-                Prochain prélèvement :{" "}
-                <strong style={{ color: "white" }}>1er déc. 2026</strong>
-              </div>
-              <button
+              {profil?.abonnementFin && (
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>
+                  Prochain prélèvement :{" "}
+                  <strong style={{ color: "white" }}>
+                    {formatDate(profil.abonnementFin)}
+                  </strong>
+                </div>
+              )}
+              <Link
+                href="/formateur/profil"
                 style={{
                   background: "#C8102E",
                   color: "white",
@@ -305,101 +309,14 @@ export default function DashboardFormateur() {
                   cursor: "pointer",
                   width: "100%",
                   fontFamily: "inherit",
+                  display: "block",
+                  textAlign: "center",
+                  textDecoration: "none",
                 }}
               >
                 Gérer l&apos;abonnement
-              </button>
+              </Link>
             </div>
-          </div>
-        </div>
-
-        {/* ACTIONS + STATS */}
-        <div className="two-col">
-          {/* Actions prioritaires */}
-          <div className="card">
-            <div className="card-header" style={{ marginBottom: 12 }}>
-              <span className="card-title">Actions prioritaires</span>
-            </div>
-            {priorityActions.map((a, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "10px 14px",
-                  border: "1.5px solid #E0E0E0",
-                  borderRadius: 10,
-                  marginBottom: i < priorityActions.length - 1 ? 8 : 0,
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    background: a.iconBg,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 16,
-                    flexShrink: 0,
-                  }}
-                >
-                  {a.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{a.title}</div>
-                  <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 1 }}>{a.sub}</div>
-                </div>
-                <span style={{ color: "#6A6A6A", fontSize: 16 }}>→</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Statistiques */}
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Statistiques</span>
-              <a href="#" className="card-action">
-                Détails →
-              </a>
-            </div>
-            {statsData.map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "10px 0",
-                  borderBottom: i < statsData.length - 1 ? "1px solid #EBEBEB" : "none",
-                }}
-              >
-                <span style={{ fontSize: 12, color: "#6A6A6A" }}>{s.label}</span>
-                <div
-                  style={{
-                    flex: 1,
-                    margin: "0 12px",
-                    background: "#EBEBEB",
-                    borderRadius: 100,
-                    height: 4,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      borderRadius: 100,
-                      background: "#C8102E",
-                      width: `${s.pct}%`,
-                    }}
-                  />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{s.value}</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>

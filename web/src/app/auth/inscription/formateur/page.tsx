@@ -59,7 +59,7 @@ export default function InscriptionFormateurPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: "formateur",
+          role: "FORMATEUR",
           civilite, prenom, nom, email, telephone, password,
           specialite, sousSpecialite, etablissement, rpps, experience, bio,
           plan,
