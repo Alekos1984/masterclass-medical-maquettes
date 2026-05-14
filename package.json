@@ -1,0 +1,14 @@
+{
+  "name": "masterclass-medical",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "install": "cd web && npm install",
+    "build": "cd web && npm run build",
+    "start": "cd web && npm start"
+  }
+}
