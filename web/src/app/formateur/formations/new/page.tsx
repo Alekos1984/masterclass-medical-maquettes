@@ -49,6 +49,8 @@ export default function NouvelleFormationPage() {
   const [checkedResto, setCheckedResto] = useState<string[]>(["Pause café matin", "Déjeuner"]);
   const [prixType, setPrixType] = useState<"payant" | "gratuit">("payant");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Form fields
   const [titre, setTitre] = useState("");
@@ -1115,23 +1117,54 @@ export default function NouvelleFormationPage() {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginBottom: 24, lineHeight: 1.6 }}>
                 Notre équipe recevra votre demande et vous contactera sous 72h avec un devis de salle. Votre formation sera publiée après validation du devis et paiement.
               </div>
+              {submitError && (
+                <div style={{ background: "#ffebee", color: "#c62828", borderRadius: 8, padding: "10px 16px", fontSize: 13, marginBottom: 16 }}>
+                  {submitError}
+                </div>
+              )}
               <button
-                onClick={() => setShowSuccess(true)}
+                disabled={submitLoading}
+                onClick={async () => {
+                  setSubmitError("");
+                  setSubmitLoading(true);
+                  try {
+                    const res = await fetch("/api/formations", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        titre, thematique, format, duree,
+                        dateDebut, dateFin, maxPart, minPart,
+                        ville, checkedEquip, restauration, checkedResto,
+                        objectives, description, prixType, prix,
+                      }),
+                    });
+                    if (res.ok) {
+                      setShowSuccess(true);
+                    } else {
+                      const data = await res.json();
+                      setSubmitError(data.error ?? "Erreur lors de la soumission");
+                    }
+                  } catch {
+                    setSubmitError("Erreur réseau, veuillez réessayer");
+                  } finally {
+                    setSubmitLoading(false);
+                  }
+                }}
                 style={{
-                  background: "#C8102E",
+                  background: submitLoading ? "#999" : "#C8102E",
                   color: "white",
                   border: "none",
                   borderRadius: 100,
                   padding: "16px 48px",
                   fontSize: 16,
                   fontWeight: 800,
-                  cursor: "pointer",
+                  cursor: submitLoading ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                   boxShadow: "0 8px 24px rgba(200,16,46,0.35)",
                   transition: "background 0.15s",
                 }}
               >
-                Soumettre la formation →
+                {submitLoading ? "Envoi en cours…" : "Soumettre la formation →"}
               </button>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 12 }}>
                 Vous recevrez un email de confirmation. La formation sera sauvegardée comme brouillon jusqu&apos;à la validation du devis.
