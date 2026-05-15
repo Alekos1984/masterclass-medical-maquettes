@@ -26,15 +26,38 @@ export async function PATCH(
     return NextResponse.json({ error: "Formation introuvable" }, { status: 404 });
   }
 
-  if (statut === "PUBLIEE" && !PUBLISHABLE.includes(formation.statut)) {
-    return NextResponse.json({ error: "Statut actuel ne permet pas la publication" }, { status: 400 });
+  // Collect content fields if present
+  const contentFields: Record<string, unknown> = {};
+  if (body.description !== undefined) contentFields.description = body.description;
+  if (body.objectifs !== undefined) contentFields.objectifs = body.objectifs;
+  if (body.programme !== undefined) contentFields.programme = body.programme;
+  if (body.titre !== undefined) contentFields.titre = body.titre;
+  if (body.heureDebut !== undefined) contentFields.heureDebut = body.heureDebut;
+  if (body.heureFin !== undefined) contentFields.heureFin = body.heureFin;
+  if (body.placesTotal !== undefined) contentFields.placesTotal = body.placesTotal;
+  if (body.prixHT !== undefined) contentFields.prixHT = body.prixHT;
+
+  if (statut) {
+    if (statut === "PUBLIEE" && !PUBLISHABLE.includes(formation.statut)) {
+      return NextResponse.json({ error: "Statut actuel ne permet pas la publication" }, { status: 400 });
+    }
+
+    const updated = await prisma.formation.update({
+      where: { id },
+      data: { statut },
+      select: { id: true, statut: true },
+    });
+
+    return NextResponse.json(updated);
+  } else if (Object.keys(contentFields).length > 0) {
+    const updated = await prisma.formation.update({
+      where: { id },
+      data: contentFields,
+      select: { id: true },
+    });
+
+    return NextResponse.json(updated);
   }
 
-  const updated = await prisma.formation.update({
-    where: { id },
-    data: { statut },
-    select: { id: true, statut: true },
-  });
-
-  return NextResponse.json(updated);
+  return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
 }
