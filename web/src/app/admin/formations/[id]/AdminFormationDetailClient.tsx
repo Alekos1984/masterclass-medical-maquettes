@@ -61,12 +61,12 @@ const PDF_BUTTONS: { label: string; icon: string; href: (id: string) => string; 
 ];
 
 const STATUT_TRANSITIONS: Record<string, { label: string; next: string; btnClass?: string }[]> = {
-  BROUILLON: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-primary" }],
-  EN_ATTENTE_SALLE: [{ label: "Confirmer la salle", next: "SALLE_CONFIRMEE" }, { label: "Publier", next: "PUBLIEE", btnClass: "btn btn-primary" }],
-  SALLE_CONFIRMEE: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-primary" }],
-  PUBLIEE: [{ label: "Marquer complète", next: "COMPLETE" }, { label: "Annuler", next: "ANNULEE" }],
+  BROUILLON: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-red" }],
+  EN_ATTENTE_SALLE: [{ label: "Confirmer la salle", next: "SALLE_CONFIRMEE", btnClass: "btn btn-ghost" }, { label: "Publier", next: "PUBLIEE", btnClass: "btn btn-red" }],
+  SALLE_CONFIRMEE: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-red" }],
+  PUBLIEE: [{ label: "Marquer complète", next: "COMPLETE", btnClass: "btn btn-ghost" }, { label: "Annuler", next: "ANNULEE", btnClass: "btn btn-warn" }],
   COMPLETE: [],
-  ANNULEE: [{ label: "Réactiver (brouillon)", next: "BROUILLON" }],
+  ANNULEE: [{ label: "Réactiver (brouillon)", next: "BROUILLON", btnClass: "btn btn-ghost" }],
 };
 
 export default function AdminFormationDetailClient({ formation }: { formation: Formation }) {
@@ -113,11 +113,10 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
             <button
               key={t.next}
               className={t.btnClass ?? "btn btn-ghost"}
-              style={{ fontSize: 12 }}
               disabled={changingStatut}
               onClick={() => changeStatut(t.next)}
             >
-              {t.label}
+              {changingStatut ? "…" : t.label}
             </button>
           ))}
           <span className={`pill ${statut.pillClass}`}>{statut.label}</span>
