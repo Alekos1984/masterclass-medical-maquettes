@@ -182,13 +182,14 @@ model Publication {
   formateurId String
   formateur   FormateurProfile @relation(fields: [formateurId], references: [id], onDelete: Cascade)
 
-  pmid    String?
-  titre   String  @db.Text
-  auteurs String  @db.Text
-  revue   String?
-  annee   Int?
-  doi     String?
-  url     String?
+  pmid      String?
+  titre     String  @db.Text
+  auteurs   String  @db.Text
+  revue     String?
+  annee     Int?
+  doi       String?
+  url       String?
+  sortOrder Int     @default(0)
 
   createdAt DateTime @default(now())
 
