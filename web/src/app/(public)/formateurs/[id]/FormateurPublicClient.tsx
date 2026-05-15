@@ -20,6 +20,17 @@ type FormationItem = {
   gratuite: boolean;
 };
 
+type PublicationItem = {
+  id: string;
+  pmid: string | null;
+  titre: string;
+  auteurs: string;
+  revue: string | null;
+  annee: number | null;
+  doi: string | null;
+  url: string | null;
+};
+
 type ProfilData = {
   id: string;
   nom: string;
@@ -31,6 +42,7 @@ type ProfilData = {
   linkedinUrl: string;
   researchgateUrl: string;
   pubmedUrl: string;
+  publicationsList: PublicationItem[];
   formations: FormationItem[];
 };
 
@@ -342,6 +354,97 @@ export default function FormateurPublicClient({ profil }: Props) {
             >
               {profil.bio}
             </p>
+          </div>
+        </section>
+      )}
+
+      {/* PUBLICATIONS */}
+      {profil.publicationsList.length > 0 && (
+        <section
+          style={{
+            background: "#F8F8FA",
+            padding: "48px 40px",
+            borderBottom: "1px solid #F0F0F0",
+          }}
+        >
+          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 28 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#111", margin: 0, letterSpacing: -0.5 }}>
+                Publications scientifiques
+              </h2>
+              <span style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>
+                {profil.publicationsList.length} référencée{profil.publicationsList.length > 1 ? "s" : ""}
+              </span>
+              {profil.pubmedUrl && (
+                <a
+                  href={profil.pubmedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: "#C8102E", fontWeight: 700, marginLeft: "auto", textDecoration: "none" }}
+                >
+                  Voir toutes sur PubMed ↗
+                </a>
+              )}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {profil.publicationsList.map((pub) => (
+                <div
+                  key={pub.id}
+                  style={{
+                    background: "white",
+                    border: "1.5px solid #EBEBEB",
+                    borderRadius: 12,
+                    padding: "16px 20px",
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111", lineHeight: 1.4, marginBottom: 6 }}>
+                    {pub.url ? (
+                      <a href={pub.url} target="_blank" rel="noopener noreferrer" style={{ color: "#111", textDecoration: "none" }}>
+                        {pub.titre}
+                      </a>
+                    ) : pub.titre}
+                  </div>
+                  <div style={{ fontSize: 13, color: "#555", marginBottom: 6 }}>{pub.auteurs}</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    {pub.revue && (
+                      <span style={{ fontSize: 12, fontStyle: "italic", color: "#777" }}>{pub.revue}</span>
+                    )}
+                    {pub.annee && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, color: "#C8102E",
+                        background: "#fff0f2", borderRadius: 20, padding: "2px 10px",
+                      }}>
+                        {pub.annee}
+                      </span>
+                    )}
+                    {pub.doi && (
+                      <a
+                        href={`https://doi.org/${pub.doi}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: 12, color: "#1565c0", fontWeight: 600, textDecoration: "none" }}
+                      >
+                        DOI ↗
+                      </a>
+                    )}
+                    {pub.pmid && (
+                      <a
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${pub.pmid}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: 11, fontWeight: 700, color: "#1565c0",
+                          background: "#e3f2fd", borderRadius: 20, padding: "2px 10px",
+                          textDecoration: "none",
+                        }}
+                      >
+                        PubMed
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}

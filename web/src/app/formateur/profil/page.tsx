@@ -65,7 +65,9 @@ export default async function FormateurProfilPage() {
             Profil public :
           </span>
           <a
-            href="#"
+            href={`/formateurs/${profil.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               fontSize: 12,
               color: "var(--red)",
