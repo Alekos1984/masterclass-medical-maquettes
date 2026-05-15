@@ -51,6 +51,9 @@ export default function NouvelleFormationPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [objectifsAiLoading, setObjectifsAiLoading] = useState(false);
+  const [programmeAiLoading, setProgrammeAiLoading] = useState(false);
+  const [programmeAi, setProgrammeAi] = useState<string[]>([]);
 
   // Form fields
   const [titre, setTitre] = useState("");
@@ -961,8 +964,46 @@ export default function NouvelleFormationPage() {
                   onChange={(e) => setObjectives(e.target.value)}
                   style={{ ...inputStyle, minHeight: 120, resize: "vertical" as const, lineHeight: 1.6 }}
                 />
-                <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 5 }}>
-                  Listez 3 à 5 objectifs mesurables. Un par ligne.
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                  <div style={{ fontSize: 12, color: "#6A6A6A" }}>
+                    Listez 3 à 5 objectifs mesurables. Un par ligne.
+                  </div>
+                  <button
+                    type="button"
+                    disabled={objectifsAiLoading}
+                    onClick={async () => {
+                      setObjectifsAiLoading(true);
+                      try {
+                        const res = await fetch("/api/ai/objectifs", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ objectifsRaw: objectives, titre }),
+                        });
+                        if (!res.ok) throw new Error("Erreur serveur");
+                        const data = await res.json();
+                        setObjectives(Array.isArray(data.objectifs) ? data.objectifs.join("\n") : data.objectifs);
+                      } catch {
+                        alert("Erreur lors de la génération des objectifs.");
+                      } finally {
+                        setObjectifsAiLoading(false);
+                      }
+                    }}
+                    style={{
+                      background: objectifsAiLoading ? "#E0E0E0" : "#fff5f6",
+                      color: objectifsAiLoading ? "#6A6A6A" : "#C8102E",
+                      border: "1.5px solid #C8102E",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: objectifsAiLoading ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                      flexShrink: 0,
+                      whiteSpace: "nowrap" as const,
+                    }}
+                  >
+                    {objectifsAiLoading ? "Génération…" : "✨ Améliorer avec l'IA"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -981,9 +1022,85 @@ export default function NouvelleFormationPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   style={{ ...inputStyle, minHeight: 160, resize: "vertical" as const, lineHeight: 1.6 }}
                 />
-                <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 5 }}>
-                  Cette description apparaîtra sur la landing page publique de votre formation.
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                  <div style={{ fontSize: 12, color: "#6A6A6A" }}>
+                    Cette description apparaîtra sur la landing page publique de votre formation.
+                  </div>
+                  <button
+                    type="button"
+                    disabled={programmeAiLoading}
+                    onClick={async () => {
+                      setProgrammeAiLoading(true);
+                      setProgrammeAi([]);
+                      try {
+                        const dureeHeures = parseInt(duree.replace("h", "")) || 7;
+                        const res = await fetch("/api/ai/programme", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            titre,
+                            description,
+                            dureeHeures,
+                            heureDebut: "08:30",
+                            objectifs: objectives.split("\n").filter(Boolean),
+                          }),
+                        });
+                        if (!res.ok) throw new Error("Erreur serveur");
+                        const data = await res.json();
+                        if (Array.isArray(data.programme)) {
+                          setProgrammeAi(data.programme);
+                        }
+                      } catch {
+                        alert("Erreur lors de la génération du programme.");
+                      } finally {
+                        setProgrammeAiLoading(false);
+                      }
+                    }}
+                    style={{
+                      background: programmeAiLoading ? "#E0E0E0" : "#fff5f6",
+                      color: programmeAiLoading ? "#6A6A6A" : "#C8102E",
+                      border: "1.5px solid #C8102E",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: programmeAiLoading ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                      flexShrink: 0,
+                      whiteSpace: "nowrap" as const,
+                    }}
+                  >
+                    {programmeAiLoading ? "Génération…" : "✨ Générer le programme IA"}
+                  </button>
                 </div>
+                {programmeAi.length > 0 && (
+                  <div style={{ marginTop: 14, border: "1.5px solid #C8102E", borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ background: "#fff5f6", padding: "8px 14px", fontSize: 11, fontWeight: 700, color: "#C8102E", textTransform: "uppercase" as const, letterSpacing: 0.8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span>Programme généré par l&apos;IA</span>
+                      <button
+                        type="button"
+                        onClick={() => setProgrammeAi([])}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#C8102E", fontFamily: "inherit" }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div style={{ padding: "10px 14px" }}>
+                      {programmeAi.map((item, i) => (
+                        <div key={i} style={{ fontSize: 13, color: "#0F0F0F", padding: "6px 0", borderBottom: i < programmeAi.length - 1 ? "1px solid #EBEBEB" : "none", lineHeight: 1.5 }}>
+                          {typeof item === "string" ? item : JSON.stringify(item)}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ background: "#F9F7F4", padding: "8px 14px", borderTop: "1px solid #E0E0E0" }}>
+                      <textarea
+                        readOnly
+                        value={JSON.stringify(programmeAi, null, 2)}
+                        style={{ width: "100%", border: "none", outline: "none", fontSize: 11, fontFamily: "monospace", background: "transparent", color: "#6A6A6A", resize: "none" as const, minHeight: 80, lineHeight: 1.5 }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

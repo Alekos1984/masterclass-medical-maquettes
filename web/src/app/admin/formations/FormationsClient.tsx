@@ -143,7 +143,7 @@ export default function FormationsClient({
                       <td><span className={`pill ${statut.pillClass}`}>{statut.label}</span></td>
                       <td>
                         <div style={{ display: "flex", gap: 5 }}>
-                          <button className="btn btn-ghost">Voir →</button>
+                          <Link href={`/admin/formations/${f.id}`} className="btn btn-ghost">Voir →</Link>
                           {f.statut === "EN_ATTENTE_SALLE" && (
                             <button className="btn btn-red" style={{ fontSize: 11 }}>Traiter</button>
                           )}
