@@ -169,11 +169,30 @@ model FormateurProfile {
   formationsTotal Int     @default(0)
   portfolioPublic Boolean @default(true)
 
-  formations Formation[]
-  virements  Virement[]
+  formations       Formation[]
+  virements        Virement[]
+  publicationsList Publication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Publication {
+  id          String           @id @default(cuid())
+  formateurId String
+  formateur   FormateurProfile @relation(fields: [formateurId], references: [id], onDelete: Cascade)
+
+  pmid    String?
+  titre   String  @db.Text
+  auteurs String  @db.Text
+  revue   String?
+  annee   Int?
+  doi     String?
+  url     String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([formateurId, pmid])
 }
 
 model ParticipantProfile {

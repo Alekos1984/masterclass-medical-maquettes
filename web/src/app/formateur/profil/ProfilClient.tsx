@@ -36,18 +36,31 @@ type ProfileData = {
   rpps: string;
 };
 
+type PublicationItem = {
+  id: string;
+  pmid: string | null;
+  titre: string;
+  auteurs: string;
+  revue: string | null;
+  annee: number | null;
+  doi: string | null;
+  url: string | null;
+};
+
 interface Props {
   profileData: ProfileData;
+  savedPublications: PublicationItem[];
 }
 
-export default function ProfilClient({ profileData }: Props) {
+export default function ProfilClient({ profileData, savedPublications }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("identite");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [bioReformulerLoading, setBioReformulerLoading] = useState(false);
   const [pubmedSearching, setPubmedSearching] = useState(false);
-  const [pubmedResult, setPubmedResult] = useState<{ count: number; ids: string[]; searchUrl: string } | null>(null);
+  const [pubmedResult, setPubmedResult] = useState<{ imported: number; total: number; searchUrl: string } | null>(null);
   const [pubmedQuery, setPubmedQuery] = useState("");
+  const [publications, setPublications] = useState<PublicationItem[]>(savedPublications);
   const [form, setForm] = useState<ProfileData>(profileData);
 
   const ch = (field: keyof ProfileData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -78,12 +91,18 @@ export default function ProfilClient({ profileData }: Props) {
     setPubmedSearching(true);
     setPubmedResult(null);
     try {
-      const res = await fetch(`/api/formateur/pubmed?query=${encodeURIComponent(query)}`);
+      const res = await fetch("/api/formateur/pubmed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
       if (!res.ok) throw new Error();
-      const data = await res.json();
+      const data = await res.json() as { imported: number; total: number; searchUrl: string };
       setPubmedResult(data);
-      if (data.count > 0) {
-        setForm(p => ({ ...p, publications: data.count, pubmedUrl: data.searchUrl }));
+      if (data.total > 0) {
+        setForm(p => ({ ...p, publications: data.total, pubmedUrl: data.searchUrl }));
+        const pubsRes = await fetch("/api/formateur/pubmed");
+        if (pubsRes.ok) setPublications(await pubsRes.json());
       }
     } catch {
       alert("Erreur lors de la recherche PubMed.");
@@ -415,9 +434,9 @@ export default function ProfilClient({ profileData }: Props) {
                 </button>
               </div>
               {pubmedResult && (
-                <div style={{ fontSize: 12, color: pubmedResult.count > 0 ? "#2e7d32" : "var(--gray)", background: pubmedResult.count > 0 ? "#e8f5e9" : "#F9F7F4", padding: "8px 12px", borderRadius: 8 }}>
-                  {pubmedResult.count > 0 ? (
-                    <>✅ {pubmedResult.count} publication{pubmedResult.count > 1 ? "s" : ""} trouvée{pubmedResult.count > 1 ? "s" : ""} — compteur et lien PubMed mis à jour.{" "}
+                <div style={{ fontSize: 12, color: pubmedResult.imported > 0 ? "#2e7d32" : "var(--gray)", background: pubmedResult.imported > 0 ? "#e8f5e9" : "#F9F7F4", padding: "8px 12px", borderRadius: 8 }}>
+                  {pubmedResult.total > 0 ? (
+                    <>✅ {pubmedResult.imported} publication{pubmedResult.imported > 1 ? "s" : ""} importée{pubmedResult.imported > 1 ? "s" : ""} ({pubmedResult.total} au total sur PubMed) — lien mis à jour.{" "}
                     <a href={pubmedResult.searchUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#C8102E", fontWeight: 600 }}>Voir sur PubMed ↗</a></>
                   ) : (
                     "Aucune publication trouvée pour ce nom. Essayez avec un autre terme."
@@ -425,24 +444,52 @@ export default function ProfilClient({ profileData }: Props) {
                 </div>
               )}
             </div>
-            {profileData.publications > 0 ? (
-              <div
-                style={{
-                  padding: "16px",
-                  background: "var(--off-white)",
-                  borderRadius: 10,
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}
-                >
-                  {profileData.publications}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--gray)" }}>
-                  publication{profileData.publications > 1 ? "s" : ""}{" "}
-                  référencée{profileData.publications > 1 ? "s" : ""}
-                </div>
+            {publications.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {publications.map((pub) => (
+                  <div
+                    key={pub.id}
+                    style={{
+                      border: "1.5px solid #E0E0E0",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      background: "white",
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, lineHeight: 1.4 }}>
+                      {pub.url ? (
+                        <a href={pub.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--red)", textDecoration: "none" }}>
+                          {pub.titre}
+                        </a>
+                      ) : pub.titre}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 3 }}>{pub.auteurs}</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      {pub.revue && <span style={{ fontSize: 11, fontStyle: "italic", color: "#555" }}>{pub.revue}</span>}
+                      {pub.annee && <span style={{ fontSize: 11, color: "var(--gray)" }}>{pub.annee}</span>}
+                      {pub.doi && (
+                        <a
+                          href={`https://doi.org/${pub.doi}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 11, color: "var(--red)", fontWeight: 600 }}
+                        >
+                          DOI ↗
+                        </a>
+                      )}
+                      {pub.pmid && (
+                        <a
+                          href={`https://pubmed.ncbi.nlm.nih.gov/${pub.pmid}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 11, color: "#1565c0", fontWeight: 600 }}
+                        >
+                          PubMed ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div
