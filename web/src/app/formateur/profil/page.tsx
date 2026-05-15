@@ -16,7 +16,10 @@ export default async function FormateurProfilPage() {
 
   const profil = await prisma.formateurProfile.findUnique({
     where: { userId: session.user.id },
-    include: { user: true },
+    include: {
+      user: true,
+      publicationsList: { orderBy: [{ annee: "desc" }, { createdAt: "desc" }] },
+    },
   });
   if (!profil) redirect("/formateur/dashboard");
 
@@ -149,7 +152,19 @@ export default async function FormateurProfilPage() {
           </div>
         </div>
 
-        <ProfilClient profileData={profileData} />
+        <ProfilClient
+          profileData={profileData}
+          savedPublications={profil.publicationsList.map((p) => ({
+            id: p.id,
+            pmid: p.pmid ?? null,
+            titre: p.titre,
+            auteurs: p.auteurs,
+            revue: p.revue ?? null,
+            annee: p.annee ?? null,
+            doi: p.doi ?? null,
+            url: p.url ?? null,
+          }))}
+        />
       </div>
     </>
   );
