@@ -6,9 +6,12 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({}, { status: 401 });
 
-  const { objectifsRaw, titre } = await req.json() as { objectifsRaw: string; titre: string };
-  if (!objectifsRaw || !titre) return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
+  const body = await req.json() as { objectifsRaw?: string; titre: string; specialite?: string };
+  const { titre, specialite } = body;
+  const objectifsRaw = body.objectifsRaw ?? "";
 
-  const objectifs = await restructurerObjectifs(objectifsRaw, titre);
+  if (!titre) return NextResponse.json({ error: "Titre manquant" }, { status: 400 });
+
+  const objectifs = await restructurerObjectifs(objectifsRaw, titre, specialite);
   return NextResponse.json({ objectifs });
 }
