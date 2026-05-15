@@ -40,6 +40,9 @@ interface Props {
   formateur: FormateurData;
   formation: FormationData;
   emargements: EmargementData[];
+  participantSignatureBase64?: string | null;
+  participantNomComplet?: string | null;
+  pvParticipantSignedAt?: string | null;
 }
 
 function formatDate(d: string) {
@@ -52,7 +55,7 @@ function formatSignatureDate(iso: string | null | undefined): string {
   return d.toLocaleDateString("fr-FR") + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function PvFormationPdf({ company, formateur, formation, emargements }: Props) {
+export function PvFormationPdf({ company, formateur, formation, emargements, participantSignatureBase64, participantNomComplet, pvParticipantSignedAt }: Props) {
   const presents = emargements.filter((e) => e.presentMatin || e.presentApresMidi);
   const refNum = `PV-${formation.id.slice(0, 8).toUpperCase()}`;
 
@@ -140,8 +143,20 @@ export function PvFormationPdf({ company, formateur, formation, emargements }: P
           </View>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Signature du participant</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>Nom et prénom : ________________________</Text>
-            <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature</Text></View>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
+              {participantNomComplet ? `${participantNomComplet}` : "Nom et prénom : ________________________"}
+            </Text>
+            <View style={s.signatureBox}>
+              {participantSignatureBase64 ? (
+                <>
+                  <Image src={participantSignatureBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
+                  <Text style={{ fontSize: 9, fontFamily: "Times-BoldItalic", color: BLACK }}>{participantNomComplet ?? ""}</Text>
+                  <Text style={{ fontSize: 7, color: "#1565c0" }}>Signé le {formatSignatureDate(pvParticipantSignedAt)}</Text>
+                </>
+              ) : (
+                <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
+              )}
+            </View>
             <Text style={{ fontSize: 7, color: GRAY }}>Le {formatDate(new Date().toISOString())}</Text>
           </View>
         </View>
