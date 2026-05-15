@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 type TabId = "revenus" | "salles" | "abonnement" | "factures";
 
@@ -59,7 +60,15 @@ export default function PaiementsClient({
   factures,
   abonnement,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<TabId>("revenus");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as TabId) ?? "revenus";
+  const [activeTab, setActiveTab] = useState<TabId>(
+    ["revenus", "salles", "abonnement", "factures"].includes(initialTab) ? initialTab : "revenus"
+  );
+  useEffect(() => {
+    const t = searchParams.get("tab") as TabId | null;
+    if (t && ["revenus", "salles", "abonnement", "factures"].includes(t)) setActiveTab(t);
+  }, [searchParams]);
 
   return (
     <>

@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     prixType,
     prix,
     niveau = "intermediaire",
+    publicCible,
   } = body;
 
   if (!titre || !dateDebut) {
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
       minParticipants: minPart ? Number(minPart) : 8,
       equipements: checkedEquip ?? [],
       restauration: restauration && checkedResto?.length ? (checkedResto as string[]).join(" + ") : null,
+      publicCible: publicCible ?? null,
     },
   });
 

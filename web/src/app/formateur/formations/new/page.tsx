@@ -49,6 +49,8 @@ export default function NouvelleFormationPage() {
   const [restauration, setRestauration] = useState(true);
   const [checkedResto, setCheckedResto] = useState<string[]>(["Pause café matin", "Déjeuner"]);
   const [prixType, setPrixType] = useState<"payant" | "gratuit">("payant");
+  const [niveau, setNiveau] = useState<string>("intermediaire");
+  const [publicCible, setPublicCible] = useState<string>("Médecins spécialistes");
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -427,22 +429,23 @@ export default function NouvelleFormationPage() {
                   <label style={labelStyle}>
                     Niveau requis <span style={{ color: "#C8102E" }}>*</span>
                   </label>
-                  <select style={inputStyle}>
-                    <option>Tous niveaux</option>
-                    <option selected>Intermédiaire</option>
-                    <option>Avancé</option>
-                    <option>Expert</option>
+                  <select style={inputStyle} value={niveau} onChange={(e) => setNiveau(e.target.value)}>
+                    <option value="tous">Tous niveaux</option>
+                    <option value="debutant">Débutant</option>
+                    <option value="intermediaire">Intermédiaire</option>
+                    <option value="avance">Avancé</option>
+                    <option value="expert">Expert</option>
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>
                     Public cible <span style={{ color: "#C8102E" }}>*</span>
                   </label>
-                  <select style={inputStyle}>
-                    <option>Médecins généralistes</option>
-                    <option selected>Médecins spécialistes</option>
-                    <option>Internes</option>
-                    <option>Tout professionnel de santé</option>
+                  <select style={inputStyle} value={publicCible} onChange={(e) => setPublicCible(e.target.value)}>
+                    <option value="Médecins généralistes">Médecins généralistes</option>
+                    <option value="Médecins spécialistes">Médecins spécialistes</option>
+                    <option value="Internes">Internes</option>
+                    <option value="Tout professionnel de santé">Tout professionnel de santé</option>
                   </select>
                 </div>
               </div>
@@ -1361,6 +1364,7 @@ export default function NouvelleFormationPage() {
                         ville, nomEtablissement, datesFlexibles,
                         checkedEquip, restauration, checkedResto,
                         objectives, description, prixType, prix,
+                        niveau, publicCible,
                       }),
                     });
                     if (res.ok) {

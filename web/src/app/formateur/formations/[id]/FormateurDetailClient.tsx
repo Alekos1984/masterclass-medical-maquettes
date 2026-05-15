@@ -554,7 +554,6 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 {[
                   { icon: "📄", label: "Programme officiel", href: `/api/pdf/programme/${formation.id}`, sub: "Format Qualiopi" },
                   { icon: "🖼️", label: "Affiche A4", href: `/api/pdf/affiche/${formation.id}?ai=true`, sub: "Accroche générée par IA" },
-                  { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "À imprimer le jour J" },
                 ].map((doc) => (
                   <a
                     key={doc.href}
@@ -593,6 +592,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}`, sub: "Certifiée demi-journée" },
                   { icon: "📋", label: "PV de formation", href: `/api/pdf/pv-formation/${formation.id}`, sub: "Procès-verbal de clôture" },
                   { icon: "📜", label: "Certificat de réalisation", href: `/api/pdf/certificat-realisation/${formation.id}`, sub: "Art. L6353-1 Code du travail" },
+                  { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "Envoyé aux participants J+1" },
                   { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses · Analyse IA` : "Disponible J+3" },
                 ].map((doc) => (
                   <a
@@ -902,8 +902,10 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
                       <label style={labelStyle}>Niveau</label>
                       <select value={infosState.niveau} onChange={e => setInfosState(s => ({...s, niveau: e.target.value}))} style={inputStyle}>
+                        <option value="tous">Tous niveaux</option>
                         <option value="debutant">Débutant</option>
                         <option value="intermediaire">Intermédiaire</option>
+                        <option value="avance">Avancé</option>
                         <option value="expert">Expert</option>
                       </select>
 
@@ -940,10 +942,36 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                       <input type="number" value={infosState.prixHT} min={0} step={10} onChange={e => setInfosState(s => ({...s, prixHT: Number(e.target.value)}))} style={inputStyle} />
 
                       <label style={labelStyle}>Public cible</label>
-                      <input type="text" value={infosState.publicCible} onChange={e => setInfosState(s => ({...s, publicCible: e.target.value}))} placeholder="Ex : Tous professionnels de santé" style={inputStyle} />
+                      <select value={infosState.publicCible} onChange={e => setInfosState(s => ({...s, publicCible: e.target.value}))} style={inputStyle}>
+                        <option value="">— Sélectionner —</option>
+                        <option value="Médecins généralistes">Médecins généralistes</option>
+                        <option value="Médecins spécialistes">Médecins spécialistes</option>
+                        <option value="Internes">Internes</option>
+                        <option value="Tout professionnel de santé">Tout professionnel de santé</option>
+                      </select>
 
                       <label style={labelStyle}>Restauration</label>
-                      <input type="text" value={infosState.restauration} onChange={e => setInfosState(s => ({...s, restauration: e.target.value}))} placeholder="Ex : Pause café matin + Déjeuner" style={inputStyle} />
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                        {["Pause café matin", "Déjeuner", "Pause café après-midi"].map((r) => {
+                          const checked = (infosState.restauration ?? "").split(" + ").map(s => s.trim()).filter(Boolean).includes(r);
+                          return (
+                            <label key={r} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setInfosState(s => {
+                                    const items = (s.restauration ?? "").split(" + ").map(x => x.trim()).filter(Boolean);
+                                    const next = items.includes(r) ? items.filter(x => x !== r) : [...items, r];
+                                    return { ...s, restauration: next.join(" + ") };
+                                  });
+                                }}
+                              />
+                              {r}
+                            </label>
+                          );
+                        })}
+                      </div>
 
                       <label style={labelStyle}>Équipements</label>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>

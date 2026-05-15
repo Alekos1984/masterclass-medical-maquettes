@@ -281,6 +281,11 @@ model Formation {
   // Les 3 premières formations du formateur sont gratuites (pas d'abonnement requis)
   gratuite Boolean @default(false)
 
+  // Cycle de vie de la session live
+  sessionStatus    String?   // "IDLE" | "EN_COURS" | "EN_PAUSE" | "TERMINEE"
+  sessionStartedAt DateTime?
+  sessionEndedAt   DateTime?
+
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
   paiements     Paiement[]

@@ -294,7 +294,7 @@ export default async function DashboardFormateur() {
                 </div>
               )}
               <Link
-                href="/formateur/profil"
+                href="/formateur/paiements?tab=abonnement"
                 style={{
                   background: "#C8102E",
                   color: "white",

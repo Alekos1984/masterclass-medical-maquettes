@@ -41,6 +41,9 @@ export default async function LiveFormationPage({ params }: { params: Promise<{ 
     lieuVille: formation.lieuVille ?? null,
     statut: formation.statut,
     placesTotal: formation.placesTotal,
+    sessionStatus: formation.sessionStatus ?? null,
+    sessionStartedAt: formation.sessionStartedAt?.toISOString() ?? null,
+    sessionEndedAt: formation.sessionEndedAt?.toISOString() ?? null,
     participants: formation.inscriptions.map((insc) => {
       const emg = insc.emargements[0] ?? null;
       return {
