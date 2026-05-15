@@ -73,6 +73,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       .join("\n")
   );
   const [saving, setSaving] = useState<string | null>(null);
+  const [savedState, setSavedState] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [reformulerLoading, setReformulerLoading] = useState<string | null>(null);
 
@@ -89,6 +90,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     setSaving("description");
     try {
       await patchFormation({ description: descriptionText });
+      setSavedState("description");
+      setTimeout(() => setSavedState((s) => s === "description" ? null : s), 2500);
     } catch {
       alert("Erreur lors de la sauvegarde.");
     } finally {
@@ -101,6 +104,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     try {
       const objectifs = objectifsText.split("\n").filter(Boolean);
       await patchFormation({ objectifs });
+      setSavedState("objectifs");
+      setTimeout(() => setSavedState((s) => s === "objectifs" ? null : s), 2500);
     } catch {
       alert("Erreur lors de la sauvegarde.");
     } finally {
@@ -124,6 +129,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           };
         });
       await patchFormation({ programme });
+      setSavedState("programme");
+      setTimeout(() => setSavedState((s) => s === "programme" ? null : s), 2500);
     } catch {
       alert("Erreur lors de la sauvegarde.");
     } finally {
@@ -159,6 +166,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           titre: formation.titre,
           specialite: formation.specialite,
           objectifsRaw: objectifsText,
+          description: descriptionText,
         }),
       });
       if (!res.ok) throw new Error();
@@ -701,8 +709,9 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   className="btn btn-red"
                   onClick={saveDescription}
                   disabled={saving === "description"}
+                  style={{ background: savedState === "description" ? "#2e7d32" : "#C8102E" }}
                 >
-                  {saving === "description" ? "Sauvegarde…" : "💾 Sauvegarder"}
+                  {saving === "description" ? "Sauvegarde…" : savedState === "description" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
                 </button>
               </div>
             </div>
@@ -749,8 +758,9 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   className="btn btn-red"
                   onClick={saveObjectifs}
                   disabled={saving === "objectifs"}
+                  style={{ background: savedState === "objectifs" ? "#2e7d32" : "#C8102E" }}
                 >
-                  {saving === "objectifs" ? "Sauvegarde…" : "💾 Sauvegarder"}
+                  {saving === "objectifs" ? "Sauvegarde…" : savedState === "objectifs" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
                 </button>
               </div>
             </div>
@@ -797,8 +807,9 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   className="btn btn-red"
                   onClick={saveProgramme}
                   disabled={saving === "programme"}
+                  style={{ background: savedState === "programme" ? "#2e7d32" : "#C8102E" }}
                 >
-                  {saving === "programme" ? "Sauvegarde…" : "💾 Sauvegarder"}
+                  {saving === "programme" ? "Sauvegarde…" : savedState === "programme" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
                 </button>
               </div>
             </div>

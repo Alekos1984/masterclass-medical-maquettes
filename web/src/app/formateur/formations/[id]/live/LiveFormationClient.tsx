@@ -31,6 +31,9 @@ type Formation = {
   participants: Participant[];
 };
 
+type LogEntry = { type: "start" | "pause" | "resume" | "stop"; time: string };
+type SessionStatus = "idle" | "running" | "paused" | "stopped";
+
 function useCurrentTime() {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
@@ -47,9 +50,122 @@ function formatTime(iso: string | null) {
 
 export default function LiveFormationClient({ formation }: { formation: Formation }) {
   const now = useCurrentTime();
-  const [activeSection, setActiveSection] = useState<"participants" | "emargement" | "diaporama">("participants");
+  const [activeSection, setActiveSection] = useState<"participants" | "emargement" | "diaporama" | "log">("participants");
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Session log
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("idle");
+  const [sessionLog, setSessionLog] = useState<LogEntry[]>([]);
+
+  // Email sending state
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<string | null>(null);
+  const [satisfactionSending, setSatisfactionSending] = useState(false);
+  const [satisfactionResult, setSatisfactionResult] = useState<string | null>(null);
+
+  // Client-side baseUrl for QR code
+  const [baseUrl, setBaseUrl] = useState<string>("");
+
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
+
+  // Load session from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(`live-session-${formation.id}`);
+    if (stored) {
+      const data = JSON.parse(stored) as { status: SessionStatus; log: LogEntry[] };
+      setSessionStatus(data.status === "stopped" ? "stopped" : data.status);
+      setSessionLog(data.log ?? []);
+    }
+  }, [formation.id]);
+
+  function addLog(type: LogEntry["type"]) {
+    const entry: LogEntry = {
+      type,
+      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    };
+    setSessionLog((prev) => {
+      const next = [...prev, entry];
+      localStorage.setItem(
+        `live-session-${formation.id}`,
+        JSON.stringify({ status: type === "stop" ? "stopped" : type === "pause" ? "paused" : type === "resume" ? "running" : "running", log: next })
+      );
+      return next;
+    });
+  }
+
+  function startSession() {
+    setSessionStatus("running");
+    addLog("start");
+    localStorage.setItem(`live-session-${formation.id}`, JSON.stringify({ status: "running", log: [...sessionLog, { type: "start", time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }] }));
+  }
+
+  function pauseSession() {
+    setSessionStatus("paused");
+    addLog("pause");
+  }
+
+  function resumeSession() {
+    setSessionStatus("running");
+    addLog("resume");
+  }
+
+  function stopSession() {
+    setSessionStatus("stopped");
+    addLog("stop");
+  }
+
+  function clearLog() {
+    localStorage.removeItem(`live-session-${formation.id}`);
+    setSessionLog([]);
+    setSessionStatus("idle");
+  }
+
+  async function sendEmargementEmails() {
+    setEmailSending(true);
+    setEmailResult(null);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}/send-emargement`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: window.location.origin }),
+      });
+      const data = await res.json() as { sent: number; errors: string[]; total: number };
+      if (res.ok) {
+        setEmailResult(`✅ ${data.sent} email${data.sent > 1 ? "s" : ""} envoyé${data.sent > 1 ? "s" : ""} sur ${data.total}${data.errors.length > 0 ? ` (${data.errors.length} erreur${data.errors.length > 1 ? "s" : ""})` : ""}`);
+      } else {
+        setEmailResult("❌ Erreur lors de l'envoi");
+      }
+    } catch {
+      setEmailResult("❌ Erreur réseau");
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
+  async function sendSatisfactionEmails() {
+    setSatisfactionSending(true);
+    setSatisfactionResult(null);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}/send-satisfaction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: window.location.origin }),
+      });
+      const data = await res.json() as { sent: number; errors: string[]; total: number };
+      if (res.ok) {
+        setSatisfactionResult(`✅ ${data.sent} questionnaire${data.sent > 1 ? "s" : ""} envoyé${data.sent > 1 ? "s" : ""} sur ${data.total}${data.errors.length > 0 ? ` (${data.errors.length} erreur${data.errors.length > 1 ? "s" : ""})` : ""}`);
+      } else {
+        setSatisfactionResult("❌ Erreur lors de l'envoi");
+      }
+    } catch {
+      setSatisfactionResult("❌ Erreur réseau");
+    } finally {
+      setSatisfactionSending(false);
+    }
+  }
 
   const dateFormatted = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -83,6 +199,20 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
       {label}
     </button>
   );
+
+  const logTypeLabel: Record<LogEntry["type"], string> = {
+    start: "▶ Démarrage",
+    pause: "⏸ Pause",
+    resume: "▶ Reprise",
+    stop: "⏹ Arrêt",
+  };
+
+  const logTypeColor: Record<LogEntry["type"], string> = {
+    start: "#22c55e",
+    pause: "#f97316",
+    resume: "#22c55e",
+    stop: "#ef4444",
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#080810", color: "white", fontFamily: "inherit" }}>
@@ -128,6 +258,71 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
           >
             ✍️ Gérer l&apos;émargement
           </Link>
+
+          {/* Session control buttons */}
+          {sessionStatus === "idle" && (
+            <button
+              onClick={startSession}
+              style={{
+                background: "#22c55e", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
+                fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+              }}
+            >
+              ▶ Démarrer la session
+            </button>
+          )}
+          {sessionStatus === "running" && (
+            <>
+              <button
+                onClick={pauseSession}
+                style={{
+                  background: "#f97316", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                }}
+              >
+                ⏸ Pause
+              </button>
+              <button
+                onClick={stopSession}
+                style={{
+                  background: "#ef4444", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                }}
+              >
+                ⏹ Terminer
+              </button>
+            </>
+          )}
+          {sessionStatus === "paused" && (
+            <>
+              <button
+                onClick={resumeSession}
+                style={{
+                  background: "#22c55e", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                }}
+              >
+                ▶ Reprendre
+              </button>
+              <button
+                onClick={stopSession}
+                style={{
+                  background: "#ef4444", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                }}
+              >
+                ⏹ Terminer
+              </button>
+            </>
+          )}
+          {sessionStatus === "stopped" && (
+            <span style={{
+              background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)",
+              borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
+            }}>
+              Session terminée
+            </span>
+          )}
         </div>
       </div>
 
@@ -177,74 +372,104 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
           {sectionBtn("participants", "👥 Participants")}
           {sectionBtn("emargement", "✍️ Émargement")}
           {sectionBtn("diaporama", "🖥 Diaporama")}
+          {sectionBtn("log", "📋 Log")}
         </div>
 
         {/* PARTICIPANTS */}
         {activeSection === "participants" && (
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>Liste des participants</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                {presentMatin} / {total} présences enregistrées ce matin
+          <div>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden", marginBottom: 16 }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Liste des participants</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                  {presentMatin} / {total} présences enregistrées ce matin
+                </div>
+              </div>
+              {formation.participants.length === 0 ? (
+                <div style={{ padding: "48px 20px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>👥</div>
+                  <div>Aucun participant inscrit</div>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+                      {["Participant", "Spécialité", "Matin", "Après-midi", "Heure signature"].map((h) => (
+                        <th key={h} style={{ padding: "10px 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formation.participants.map((p, i) => (
+                      <tr
+                        key={p.id}
+                        style={{ borderBottom: i < formation.participants.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
+                      >
+                        <td style={{ padding: "12px 20px" }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>{p.email}</div>
+                        </td>
+                        <td style={{ padding: "12px 20px", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+                          {p.specialite ?? "—"}
+                        </td>
+                        <td style={{ padding: "12px 20px" }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                            background: p.presentMatin ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)",
+                            color: p.presentMatin ? "#22c55e" : "rgba(255,255,255,0.3)",
+                          }}>
+                            {p.presentMatin ? "✓ Présent" : "Absent"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 20px" }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                            background: p.presentApresMidi ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)",
+                            color: p.presentApresMidi ? "#22c55e" : "rgba(255,255,255,0.3)",
+                          }}>
+                            {p.presentApresMidi ? "✓ Présent" : "Absent"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 20px", fontSize: 12, color: "rgba(255,255,255,0.4)", fontVariantNumeric: "tabular-nums" }}>
+                          {p.signatureMatin || p.signatureApresMidi
+                            ? [p.signatureMatin && `M: ${formatTime(p.signatureMatin)}`, p.signatureApresMidi && `AM: ${formatTime(p.signatureApresMidi)}`].filter(Boolean).join("  ·  ")
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Satisfaction email button */}
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "20px 24px" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Questionnaire de satisfaction</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginBottom: 16, lineHeight: 1.6 }}>
+                Envoyez un questionnaire de satisfaction par email à tous les participants confirmés une fois la formation terminée.
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <button
+                  onClick={sendSatisfactionEmails}
+                  disabled={satisfactionSending}
+                  style={{
+                    background: satisfactionSending ? "rgba(255,255,255,0.1)" : "rgba(200,16,46,0.15)",
+                    color: satisfactionSending ? "rgba(255,255,255,0.4)" : "#C8102E",
+                    border: "1px solid rgba(200,16,46,0.3)",
+                    borderRadius: 8, padding: "9px 16px",
+                    fontSize: 13, fontWeight: 700, cursor: satisfactionSending ? "not-allowed" : "pointer", fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  {satisfactionSending ? "Envoi en cours…" : "📧 Envoyer le questionnaire de satisfaction"}
+                </button>
+                {satisfactionResult && (
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>{satisfactionResult}</span>
+                )}
               </div>
             </div>
-            {formation.participants.length === 0 ? (
-              <div style={{ padding: "48px 20px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
-                <div style={{ fontSize: 32, marginBottom: 10 }}>👥</div>
-                <div>Aucun participant inscrit</div>
-              </div>
-            ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "rgba(255,255,255,0.03)" }}>
-                    {["Participant", "Spécialité", "Matin", "Après-midi", "Heure signature"].map((h) => (
-                      <th key={h} style={{ padding: "10px 20px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {formation.participants.map((p, i) => (
-                    <tr
-                      key={p.id}
-                      style={{ borderBottom: i < formation.participants.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
-                    >
-                      <td style={{ padding: "12px 20px" }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>{p.email}</div>
-                      </td>
-                      <td style={{ padding: "12px 20px", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-                        {p.specialite ?? "—"}
-                      </td>
-                      <td style={{ padding: "12px 20px" }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                          background: p.presentMatin ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)",
-                          color: p.presentMatin ? "#22c55e" : "rgba(255,255,255,0.3)",
-                        }}>
-                          {p.presentMatin ? "✓ Présent" : "Absent"}
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px 20px" }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                          background: p.presentApresMidi ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)",
-                          color: p.presentApresMidi ? "#22c55e" : "rgba(255,255,255,0.3)",
-                        }}>
-                          {p.presentApresMidi ? "✓ Présent" : "Absent"}
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px 20px", fontSize: 12, color: "rgba(255,255,255,0.4)", fontVariantNumeric: "tabular-nums" }}>
-                        {p.signatureMatin || p.signatureApresMidi
-                          ? [p.signatureMatin && `M: ${formatTime(p.signatureMatin)}`, p.signatureApresMidi && `AM: ${formatTime(p.signatureApresMidi)}`].filter(Boolean).join("  ·  ")
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
           </div>
         )}
 
@@ -269,7 +494,54 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
               >
                 ✍️ Ouvrir le panneau émargement
               </Link>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>
+
+              {/* Send email button */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                <button
+                  onClick={sendEmargementEmails}
+                  disabled={emailSending}
+                  style={{
+                    background: emailSending ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.08)",
+                    color: emailSending ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.8)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: 10, padding: "12px 18px",
+                    fontSize: 13, fontWeight: 700, cursor: emailSending ? "not-allowed" : "pointer", fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center",
+                  }}
+                >
+                  {emailSending ? "Envoi en cours…" : "📧 Envoyer les liens d'émargement"}
+                </button>
+              </div>
+              {emailResult && (
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center", marginBottom: 8 }}>
+                  {emailResult}
+                </div>
+              )}
+
+              {/* QR code */}
+              {baseUrl && (
+                <div style={{ marginTop: 16, textAlign: "center" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                    QR Code d&apos;émargement
+                  </div>
+                  <div style={{
+                    display: "inline-block", background: "white", borderRadius: 12, padding: 12,
+                  }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${baseUrl}/formateur/emargement/${formation.id}`)}`}
+                      alt="QR code émargement"
+                      width={180}
+                      height={180}
+                      style={{ display: "block", borderRadius: 4 }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 8 }}>
+                    Scannez pour accéder à l&apos;émargement
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center", marginTop: 8 }}>
                 S&apos;ouvre dans un nouvel onglet · Feuille de présence générée automatiquement à la clôture
               </div>
             </div>
@@ -382,6 +654,58 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* LOG */}
+        {activeSection === "log" && (
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>Journal de session</div>
+              {sessionLog.length > 0 && (
+                <button
+                  onClick={clearLog}
+                  style={{
+                    background: "rgba(200,16,46,0.12)", color: "#C8102E", border: "1px solid rgba(200,16,46,0.25)",
+                    borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  🗑 Effacer le log
+                </button>
+              )}
+            </div>
+            {sessionLog.length === 0 ? (
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
+                <div>Aucun événement enregistré</div>
+                <div style={{ fontSize: 12, marginTop: 6, color: "rgba(255,255,255,0.25)" }}>Démarrez la session pour commencer à enregistrer les événements</div>
+              </div>
+            ) : (
+              <div style={{ padding: "8px 0" }}>
+                {sessionLog.map((entry, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 16,
+                      padding: "10px 20px",
+                      borderBottom: i < sessionLog.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                    }}
+                  >
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+                      background: `${logTypeColor[entry.type]}22`,
+                      color: logTypeColor[entry.type],
+                      minWidth: 110, textAlign: "center",
+                    }}>
+                      {logTypeLabel[entry.type]}
+                    </span>
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
+                      {entry.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
