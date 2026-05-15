@@ -215,6 +215,9 @@ export default async function ParticipantDashboardPage() {
                       {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
                       {!insc.conventionSignee && <span style={{ fontSize: 11, color: "var(--gray)" }}>⏳ Convention en attente</span>}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                          📬 Convocation PDF
+                        </a>
                         <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                           📄 Convention PDF
                         </a>
