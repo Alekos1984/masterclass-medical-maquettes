@@ -36,6 +36,8 @@ export type FormationData = {
   linkedinUrl: string;
   researchgateUrl: string;
   pubmedUrl: string;
+  publicCible: string;
+  restauration: string;
 };
 
 type Tab = "programme" | "formateur" | "lieu" | "infos";
@@ -75,13 +77,26 @@ export default function FormationDetailClient({ formation }: { formation: Format
     },
   ];
 
+  const NIVEAUX_LABEL: Record<string, string> = {
+    debutant: "Débutant", intermediaire: "Intermédiaire", expert: "Expert",
+  };
   const infos = [
     { icon: "📄", title: "Attestation", val: "Envoyée sous 24h", sub: "PDF nominatif envoyé par email après la formation" },
     { icon: "💳", title: "Paiement", val: "Sécurisé en ligne", sub: "Carte bancaire via Stripe · Facture PDF immédiate" },
     { icon: "❌", title: "Annulation", val: "Remboursement J-14", sub: "Remboursement intégral si annulation 14 jours avant" },
-    { icon: "🎯", title: "Public cible", val: "Médecins spécialistes", sub: `Niveau ${formation.niveau} · RPPS recommandé` },
+    {
+      icon: "🎯",
+      title: "Public cible",
+      val: formation.publicCible || "Professionnels de santé",
+      sub: `Niveau ${NIVEAUX_LABEL[formation.niveau] ?? formation.niveau} · RPPS recommandé`,
+    },
     { icon: "📋", title: "Convention", val: "Signature électronique", sub: "Convention de formation envoyée via YouSign" },
-    { icon: "🍽️", title: "Restauration", val: "Incluse", sub: "Pause café matin + déjeuner pris en charge" },
+    {
+      icon: "🍽️",
+      title: "Restauration",
+      val: formation.restauration ? (formation.restauration.toLowerCase().includes("non") ? "Non incluse" : "Incluse") : "—",
+      sub: formation.restauration || "Information à venir",
+    },
   ];
 
   const docs = [
@@ -140,8 +155,7 @@ export default function FormationDetailClient({ formation }: { formation: Format
           pointerEvents: "none",
         }} />
 
-        <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 2, display: "grid", gridTemplateColumns: "1fr 320px", gap: 40, alignItems: "start" }}>
-          {/* Left */}
+        <div style={{ maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 2 }}>
           <div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
               Formations → {formation.specialite}
@@ -192,82 +206,6 @@ export default function FormationDetailClient({ formation }: { formation: Format
               </div>
             </div>
           </div>
-
-          {/* Hero Card */}
-          <div style={{ background: "white", borderRadius: 16, padding: 24, boxShadow: "0 8px 40px rgba(0,0,0,0.3)" }}>
-            <div style={{ fontSize: 30, fontWeight: 800, color: "#0F0F0F", letterSpacing: -1, marginBottom: 2 }}>
-              {formation.gratuite ? "Gratuit" : `${formation.prixHT} €`}{" "}
-              {!formation.gratuite && <span style={{ fontSize: 14, fontWeight: 400, color: "#6A6A6A", letterSpacing: 0 }}>HT / participant</span>}
-            </div>
-            <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 14 }}>Exonéré de TVA (art. 261-4-4° CGI)</div>
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
-                <span style={{ color: "#6A6A6A" }}>Places réservées</span>
-                <span style={{ fontWeight: 700, color: "#0F0F0F" }}>{formation.placesReserved} / {formation.placesTotal}</span>
-              </div>
-              <div style={{ background: "#EBEBEB", borderRadius: 100, height: 5, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 100, background: "linear-gradient(90deg, #C8102E, #E8394A)", width: `${fillPct}%` }} />
-              </div>
-              {formation.placesRestantes <= 5 && (
-                <div style={{ fontSize: 11, color: "#C8102E", fontWeight: 600, marginTop: 4 }}>
-                  ⚡ Plus que {formation.placesRestantes} places disponibles
-                </div>
-              )}
-            </div>
-            <Link
-              href="/auth/inscription/participant"
-              style={{
-                display: "block",
-                width: "100%",
-                background: "#C8102E",
-                color: "white",
-                border: "none",
-                borderRadius: 10,
-                padding: 13,
-                fontSize: 14,
-                fontWeight: 800,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                marginBottom: 8,
-                boxShadow: "0 4px 14px rgba(200,16,46,0.3)",
-                textAlign: "center",
-                textDecoration: "none",
-              }}
-            >
-              S&apos;inscrire maintenant →
-            </Link>
-            <button style={{
-              width: "100%",
-              background: "transparent",
-              color: "#6A6A6A",
-              border: "1.5px solid #E0E0E0",
-              borderRadius: 10,
-              padding: 10,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}>
-              Poser une question
-            </button>
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #EBEBEB" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                📅 <span><strong style={{ color: "#0F0F0F" }}>{formation.dateShort}</strong> · {hours}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                📍 <span>{formation.lieuVille} · <strong style={{ color: "#0F0F0F" }}>{venue}{formation.lieuSalle ? `, ${formation.lieuSalle}` : ""}</strong></span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                🍽️ <span>Pause café + <strong style={{ color: "#0F0F0F" }}>déjeuner inclus</strong></span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A" }}>
-                📄 <span><strong style={{ color: "#0F0F0F" }}>Attestation</strong> envoyée sous 24h</span>
-              </div>
-            </div>
-            <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 10, paddingTop: 10, borderTop: "1px solid #EBEBEB", textAlign: "center" }}>
-              🔒 Paiement sécurisé · Remboursement J-14
-            </div>
-          </div>
         </div>
       </div>
 
@@ -300,7 +238,7 @@ export default function FormationDetailClient({ formation }: { formation: Format
 
       {/* CONTENT */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 40, paddingTop: 40, paddingBottom: 60 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 40, paddingTop: 40, paddingBottom: 60 }}>
           <div>
             {/* PROGRAMME TAB */}
             {activeTab === "programme" && (
@@ -422,40 +360,71 @@ export default function FormationDetailClient({ formation }: { formation: Format
             {activeTab === "lieu" && (
               <div>
                 <div className="section-eyebrow">Lieu de la formation</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0F0F", letterSpacing: -0.3, marginBottom: 16 }}>Où se déroule la masterclass ?</div>
-                <div style={{ border: "1px solid #E0E0E0", borderRadius: 14, overflow: "hidden", marginBottom: 20 }}>
-                  <div style={{ width: "100%", height: 160, background: "linear-gradient(135deg, #e8eaf6, #c5cae9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5c6bc0", fontSize: 13, fontWeight: 600 }}>
-                    📍 {venue} · Vue carte interactive
-                  </div>
-                  <div style={{ padding: 18 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0F0F", marginBottom: 3 }}>{venue}</div>
-                    <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 10 }}>
-                      {formation.lieuAdresse ? `${formation.lieuAdresse} · ` : ""}{formation.lieuSalle || "Salle à confirmer"}
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0F0F", letterSpacing: -0.3, marginBottom: 20 }}>Où se déroule la masterclass ?</div>
+
+                {formation.lieuVille ? (
+                  <>
+                    {/* City prominent */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+                      <div style={{
+                        width: 56, height: 56, borderRadius: 14,
+                        background: "linear-gradient(135deg, #080810, #1a0408)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 24, flexShrink: 0,
+                      }}>📍</div>
+                      <div>
+                        <div style={{ fontSize: 26, fontWeight: 900, color: "#0F0F0F", letterSpacing: -0.8 }}>
+                          {formation.lieuVille}
+                        </div>
+                        {formation.lieuNom ? (
+                          <div style={{ fontSize: 14, color: "#444", marginTop: 2 }}>{formation.lieuNom}</div>
+                        ) : (
+                          <div style={{ fontSize: 13, color: "#f97316", fontWeight: 600, marginTop: 2 }}>
+                            ⏳ Salle en cours de confirmation
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {(["📶 Wi-Fi haut débit", "🎤 Sono & micro", "📽️ Vidéoprojecteur", "🍽️ Restauration incluse"]).map((feat) => (
-                        <span key={feat} style={{ fontSize: 12, color: "#6A6A6A", background: "#F9F7F4", border: "1px solid #EBEBEB", borderRadius: 6, padding: "3px 9px" }}>{feat}</span>
+
+                    {formation.lieuAdresse && (
+                      <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 16, paddingLeft: 4 }}>
+                        🗺️ {formation.lieuAdresse}{formation.lieuSalle ? ` · ${formation.lieuSalle}` : ""}
+                      </div>
+                    )}
+
+                    {/* Map placeholder */}
+                    <div style={{ border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+                      <div style={{ width: "100%", height: 180, background: "linear-gradient(135deg, #e8eaf6, #c5cae9)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5c6bc0", fontSize: 13, fontWeight: 600, gap: 8 }}>
+                        📍 {formation.lieuNom || formation.lieuVille} · Carte interactive
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {[
+                        { icon: "🚇", title: "Transports", val: formation.lieuVille, sub: "Accès facile en transports en commun" },
+                        { icon: "🚗", title: "Parking", val: "À proximité", sub: "Plusieurs parkings disponibles" },
+                      ].map((t) => (
+                        <div key={t.title} style={{ background: "#F9F7F4", borderRadius: 12, padding: 14 }}>
+                          <div style={{ fontSize: 18, marginBottom: 6 }}>{t.icon}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#6A6A6A", textTransform: "uppercase" as const, letterSpacing: 0.8, marginBottom: 3 }}>{t.title}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F" }}>{t.val}</div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2, lineHeight: 1.4 }}>{t.sub}</div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                </div>
-
-                <div style={{ height: 1, background: "#EBEBEB", margin: "28px 0" }} />
-                <div className="section-eyebrow">Accès</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0F0F", letterSpacing: -0.3, marginBottom: 16 }}>Comment venir ?</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {[
-                    { icon: "🚇", title: "Transports", val: formation.lieuVille || "Voir carte", sub: "Accès facile en transports en commun" },
-                    { icon: "🚗", title: "Parking", val: "Parking à proximité", sub: "Plusieurs parkings disponibles" },
-                  ].map((t) => (
-                    <div key={t.title} style={{ background: "#F9F7F4", borderRadius: 12, padding: 14 }}>
-                      <div style={{ fontSize: 18, marginBottom: 6 }}>{t.icon}</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#6A6A6A", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 }}>{t.title}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F" }}>{t.val}</div>
-                      <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2, lineHeight: 1.4 }}>{t.sub}</div>
+                  </>
+                ) : (
+                  <div style={{ background: "#FFF8E1", border: "1.5px solid #FFE082", borderRadius: 14, padding: "28px 24px", textAlign: "center" }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#795548", marginBottom: 6 }}>
+                      Lieu en cours de confirmation
                     </div>
-                  ))}
-                </div>
+                    <div style={{ fontSize: 13, color: "#8D6E63", lineHeight: 1.6 }}>
+                      Le lieu exact de cette formation est en cours de confirmation par notre équipe.<br />
+                      Vous serez informé(e) par email dès la validation de la salle.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -532,9 +501,11 @@ export default function FormationDetailClient({ formation }: { formation: Format
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
                   📍 <span>{formation.lieuVille} · <strong style={{ color: "#0F0F0F" }}>{venue}</strong></span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                  🍽️ <span>Pause café + <strong style={{ color: "#0F0F0F" }}>déjeuner inclus</strong></span>
-                </div>
+                {formation.restauration && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
+                    🍽️ <span><strong style={{ color: "#0F0F0F" }}>{formation.restauration}</strong></span>
+                  </div>
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A" }}>
                   📄 <span><strong style={{ color: "#0F0F0F" }}>Attestation</strong> envoyée sous 24h</span>
                 </div>
