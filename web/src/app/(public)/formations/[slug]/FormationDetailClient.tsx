@@ -78,7 +78,7 @@ export default function FormationDetailClient({ formation }: { formation: Format
   ];
 
   const NIVEAUX_LABEL: Record<string, string> = {
-    debutant: "Débutant", intermediaire: "Intermédiaire", expert: "Expert",
+    tous: "Tous niveaux", debutant: "Débutant", intermediaire: "Intermédiaire", avance: "Avancé", expert: "Expert",
   };
   const infos = [
     { icon: "📄", title: "Attestation", val: "Envoyée sous 24h", sub: "PDF nominatif envoyé par email après la formation" },
@@ -186,7 +186,7 @@ export default function FormationDetailClient({ formation }: { formation: Format
                 👥 <strong style={{ color: "white", fontWeight: 600 }}>{formation.placesTotal} max</strong> · Format premium
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(255,255,255,0.55)", fontSize: 13 }}>
-                🎓 Niveau <strong style={{ color: "white", fontWeight: 600 }}>{formation.niveau}</strong>
+                🎓 Niveau <strong style={{ color: "white", fontWeight: 600 }}>{NIVEAUX_LABEL[formation.niveau] ?? formation.niveau}</strong>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 20 }}>

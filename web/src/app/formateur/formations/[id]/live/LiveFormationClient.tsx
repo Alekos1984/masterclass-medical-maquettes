@@ -28,11 +28,14 @@ type Formation = {
   lieuVille: string | null;
   statut: string;
   placesTotal: number;
+  sessionStatus: string | null;
+  sessionStartedAt: string | null;
+  sessionEndedAt: string | null;
   participants: Participant[];
 };
 
 type LogEntry = { type: "start" | "pause" | "resume" | "stop"; time: string };
-type SessionStatus = "idle" | "running" | "paused" | "stopped";
+type SessionStatus = "IDLE" | "EN_COURS" | "EN_PAUSE" | "TERMINEE";
 
 function useCurrentTime() {
   const [time, setTime] = useState(new Date());
@@ -54,9 +57,13 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Session log
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("idle");
+  // Session state (DB-backed)
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>(
+    (formation.sessionStatus as SessionStatus | null) ?? "IDLE"
+  );
+  const [sessionStartedAt, setSessionStartedAt] = useState<string | null>(formation.sessionStartedAt);
   const [sessionLog, setSessionLog] = useState<LogEntry[]>([]);
+  const [sessionBusy, setSessionBusy] = useState(false);
 
   // Email sending state
   const [emailSending, setEmailSending] = useState(false);
@@ -71,56 +78,101 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
     setBaseUrl(window.location.origin);
   }, []);
 
-  // Load session from localStorage
+  // Load session log from localStorage (events only — status is DB-backed)
   useEffect(() => {
-    const stored = localStorage.getItem(`live-session-${formation.id}`);
+    const stored = localStorage.getItem(`live-session-log-${formation.id}`);
     if (stored) {
-      const data = JSON.parse(stored) as { status: SessionStatus; log: LogEntry[] };
-      setSessionStatus(data.status === "stopped" ? "stopped" : data.status);
-      setSessionLog(data.log ?? []);
+      try {
+        const data = JSON.parse(stored) as { log?: LogEntry[] };
+        if (data.log) setSessionLog(data.log);
+      } catch {}
     }
   }, [formation.id]);
 
-  function addLog(type: LogEntry["type"]) {
+  function appendLog(type: LogEntry["type"]) {
     const entry: LogEntry = {
       type,
       time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     };
     setSessionLog((prev) => {
       const next = [...prev, entry];
-      localStorage.setItem(
-        `live-session-${formation.id}`,
-        JSON.stringify({ status: type === "stop" ? "stopped" : type === "pause" ? "paused" : type === "resume" ? "running" : "running", log: next })
-      );
+      localStorage.setItem(`live-session-log-${formation.id}`, JSON.stringify({ log: next }));
       return next;
     });
   }
 
-  function startSession() {
-    setSessionStatus("running");
-    addLog("start");
-    localStorage.setItem(`live-session-${formation.id}`, JSON.stringify({ status: "running", log: [...sessionLog, { type: "start", time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }] }));
+  async function callSessionApi(action: "start" | "pause" | "resume" | "stop" | "reopen") {
+    setSessionBusy(true);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Erreur lors de la mise à jour de la session");
+        return false;
+      }
+      const data = (await res.json()) as {
+        sessionStatus: string | null;
+        sessionStartedAt: string | null;
+        sessionEndedAt: string | null;
+      };
+      setSessionStatus((data.sessionStatus as SessionStatus) ?? "IDLE");
+      setSessionStartedAt(data.sessionStartedAt);
+      return true;
+    } catch {
+      alert("Erreur réseau");
+      return false;
+    } finally {
+      setSessionBusy(false);
+    }
   }
 
-  function pauseSession() {
-    setSessionStatus("paused");
-    addLog("pause");
+  async function startSession() {
+    // Warn if today's date doesn't match formation date
+    const today = new Date().toISOString().slice(0, 10);
+    const formationDay = formation.date.slice(0, 10);
+    if (today !== formationDay) {
+      const dateLabel = new Intl.DateTimeFormat("fr-FR", {
+        day: "numeric", month: "long", year: "numeric",
+      }).format(new Date(formation.date));
+      if (!window.confirm(`La formation est prévue le ${dateLabel}. Êtes-vous sûr de vouloir lancer la session aujourd'hui ?`)) {
+        return;
+      }
+    }
+    const ok = await callSessionApi("start");
+    if (ok) appendLog("start");
   }
 
-  function resumeSession() {
-    setSessionStatus("running");
-    addLog("resume");
+  async function pauseSession() {
+    const ok = await callSessionApi("pause");
+    if (ok) appendLog("pause");
   }
 
-  function stopSession() {
-    setSessionStatus("stopped");
-    addLog("stop");
+  async function resumeSession() {
+    const ok = await callSessionApi("resume");
+    if (ok) appendLog("resume");
+  }
+
+  async function stopSession() {
+    if (sessionStartedAt) {
+      const elapsedMin = Math.floor((Date.now() - new Date(sessionStartedAt).getTime()) / 60000);
+      const minRequired = formation.dureeHeures * 60 * 0.5;
+      if (elapsedMin < minRequired) {
+        if (!window.confirm(`La formation devait durer ${formation.dureeHeures}h mais seulement ${elapsedMin} min se sont écoulées. Confirmer la fin ?`)) {
+          return;
+        }
+      }
+    }
+    const ok = await callSessionApi("stop");
+    if (ok) appendLog("stop");
   }
 
   function clearLog() {
-    localStorage.removeItem(`live-session-${formation.id}`);
+    localStorage.removeItem(`live-session-log-${formation.id}`);
     setSessionLog([]);
-    setSessionStatus("idle");
   }
 
   async function sendEmargementEmails() {
@@ -235,16 +287,28 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {/* Live indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: "50%", background: "#22c55e",
-              boxShadow: "0 0 0 3px rgba(34,197,94,0.25)",
-              animation: "pulse 2s infinite",
-            }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#22c55e", letterSpacing: 1, textTransform: "uppercase" }}>
-              Session active
-            </span>
-          </div>
+          {(() => {
+            const ind =
+              sessionStatus === "EN_COURS"
+                ? { label: "Session active", color: "#22c55e", pulse: true }
+                : sessionStatus === "EN_PAUSE"
+                ? { label: "En pause", color: "#f97316", pulse: false }
+                : sessionStatus === "TERMINEE"
+                ? { label: "Terminée", color: "rgba(255,255,255,0.4)", pulse: false }
+                : { label: "Non démarrée", color: "rgba(255,255,255,0.4)", pulse: false };
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%", background: ind.color,
+                  boxShadow: ind.pulse ? `0 0 0 3px ${ind.color}40` : "none",
+                  animation: ind.pulse ? "pulse 2s infinite" : "none",
+                }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: ind.color, letterSpacing: 1, textTransform: "uppercase" }}>
+                  {ind.label}
+                </span>
+              </div>
+            );
+          })()}
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
             {timeNow}
           </div>
@@ -260,62 +324,72 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
           </Link>
 
           {/* Session control buttons */}
-          {sessionStatus === "idle" && (
+          {sessionStatus === "IDLE" && (
             <button
               onClick={startSession}
+              disabled={sessionBusy}
               style={{
                 background: "#22c55e", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
-                fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 12, fontWeight: 700, cursor: sessionBusy ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                opacity: sessionBusy ? 0.6 : 1,
               }}
             >
               ▶ Démarrer la session
             </button>
           )}
-          {sessionStatus === "running" && (
+          {sessionStatus === "EN_COURS" && (
             <>
               <button
                 onClick={pauseSession}
+                disabled={sessionBusy}
                 style={{
                   background: "#f97316", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: 700, cursor: sessionBusy ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  opacity: sessionBusy ? 0.6 : 1,
                 }}
               >
                 ⏸ Pause
               </button>
               <button
                 onClick={stopSession}
+                disabled={sessionBusy}
                 style={{
                   background: "#ef4444", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: 700, cursor: sessionBusy ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  opacity: sessionBusy ? 0.6 : 1,
                 }}
               >
                 ⏹ Terminer
               </button>
             </>
           )}
-          {sessionStatus === "paused" && (
+          {sessionStatus === "EN_PAUSE" && (
             <>
               <button
                 onClick={resumeSession}
+                disabled={sessionBusy}
                 style={{
                   background: "#22c55e", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: 700, cursor: sessionBusy ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  opacity: sessionBusy ? 0.6 : 1,
                 }}
               >
                 ▶ Reprendre
               </button>
               <button
                 onClick={stopSession}
+                disabled={sessionBusy}
                 style={{
                   background: "#ef4444", color: "white", border: "none", borderRadius: 8, padding: "7px 14px",
-                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: 700, cursor: sessionBusy ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 5,
+                  opacity: sessionBusy ? 0.6 : 1,
                 }}
               >
                 ⏹ Terminer
               </button>
             </>
           )}
-          {sessionStatus === "stopped" && (
+          {sessionStatus === "TERMINEE" && (
             <span style={{
               background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)",
               borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,

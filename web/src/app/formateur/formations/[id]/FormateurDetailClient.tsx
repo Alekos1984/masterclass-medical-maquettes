@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { StatutFormation } from "@/generated/prisma/enums";
 import VoiceInputButton from "@/components/VoiceInputButton";
+
+function niveauLabel(n: string) {
+  return ({ tous: "Tous niveaux", debutant: "Débutant", intermediaire: "Intermédiaire", avance: "Avancé", expert: "Expert" } as Record<string, string>)[n] ?? n;
+}
 
 type Inscription = {
   id: string;
@@ -54,6 +59,7 @@ type FormationDetail = {
   formatFormation: string;
   minParticipants: number;
   equipements: string[];
+  sessionStatus: string | null;
 };
 
 function PillStatus({ status }: { status: string }) {
@@ -65,9 +71,49 @@ function PillStatus({ status }: { status: string }) {
 }
 
 export default function FormateurDetailClient({ formation }: { formation: FormationDetail }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("inscrits");
   const [statut, setStatut] = useState(formation.statut);
   const [publishing, setPublishing] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<string | null>(formation.sessionStatus);
+  const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const sessionMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!sessionMenuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (sessionMenuRef.current && !sessionMenuRef.current.contains(e.target as Node)) {
+        setSessionMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [sessionMenuOpen]);
+
+  async function reopenSession() {
+    setReopening(true);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reopen" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "Erreur lors de la réouverture");
+        return;
+      }
+      const data = await res.json();
+      setSessionStatus(data.sessionStatus);
+      setSessionMenuOpen(false);
+      router.push(`/formateur/formations/${formation.id}/live`);
+    } catch {
+      alert("Erreur réseau");
+    } finally {
+      setReopening(false);
+    }
+  }
 
   // Modifier tab state
   const [descriptionText, setDescriptionText] = useState(formation.description ?? "");
@@ -329,22 +375,86 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           </Link>
           <div style={{ width: 1, height: 18, background: "#E0E0E0" }} />
           <div className="topbar-title">{formation.titre}</div>
+          {sessionStatus === "TERMINEE" && (
+            <span className="pill pill-gray" style={{ fontSize: 11 }}>Terminée</span>
+          )}
         </div>
         <div className="topbar-right">
           {statutPill(statut)}
           {isPubilee && (
             <>
-              <Link
-                href={`/formateur/formations/${formation.id}/live`}
-                style={{
-                  background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
-                  padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  fontFamily: "inherit", display: "inline-flex", alignItems: "center",
-                  gap: 6, textDecoration: "none",
-                }}
-              >
-                ▶ Lancer la formation
-              </Link>
+              {(sessionStatus === "EN_COURS" || sessionStatus === "EN_PAUSE") ? (
+                <Link
+                  href={`/formateur/formations/${formation.id}/live`}
+                  style={{
+                    background: sessionStatus === "EN_COURS" ? "#22c55e" : "#f97316",
+                    color: "white", border: "none", borderRadius: 8,
+                    padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    fontFamily: "inherit", display: "inline-flex", alignItems: "center",
+                    gap: 6, textDecoration: "none",
+                  }}
+                >
+                  ● {sessionStatus === "EN_COURS" ? "Session en cours" : "En pause"}
+                </Link>
+              ) : sessionStatus === "TERMINEE" ? (
+                <div ref={sessionMenuRef} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      background: "#EBEBEB", color: "#444", borderRadius: 8,
+                      padding: "8px 14px", fontSize: 13, fontWeight: 700,
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                    }}
+                  >
+                    ✓ Session terminée
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSessionMenuOpen((v) => !v)}
+                    aria-label="Options session"
+                    style={{
+                      background: "#EBEBEB", color: "#444", border: "none", borderRadius: 8,
+                      padding: "8px 10px", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    ⚙️
+                  </button>
+                  {sessionMenuOpen && (
+                    <div
+                      style={{
+                        position: "absolute", top: "100%", right: 0, marginTop: 6,
+                        background: "white", border: "1px solid #E0E0E0", borderRadius: 8,
+                        boxShadow: "0 6px 18px rgba(0,0,0,0.08)", padding: 6, zIndex: 30, minWidth: 200,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={reopenSession}
+                        disabled={reopening}
+                        style={{
+                          background: "transparent", border: "none", width: "100%",
+                          textAlign: "left", padding: "8px 10px", borderRadius: 6,
+                          fontSize: 13, fontWeight: 600, cursor: reopening ? "not-allowed" : "pointer",
+                          fontFamily: "inherit", color: "#0F0F0F",
+                        }}
+                      >
+                        {reopening ? "Réouverture…" : "↻ Rouvrir la session"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href={`/formateur/formations/${formation.id}/live`}
+                  style={{
+                    background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
+                    padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    fontFamily: "inherit", display: "inline-flex", alignItems: "center",
+                    gap: 6, textDecoration: "none",
+                  }}
+                >
+                  ▶ Lancer la formation
+                </Link>
+              )}
               <Link
                 href={`/formateur/emargement/${formation.id}`}
                 style={{
@@ -393,7 +503,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 ? `📍 ${formation.lieuVille}`
                 : "📍 Lieu en cours de confirmation",
               `🕐 ${formation.dureeHeures}h`,
-              `🎓 Niveau ${formation.niveau}`,
+              `🎓 ${niveauLabel(formation.niveau)}`,
             ].map((m, i) => (
               <span key={i} style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 5 }}>
                 {m}
@@ -1041,7 +1151,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 { key: "Lieu", val: formation.lieuNom ? `${formation.lieuVille} · ${formation.lieuNom}` : formation.lieuVille ?? "En cours de confirmation" },
                 { key: "Participants", val: `Max ${formation.placesTotal}` },
                 { key: "Prix HT", val: formation.gratuite ? "Gratuit" : `${formation.prixHT.toLocaleString("fr-FR")} €` },
-                { key: "Niveau", val: formation.niveau },
+                { key: "Niveau", val: niveauLabel(formation.niveau) },
               ].map((r, i, arr) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: i < arr.length - 1 ? "1px solid #EBEBEB" : "none", fontSize: 12, gap: 12 }}>
                   <span style={{ color: "#6A6A6A", flexShrink: 0 }}>{r.key}</span>
