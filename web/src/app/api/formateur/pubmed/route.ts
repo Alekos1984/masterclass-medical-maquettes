@@ -12,7 +12,7 @@ export async function GET() {
 
   const pubs = await prisma.publication.findMany({
     where: { formateurId: profil.id },
-    orderBy: [{ annee: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ sortOrder: "asc" }, { annee: "desc" }, { createdAt: "desc" }],
   });
 
   return NextResponse.json(pubs);
@@ -108,4 +108,27 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ imported, total: totalCount, searchUrl: pubmedSearchUrl });
+}
+
+// PATCH — save new sort order for publications
+export async function PATCH(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  const profil = await prisma.formateurProfile.findUnique({ where: { userId: session.user.id } });
+  if (!profil) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+
+  const { ids } = await req.json() as { ids: string[] };
+  if (!Array.isArray(ids)) return NextResponse.json({ error: "ids manquants" }, { status: 400 });
+
+  await Promise.all(
+    ids.map((id, index) =>
+      prisma.publication.updateMany({
+        where: { id, formateurId: profil.id },
+        data: { sortOrder: index },
+      })
+    )
+  );
+
+  return NextResponse.json({ ok: true });
 }

@@ -1,7 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import VoiceInputButton from "@/components/VoiceInputButton";
+
+const SPECIALITES = [
+  "Addictologie",
+  "Allergologie",
+  "Anesthésiologie",
+  "Cardiologie",
+  "Chirurgie",
+  "Dentisterie",
+  "Dermatologie",
+  "Endocrinologie",
+  "Gastro-entérologie",
+  "Génétique",
+  "Gériatrie",
+  "Gynécologie-Obstétrique",
+  "Hématologie",
+  "Hépatologie",
+  "Immunologie",
+  "Infectiologie",
+  "Médecine de la douleur",
+  "Médecine de la reproduction",
+  "Médecine du sommeil",
+  "Médecine du sport",
+  "Médecine du travail",
+  "Médecine d'urgence",
+  "Médecine générale",
+  "Médecine intensive et réanimation",
+  "Médecine interne",
+  "Médecine palliative",
+  "Médecine physique et réadaptation",
+  "Médecine vasculaire",
+  "Néphrologie",
+  "Neurochirurgie",
+  "Neurologie",
+  "Nutrition",
+  "Oncologie",
+  "Ophtalmologie",
+  "ORL",
+  "Orthopédie",
+  "Pédiatrie",
+  "Pharmacologie",
+  "Pneumologie",
+  "Psychiatrie",
+  "Radiologie",
+  "Radiothérapie",
+  "Rhumatologie",
+  "Urologie",
+];
 
 type TabId = "identite" | "scientifique" | "legal" | "securite";
 
@@ -62,10 +109,39 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
   const [pubmedQuery, setPubmedQuery] = useState("");
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [publications, setPublications] = useState<PublicationItem[]>(savedPublications);
+  const [reorderSaving, setReorderSaving] = useState(false);
   const [form, setForm] = useState<ProfileData>(profileData);
 
   const ch = (field: keyof ProfileData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(p => ({ ...p, [field]: e.target.value }));
+
+  const movePublication = useCallback(async (index: number, direction: -1 | 1) => {
+    const newList = [...publications];
+    const target = index + direction;
+    if (target < 0 || target >= newList.length) return;
+    [newList[index], newList[target]] = [newList[target], newList[index]];
+    setPublications(newList);
+    setReorderSaving(true);
+    try {
+      await fetch("/api/formateur/pubmed", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: newList.map((p) => p.id) }),
+      });
+    } finally {
+      setReorderSaving(false);
+    }
+  }, [publications]);
+
+  const deletePublication = useCallback(async (id: string) => {
+    if (!confirm("Supprimer cette publication ?")) return;
+    const res = await fetch(`/api/formateur/pubmed/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setPublications((prev) => prev.filter((p) => p.id !== id));
+    } else {
+      alert("Erreur lors de la suppression.");
+    }
+  }, []);
 
   async function reformulerBio() {
     if (!form.bio) return;
@@ -273,13 +349,12 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
           >
             <div style={fieldStyle}>
               <label style={labelStyle}>Spécialité principale</label>
-              <input
-                type="text"
-                value={form.specialite as string}
-                onChange={ch("specialite")}
-                placeholder="Ex : Cardiologie"
-                style={inputStyle}
-              />
+              <select value={form.specialite as string} onChange={ch("specialite")} style={inputStyle}>
+                <option value="">— Sélectionner —</option>
+                {SPECIALITES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>
@@ -485,7 +560,10 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
             </div>
             {publications.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {publications.map((pub) => (
+                {reorderSaving && (
+                  <div style={{ fontSize: 11, color: "var(--gray)", textAlign: "right" }}>Sauvegarde de l&apos;ordre…</div>
+                )}
+                {publications.map((pub, index) => (
                   <div
                     key={pub.id}
                     style={{
@@ -493,40 +571,73 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
                       borderRadius: 10,
                       padding: "12px 14px",
                       background: "white",
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "flex-start",
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, lineHeight: 1.4 }}>
-                      {pub.url ? (
-                        <a href={pub.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--red)", textDecoration: "none" }}>
-                          {pub.titre}
-                        </a>
-                      ) : pub.titre}
+                    {/* Reorder controls */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0, paddingTop: 2 }}>
+                      <button
+                        onClick={() => movePublication(index, -1)}
+                        disabled={index === 0 || reorderSaving}
+                        title="Monter"
+                        style={{
+                          background: "none", border: "1px solid #E0E0E0", borderRadius: 4,
+                          width: 22, height: 22, cursor: index === 0 ? "default" : "pointer",
+                          fontSize: 10, lineHeight: 1, color: index === 0 ? "#ccc" : "#555",
+                          display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                        }}
+                      >▲</button>
+                      <button
+                        onClick={() => movePublication(index, 1)}
+                        disabled={index === publications.length - 1 || reorderSaving}
+                        title="Descendre"
+                        style={{
+                          background: "none", border: "1px solid #E0E0E0", borderRadius: 4,
+                          width: 22, height: 22, cursor: index === publications.length - 1 ? "default" : "pointer",
+                          fontSize: 10, lineHeight: 1, color: index === publications.length - 1 ? "#ccc" : "#555",
+                          display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                        }}
+                      >▼</button>
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 3 }}>{pub.auteurs}</div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      {pub.revue && <span style={{ fontSize: 11, fontStyle: "italic", color: "#555" }}>{pub.revue}</span>}
-                      {pub.annee && <span style={{ fontSize: 11, color: "var(--gray)" }}>{pub.annee}</span>}
-                      {pub.doi && (
-                        <a
-                          href={`https://doi.org/${pub.doi}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: "var(--red)", fontWeight: 600 }}
-                        >
-                          DOI ↗
-                        </a>
-                      )}
-                      {pub.pmid && (
-                        <a
-                          href={`https://pubmed.ncbi.nlm.nih.gov/${pub.pmid}/`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: "#1565c0", fontWeight: 600 }}
-                        >
-                          PubMed ↗
-                        </a>
-                      )}
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, lineHeight: 1.4 }}>
+                        {pub.url ? (
+                          <a href={pub.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--red)", textDecoration: "none" }}>
+                            {pub.titre}
+                          </a>
+                        ) : pub.titre}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 3 }}>{pub.auteurs}</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        {pub.revue && <span style={{ fontSize: 11, fontStyle: "italic", color: "#555" }}>{pub.revue}</span>}
+                        {pub.annee && <span style={{ fontSize: 11, color: "var(--gray)" }}>{pub.annee}</span>}
+                        {pub.doi && (
+                          <a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--red)", fontWeight: 600 }}>
+                            DOI ↗
+                          </a>
+                        )}
+                        {pub.pmid && (
+                          <a href={`https://pubmed.ncbi.nlm.nih.gov/${pub.pmid}/`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#1565c0", fontWeight: 600 }}>
+                            PubMed ↗
+                          </a>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => deletePublication(pub.id)}
+                      title="Supprimer"
+                      style={{
+                        background: "none", border: "1px solid #ffcdd2", borderRadius: 6,
+                        width: 28, height: 28, cursor: "pointer", color: "#c62828",
+                        fontSize: 13, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                      }}
+                    >🗑</button>
                   </div>
                 ))}
               </div>
