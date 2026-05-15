@@ -69,6 +69,40 @@ export async function PATCH(
       select: { id: true },
     });
 
+    const salleRelated = ["lieuVille", "equipements", "restauration", "minParticipants", "formatFormation", "placesTotal"];
+    if (salleRelated.some((k) => k in contentFields)) {
+      const f = await prisma.formation.findUnique({
+        where: { id },
+        select: {
+          lieuVille: true,
+          equipements: true,
+          restauration: true,
+          minParticipants: true,
+          formatFormation: true,
+          placesTotal: true,
+        },
+      });
+      if (f) {
+        const equip = (f.equipements as string[] | null) ?? [];
+        const notes = [
+          f.lieuVille ? `Ville souhaitée : ${f.lieuVille}` : null,
+          equip.length ? `Équipements : ${equip.join(", ")}` : null,
+          f.restauration ? `Restauration : ${f.restauration}` : "Pas de restauration",
+          f.minParticipants ? `Minimum participants : ${f.minParticipants}` : null,
+          f.placesTotal ? `Maximum participants : ${f.placesTotal}` : null,
+          f.formatFormation ? `Format : ${f.formatFormation}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        await prisma.demandeSalle.upsert({
+          where: { formationId: id },
+          update: { notes },
+          create: { formationId: id, statut: "EN_ATTENTE", notes },
+        });
+      }
+    }
+
     return NextResponse.json(updated);
   }
 

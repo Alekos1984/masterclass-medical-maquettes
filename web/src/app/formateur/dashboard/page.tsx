@@ -211,9 +211,15 @@ export default async function DashboardFormateur() {
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           marginBottom: 3,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
                         }}
                       >
-                        {f.titre}
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.titre}</span>
+                        {f.sessionStatus === "TERMINEE" && (
+                          <span className="pill pill-gray" style={{ fontSize: 10, flexShrink: 0 }}>Terminée</span>
+                        )}
                       </div>
                       <div style={{ fontSize: 11, color: "#6A6A6A" }}>
                         {formatDate(f.date)}{f.lieuVille ? ` · ${f.lieuVille}` : ""}
@@ -294,7 +300,7 @@ export default async function DashboardFormateur() {
                 </div>
               )}
               <Link
-                href="/formateur/profil"
+                href="/formateur/paiements?tab=abonnement"
                 style={{
                   background: "#C8102E",
                   color: "white",
