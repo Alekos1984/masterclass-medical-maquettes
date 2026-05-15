@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/paiements", icon: "💶", label: "Paiements" },
   { href: "/admin/remboursements", icon: "↩️", label: "Remboursements" },
   { href: "/admin/services", icon: "📋", label: "Services & devis" },
+  { href: "/admin/settings", icon: "⚙️", label: "Paramètres organisme" },
 ];
 
 export default function AdminNav() {
