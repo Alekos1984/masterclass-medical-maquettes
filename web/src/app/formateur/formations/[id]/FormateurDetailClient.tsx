@@ -191,6 +191,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           titre: formation.titre,
           specialite: formation.specialite,
           dureeHeures: formation.dureeHeures,
+          heureDebut: formation.heureDebut,
           description: descriptionText,
           objectifs,
         }),
