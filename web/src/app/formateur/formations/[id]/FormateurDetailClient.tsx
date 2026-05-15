@@ -9,6 +9,7 @@ type Inscription = {
   createdAt: string;
   statut: string;
   conventionSignee: boolean;
+  paiementId: string | null;
   participant: {
     name: string;
     email: string;
@@ -33,6 +34,8 @@ type FormationDetail = {
   prixHT: number;
   gratuite: boolean;
   statut: string;
+  satisfactionsCount: number;
+  emargementsCount: number;
   inscriptions: Inscription[];
   demandeSalle: { statut: string; notes: string | null } | null;
 };
@@ -299,58 +302,120 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
         {/* PANEL: DOCUMENTS */}
         {activeTab === "documents" && (
-          <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 12, padding: "18px 20px" }}>
-            <div className="card-header">
-              <span className="card-title">Documents</span>
-            </div>
-            {formation.statut === "BROUILLON" ? (
-              <div style={{ padding: "40px 20px", textAlign: "center" as const, color: "#6A6A6A" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0F0F", marginBottom: 6 }}>
-                  Documents en attente
-                </div>
-                <div style={{ fontSize: 13, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 }}>
-                  Les documents (programme officiel, feuille d&apos;émargement, conventions, attestations…) seront générés automatiquement après validation du devis de salle et publication de la formation.
-                </div>
-                {formation.demandeSalle && (
-                  <div style={{ marginTop: 16, display: "inline-block", background: "#fff8e1", border: "1.5px solid #ffe082", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "#795548" }}>
-                    Demande de salle {formation.demandeSalle.statut === "EN_ATTENTE" ? "en attente de traitement" : formation.demandeSalle.statut}
-                  </div>
-                )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Avant la formation */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Avant la formation</span>
+                <span style={{ fontSize: 11, color: "#6A6A6A" }}>Disponibles dès maintenant</span>
               </div>
-            ) : (
-              <div>
-                <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 14 }}>
-                  Documents disponibles après publication de votre formation.
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 {[
-                  {
-                    title: "Post-formation (J+1)",
-                    docs: [
-                      { icon: "📄", name: "Feuille de présence certifiée", status: "⏳ Générée après émargement", ready: false },
-                      { icon: "📋", name: "PV de formation", status: "⏳ Généré après émargement", ready: false },
-                      { icon: "🎓", name: "Attestations participants", status: "⏳ Envoyées J+1", ready: false },
-                      { icon: "📊", name: "Bilan pédagogique", status: "⏳ Disponible J+3", ready: false },
-                    ],
-                  },
-                ].map((section, si) => (
-                  <div key={si}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#6A6A6A", textTransform: "uppercase" as const, letterSpacing: 0.8, marginBottom: 10 }}>
-                      {section.title}
+                  { icon: "📄", label: "Programme officiel", href: `/api/pdf/programme/${formation.id}` },
+                  { icon: "🖼️", label: "Affiche A4", href: `/api/pdf/affiche/${formation.id}` },
+                  { icon: "✨", label: "Affiche A4 (IA)", href: `/api/pdf/affiche/${formation.id}?ai=true`, sub: "Accroche générée par IA" },
+                  { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "À imprimer le jour J" },
+                ].map((doc) => (
+                  <a
+                    key={doc.href}
+                    href={doc.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                      border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
+                      color: "#0F0F0F", transition: "border-color 0.15s, background 0.15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
+                  >
+                    <span style={{ fontSize: 20 }}>{doc.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>{doc.label}</div>
+                      {doc.sub && <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>{doc.sub}</div>}
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      {section.docs.map((doc, di) => (
-                        <div key={di} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1.5px solid #E0E0E0", borderRadius: 9 }}>
-                          <div style={{ fontSize: 18, flexShrink: 0 }}>{doc.icon}</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#0F0F0F" }}>{doc.name}</div>
-                            <div style={{ fontSize: 10, marginTop: 1, color: "#6A6A6A" }}>{doc.status}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                    <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
+                  </a>
                 ))}
+              </div>
+            </div>
+
+            {/* Après la formation */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Après la formation</span>
+                <span style={{ fontSize: 11, color: "#6A6A6A" }}>
+                  {formation.emargementsCount > 0 ? `${formation.emargementsCount} émargements` : "Disponibles après émargement"}
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                {[
+                  { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}` },
+                  { icon: "📋", label: "PV de formation", href: `/api/pdf/pv-formation/${formation.id}` },
+                  { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses` : "Disponible J+3" },
+                  { icon: "✨", label: "Bilan pédagogique (IA)", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: "Analyse qualitative par IA" },
+                ].map((doc) => (
+                  <a
+                    key={doc.href}
+                    href={doc.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                      border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
+                      color: "#0F0F0F", transition: "border-color 0.15s, background 0.15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
+                  >
+                    <span style={{ fontSize: 20 }}>{doc.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>{doc.label}</div>
+                      {doc.sub && <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>{doc.sub}</div>}
+                    </div>
+                    <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Par participant */}
+            {formation.inscriptions.length > 0 && (
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Documents par participant</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Participant</th>
+                      <th>Statut</th>
+                      <th>Documents</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formation.inscriptions.map((insc) => (
+                      <tr key={insc.id}>
+                        <td>
+                          <div className="td-name">{insc.participant.name}</div>
+                          <div className="td-sub">{insc.participant.email}</div>
+                        </td>
+                        <td><PillStatus status={insc.statut} /></td>
+                        <td>
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
+                            <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convention</a>
+                            {insc.statut === "CONFIRMEE" && (
+                              <a href={`/api/pdf/attestation/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Attestation</a>
+                            )}
+                            {insc.paiementId && (
+                              <a href={`/api/pdf/facture/${insc.paiementId}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Facture</a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

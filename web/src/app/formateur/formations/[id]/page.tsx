@@ -23,9 +23,12 @@ export default async function FormateurDetailFormationPage({
       inscriptions: {
         include: {
           participant: { include: { user: { select: { name: true, email: true } } } },
+          paiement: { select: { id: true, numeroFacture: true, statut: true } },
         },
         orderBy: { createdAt: "desc" },
       },
+      satisfactions: { select: { id: true } },
+      emargements: { select: { id: true } },
       demandeSalle: true,
     },
   });
@@ -48,11 +51,14 @@ export default async function FormateurDetailFormationPage({
     prixHT: Number(formation.prixHT),
     gratuite: formation.gratuite,
     statut: formation.statut,
+    satisfactionsCount: formation.satisfactions.length,
+    emargementsCount: formation.emargements.length,
     inscriptions: formation.inscriptions.map((i) => ({
       id: i.id,
       createdAt: i.createdAt.toISOString(),
       statut: i.statut,
       conventionSignee: i.conventionSignee,
+      paiementId: i.paiement?.id ?? null,
       participant: {
         name: i.participant.user.name ?? "Anonyme",
         email: i.participant.user.email ?? "",

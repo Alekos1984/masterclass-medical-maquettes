@@ -55,7 +55,10 @@ export default async function ParticipantDashboardPage() {
   const inscriptions = profil
     ? await prisma.inscription.findMany({
         where: { participantId: profil.id },
-        include: { formation: true },
+        include: {
+          formation: true,
+          paiement: { select: { id: true } },
+        },
         orderBy: { formation: { date: "asc" } },
       })
     : [];
@@ -212,6 +215,14 @@ export default async function ParticipantDashboardPage() {
                       {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
                       {!insc.conventionSignee && <span style={{ fontSize: 11, color: "var(--gray)" }}>⏳ Convention en attente</span>}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                          📄 Convention PDF
+                        </a>
+                        {insc.paiement?.id && (
+                          <a href={`/api/pdf/facture/${insc.paiement.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                            🧾 Facture PDF
+                          </a>
+                        )}
                         <Link href={`/formations/${f.slug}`} style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                           Voir la formation
                         </Link>
@@ -268,17 +279,34 @@ export default async function ParticipantDashboardPage() {
                       </div>
                     </div>
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
-                      {insc.attestationUrl && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Attestation reçue</span>}
                       {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                        {insc.attestationUrl && (
+                        {insc.statut === "CONFIRMEE" && (
                           <a
-                            href={insc.attestationUrl}
+                            href={`/api/pdf/attestation/${insc.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
                           >
-                            ↓ Attestation PDF
+                            🎓 Attestation PDF
+                          </a>
+                        )}
+                        <a
+                          href={`/api/pdf/convention/${insc.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
+                        >
+                          📄 Convention PDF
+                        </a>
+                        {insc.paiement?.id && (
+                          <a
+                            href={`/api/pdf/facture/${insc.paiement.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
+                          >
+                            🧾 Facture PDF
                           </a>
                         )}
                       </div>
