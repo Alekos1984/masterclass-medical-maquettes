@@ -90,7 +90,10 @@ export async function POST(req: NextRequest) {
       gratuite: prixType === "gratuit",
       exonerationTVA: true,
       statut: "BROUILLON",
-      // Store format + minPart + checkedEquip + restauration info in description extras
+      formatFormation: format ?? null,
+      minParticipants: minPart ? Number(minPart) : 8,
+      equipements: checkedEquip ?? [],
+      restauration: restauration && checkedResto?.length ? (checkedResto as string[]).join(" + ") : null,
     },
   });
 

@@ -46,7 +46,7 @@ RÈGLES STRICTES :
 - Pour une formation médicale, préfère : exposé théorique → cas cliniques → mise en pratique → synthèse/évaluation
 - Chaque objectif pédagogique doit correspondre à au moins un créneau
 - Le titre du programme doit être accrocheur et médical
-Retourne UNIQUEMENT un JSON : { "programme": [{ "time": "HH:MM–HH:MM", "titre": "...", "description": "...", "type": "..." }, ...] }`,
+Retourne UNIQUEMENT un JSON : { "programme": [{ "time": "HH:MM–HH:MM", "title": "...", "description": "...", "type": "..." }, ...] }`,
       },
       {
         role: "user",

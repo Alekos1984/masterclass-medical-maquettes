@@ -268,8 +268,11 @@ model Formation {
   declarationCoi   Boolean @default(false)
 
   // Infos pratiques (éditables par le formateur)
-  publicCible  String? // ex: "Tous professionnels de santé", "Médecins spécialistes"
-  restauration String? // ex: "Pause café + déjeuner inclus", "Pause café uniquement"
+  publicCible      String? // ex: "Tous professionnels de santé", "Médecins spécialistes"
+  restauration     String? // ex: "Pause café + déjeuner inclus"
+  formatFormation  String? // "masterclass" | "atelier" | "conference" | "symposium"
+  minParticipants  Int?    @default(8)
+  equipements      Json?   // string[]
 
   // Documents
   programmeDocUrl String?
