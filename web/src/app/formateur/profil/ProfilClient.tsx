@@ -42,10 +42,25 @@ interface Props {
 export default function ProfilClient({ profileData }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("identite");
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState<ProfileData>(profileData);
 
-  function saveProfile() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const ch = (field: keyof ProfileData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm(p => ({ ...p, [field]: e.target.value }));
+
+  async function saveProfile() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/formateur/profil", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+      else { alert("Erreur lors de la sauvegarde."); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -121,7 +136,7 @@ export default function ProfilClient({ profileData }: Props) {
           >
             <div style={fieldStyle}>
               <label style={labelStyle}>Civilité</label>
-              <select style={inputStyle} defaultValue={profileData.titre || "Dr."}>
+              <select style={inputStyle} value={form.titre as string} onChange={ch("titre")}>
                 <option>Dr.</option>
                 <option>Pr.</option>
               </select>
@@ -130,7 +145,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>Prénom</label>
               <input
                 type="text"
-                defaultValue={profileData.firstName}
+                value={form.firstName as string}
+                onChange={ch("firstName")}
                 style={inputStyle}
               />
             </div>
@@ -138,7 +154,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>Nom</label>
               <input
                 type="text"
-                defaultValue={profileData.lastName}
+                value={form.lastName as string}
+                onChange={ch("lastName")}
                 style={inputStyle}
               />
             </div>
@@ -155,7 +172,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>Email</label>
               <input
                 type="email"
-                defaultValue={profileData.email}
+                value={form.email as string}
+                onChange={ch("email")}
                 style={inputStyle}
               />
             </div>
@@ -174,7 +192,8 @@ export default function ProfilClient({ profileData }: Props) {
               </label>
               <input
                 type="text"
-                defaultValue={profileData.phone}
+                value={form.phone as string}
+                onChange={ch("phone")}
                 placeholder="06 00 00 00 00"
                 style={inputStyle}
               />
@@ -192,7 +211,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>Spécialité principale</label>
               <input
                 type="text"
-                defaultValue={profileData.specialite}
+                value={form.specialite as string}
+                onChange={ch("specialite")}
                 placeholder="Ex : Cardiologie"
                 style={inputStyle}
               />
@@ -212,7 +232,8 @@ export default function ProfilClient({ profileData }: Props) {
               </label>
               <input
                 type="text"
-                defaultValue={profileData.rpps}
+                value={form.rpps as string}
+                onChange={ch("rpps")}
                 placeholder="11 chiffres"
                 style={inputStyle}
               />
@@ -222,7 +243,8 @@ export default function ProfilClient({ profileData }: Props) {
             <label style={labelStyle}>Années d&apos;expérience</label>
             <input
               type="number"
-              defaultValue={profileData.experienceAns || ""}
+              value={String(form.experienceAns)}
+              onChange={ch("experienceAns")}
               placeholder="0"
               style={{ ...inputStyle, maxWidth: 120 }}
             />
@@ -237,7 +259,8 @@ export default function ProfilClient({ profileData }: Props) {
               </span>
             </label>
             <textarea
-              defaultValue={profileData.bio}
+              value={form.bio as string}
+              onChange={ch("bio")}
               placeholder="Décrivez votre parcours et expertise..."
               style={{
                 ...inputStyle,
@@ -262,7 +285,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>LinkedIn</label>
               <input
                 type="url"
-                defaultValue={profileData.linkedinUrl}
+                value={form.linkedinUrl as string}
+                onChange={ch("linkedinUrl")}
                 placeholder="linkedin.com/in/…"
                 style={inputStyle}
               />
@@ -271,7 +295,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>ResearchGate</label>
               <input
                 type="url"
-                defaultValue={profileData.researchgateUrl}
+                value={form.researchgateUrl as string}
+                onChange={ch("researchgateUrl")}
                 placeholder="researchgate.net/profile/…"
                 style={inputStyle}
               />
@@ -280,7 +305,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>PubMed</label>
               <input
                 type="url"
-                defaultValue={profileData.pubmedUrl}
+                value={form.pubmedUrl as string}
+                onChange={ch("pubmedUrl")}
                 placeholder="ncbi.nlm.nih.gov/…"
                 style={inputStyle}
               />
@@ -394,7 +420,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>Années d&apos;expérience</label>
               <input
                 type="number"
-                defaultValue={profileData.experienceAns || ""}
+                value={String(form.experienceAns)}
+                onChange={ch("experienceAns")}
                 placeholder="0"
                 style={{ ...inputStyle, maxWidth: 120 }}
               />
@@ -474,7 +501,8 @@ export default function ProfilClient({ profileData }: Props) {
                 </label>
                 <input
                   type="text"
-                  defaultValue={profileData.raisonSociale}
+                  value={form.raisonSociale as string}
+                  onChange={ch("raisonSociale")}
                   placeholder="Ex : Cabinet du Dr. … SAS"
                   style={inputStyle}
                 />
@@ -491,7 +519,8 @@ export default function ProfilClient({ profileData }: Props) {
                 <label style={labelStyle}>SIRET</label>
                 <input
                   type="text"
-                  defaultValue={profileData.siret}
+                  value={form.siret as string}
+                  onChange={ch("siret")}
                   placeholder="14 chiffres"
                   style={inputStyle}
                 />
@@ -516,7 +545,8 @@ export default function ProfilClient({ profileData }: Props) {
               <label style={labelStyle}>Adresse</label>
               <input
                 type="text"
-                defaultValue={profileData.adresse}
+                value={form.adresse as string}
+                onChange={ch("adresse")}
                 placeholder="Ex : 12 Rue de la Santé"
                 style={inputStyle}
               />
@@ -532,7 +562,8 @@ export default function ProfilClient({ profileData }: Props) {
                 <label style={labelStyle}>Code postal</label>
                 <input
                   type="text"
-                  defaultValue={profileData.codePostal}
+                  value={form.codePostal as string}
+                  onChange={ch("codePostal")}
                   style={inputStyle}
                 />
               </div>
@@ -540,7 +571,8 @@ export default function ProfilClient({ profileData }: Props) {
                 <label style={labelStyle}>Ville</label>
                 <input
                   type="text"
-                  defaultValue={profileData.ville}
+                  value={form.ville as string}
+                  onChange={ch("ville")}
                   style={inputStyle}
                 />
               </div>
@@ -584,7 +616,8 @@ export default function ProfilClient({ profileData }: Props) {
                 <label style={labelStyle}>IBAN</label>
                 <input
                   type="text"
-                  defaultValue={profileData.iban}
+                  value={form.iban as string}
+                  onChange={ch("iban")}
                   placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
                   style={inputStyle}
                 />
@@ -593,7 +626,8 @@ export default function ProfilClient({ profileData }: Props) {
                 <label style={labelStyle}>BIC / SWIFT</label>
                 <input
                   type="text"
-                  defaultValue={profileData.bic}
+                  value={form.bic as string}
+                  onChange={ch("bic")}
                   placeholder="BNPAFRPP"
                   style={inputStyle}
                 />
@@ -765,6 +799,7 @@ export default function ProfilClient({ profileData }: Props) {
         </button>
         <button
           onClick={saveProfile}
+          disabled={loading}
           style={{
             background: saved ? "#2e7d32" : "var(--red)",
             color: "white",
@@ -773,11 +808,12 @@ export default function ProfilClient({ profileData }: Props) {
             padding: "8px 16px",
             fontSize: 13,
             fontWeight: 700,
-            cursor: "pointer",
+            cursor: loading ? "not-allowed" : "pointer",
             fontFamily: "inherit",
+            opacity: loading ? 0.7 : 1,
           }}
         >
-          {saved ? "✓ Enregistré !" : "✓ Enregistrer le profil"}
+          {loading ? "Enregistrement…" : saved ? "✓ Enregistré !" : "✓ Enregistrer le profil"}
         </button>
       </div>
     </>

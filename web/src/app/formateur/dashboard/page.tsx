@@ -101,9 +101,6 @@ export default async function DashboardFormateur() {
           <div className="topbar-notif">
             🔔
           </div>
-          <Link href="/formateur/formations/new" className="btn-new">
-            + Nouvelle formation
-          </Link>
         </div>
       </div>
 

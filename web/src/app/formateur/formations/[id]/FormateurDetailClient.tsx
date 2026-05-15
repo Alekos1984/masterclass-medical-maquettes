@@ -50,6 +50,23 @@ function PillStatus({ status }: { status: string }) {
 
 export default function FormateurDetailClient({ formation }: { formation: FormationDetail }) {
   const [activeTab, setActiveTab] = useState("inscrits");
+  const [statut, setStatut] = useState(formation.statut);
+  const [publishing, setPublishing] = useState(false);
+
+  async function publierFormation() {
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statut: "PUBLIEE" }),
+      });
+      if (res.ok) setStatut("PUBLIEE");
+      else alert("Erreur lors de la publication.");
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   const inscrits = formation.inscriptions.length;
   const dateFormatted = new Intl.DateTimeFormat("fr-FR", {
@@ -60,7 +77,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     .filter((i) => i.statut === "CONFIRMEE")
     .reduce((sum, i) => sum + formation.prixHT, 0);
 
-  const isPubilee = formation.statut === StatutFormation.PUBLIEE;
+  const isPubilee = statut === StatutFormation.PUBLIEE;
+  const canPublish = ["BROUILLON", "EN_ATTENTE_SALLE", "SALLE_CONFIRMEE"].includes(statut);
 
   const TABS = [
     { key: "inscrits", label: `👥 Inscrits (${inscrits})` },
@@ -103,7 +121,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           <div className="topbar-title">{formation.titre}</div>
         </div>
         <div className="topbar-right">
-          {statutPill(formation.statut)}
+          {statutPill(statut)}
           {isPubilee && (
             <Link
               href={`/formateur/emargement/${formation.id}`}
@@ -492,6 +510,22 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={cardStyle}>
               <div className="card-header">
                 <span className="card-title">Informations générales</span>
+                {canPublish && (
+                  <button
+                    onClick={publierFormation}
+                    disabled={publishing}
+                    style={{
+                      background: "#C8102E", color: "white", border: "none", borderRadius: 8,
+                      padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "inherit", opacity: publishing ? 0.7 : 1,
+                    }}
+                  >
+                    {publishing ? "Publication…" : "🚀 Publier la formation"}
+                  </button>
+                )}
+                {isPubilee && (
+                  <span className="pill pill-green" style={{ fontSize: 11 }}>✓ Publiée</span>
+                )}
               </div>
               {[
                 { key: "Titre", val: formation.titre },
