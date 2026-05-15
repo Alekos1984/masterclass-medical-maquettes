@@ -60,6 +60,15 @@ type FormationDetail = {
   minParticipants: number;
   equipements: string[];
   sessionStatus: string | null;
+  sessionLog?: { type: string; time: string }[] | null;
+  sessionStartedAt?: string | null;
+  sessionEndedAt?: string | null;
+  pvSigne?: boolean | null;
+  pvSigneAt?: string | null;
+  bilanSigne?: boolean | null;
+  bilanSigneAt?: string | null;
+  certificatSigne?: boolean | null;
+  certificatSigneAt?: string | null;
 };
 
 function PillStatus({ status }: { status: string }) {
@@ -112,6 +121,28 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       alert("Erreur réseau");
     } finally {
       setReopening(false);
+    }
+  }
+
+  // Sign state for official documents
+  const [signState, setSignState] = useState({
+    pvSigne: formation.pvSigne ?? false,
+    pvSigneAt: formation.pvSigneAt ?? null,
+    bilanSigne: formation.bilanSigne ?? false,
+    bilanSigneAt: formation.bilanSigneAt ?? null,
+    certificatSigne: formation.certificatSigne ?? false,
+    certificatSigneAt: formation.certificatSigneAt ?? null,
+  });
+
+  async function signDocs(docs: "pv" | "bilan" | "certificat" | "all") {
+    const res = await fetch(`/api/formateur/formations/${formation.id}/sign-docs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ docs }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSignState((prev) => ({ ...prev, ...data }));
     }
   }
 
@@ -689,6 +720,65 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               </div>
             </div>
 
+            {/* Signature des documents officiels */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Signature des documents officiels</span>
+                <button
+                  type="button"
+                  onClick={() => signDocs("all")}
+                  style={{
+                    background: "#2e7d32", color: "white", border: "none", borderRadius: 8,
+                    padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  ✅ Tout signer
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {([
+                  { key: "pv" as const, label: "PV de formation", signed: signState.pvSigne, signedAt: signState.pvSigneAt },
+                  { key: "bilan" as const, label: "Bilan pédagogique", signed: signState.bilanSigne, signedAt: signState.bilanSigneAt },
+                  { key: "certificat" as const, label: "Certificat de réalisation", signed: signState.certificatSigne, signedAt: signState.certificatSigneAt },
+                ] as Array<{ key: "pv" | "bilan" | "certificat"; label: string; signed: boolean; signedAt: string | null }>).map((doc, i, arr) => (
+                  <div
+                    key={doc.key}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "12px 0",
+                      borderBottom: i < arr.length - 1 ? "1px solid #EBEBEB" : "none",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{doc.label}</div>
+                      <div style={{ fontSize: 11, marginTop: 2 }}>
+                        {doc.signed ? (
+                          <span style={{ color: "#2e7d32" }}>
+                            ✓ Signé le {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(doc.signedAt!))}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#6A6A6A" }}>○ Non signé</span>
+                        )}
+                      </div>
+                    </div>
+                    {!doc.signed && (
+                      <button
+                        type="button"
+                        onClick={() => signDocs(doc.key)}
+                        style={{
+                          background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0",
+                          borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600,
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}
+                      >
+                        Signer
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Après la formation */}
             <div style={cardStyle}>
               <div className="card-header">
@@ -1122,6 +1212,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
         {/* PANEL: INFOS */}
         {activeTab === "infos" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div style={cardStyle}>
               <div className="card-header">
@@ -1184,6 +1275,46 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 <div style={{ fontSize: 13, color: "#6A6A6A" }}>Aucune demande de salle associée.</div>
               )}
             </div>
+          </div>
+          {/* Session log card */}
+          <div style={cardStyle}>
+            <div className="card-header">
+              <span className="card-title">Journal de session</span>
+            </div>
+            {(() => {
+              const log = formation.sessionLog ?? [];
+              const logTypeLabel: Record<string, string> = {
+                start: "▶ Démarrage",
+                pause: "⏸ Pause",
+                resume: "▶ Reprise",
+                stop: "⏹ Arrêt",
+                reset: "↺ Remise à zéro",
+                reopen: "↩ Réouverture",
+              };
+              if (log.length === 0) {
+                return <div style={{ fontSize: 13, color: "#6A6A6A" }}>Aucun événement enregistré</div>;
+              }
+              return (
+                <div>
+                  {log.map((entry, i) => {
+                    const d = new Date(entry.time);
+                    const day = String(d.getDate()).padStart(2, "0");
+                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                    const year = d.getFullYear();
+                    const hh = String(d.getHours()).padStart(2, "0");
+                    const mm = String(d.getMinutes()).padStart(2, "0");
+                    const timeStr = `${day}/${month}/${year} ${hh}:${mm}`;
+                    return (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: i < log.length - 1 ? "1px solid #EBEBEB" : "none", fontSize: 12, gap: 12 }}>
+                        <span style={{ fontWeight: 600, color: "#0F0F0F" }}>{logTypeLabel[entry.type] ?? entry.type}</span>
+                        <span style={{ color: "#6A6A6A", fontVariantNumeric: "tabular-nums" }}>{timeStr}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
           </div>
         )}
       </div>

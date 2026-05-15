@@ -4,6 +4,7 @@ import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getInscriptionData, mapParticipant } from "@/lib/pdf/db-helpers";
 import { AttestationPdf } from "@/lib/pdf/templates/attestation";
 import type { FormationData, ProgrammeItem } from "@/lib/pdf/shared/types";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
@@ -19,6 +20,14 @@ export async function GET(
   if (!inscription) return new Response("Inscription introuvable", { status: 404 });
   if (inscription.statut !== "CONFIRMEE")
     return new Response("Inscription non confirmée", { status: 400 });
+
+  // Coherence check: participant must have signed emargement
+  const emargement = await prisma.emargement.findUnique({
+    where: { formationId_inscriptionId: { formationId: inscription.formation.id, inscriptionId: inscription.id } },
+  });
+  if (!emargement || (!emargement.presentMatin && !emargement.presentApresMidi)) {
+    return new Response("Attestation non disponible : le participant n'a pas émargé.", { status: 403 });
+  }
 
   const f = inscription.formation;
   const formation: FormationData = {

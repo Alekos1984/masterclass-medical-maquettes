@@ -58,6 +58,8 @@ export async function getFormationData(formationId: string): Promise<{
       prixHT: Number(f.prixHT),
       exonerationTVA: f.exonerationTVA,
       niveau: f.niveau,
+      sessionStartedAt: f.sessionStartedAt?.toISOString() ?? null,
+      sessionEndedAt: f.sessionEndedAt?.toISOString() ?? null,
     },
     formateur: {
       nom: f.formateur.user.name ?? "Formateur",
