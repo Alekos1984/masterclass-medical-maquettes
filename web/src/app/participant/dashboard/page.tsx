@@ -58,6 +58,8 @@ export default async function ParticipantDashboardPage() {
         include: {
           formation: true,
           paiement: { select: { id: true } },
+          satisfaction: { select: { id: true } },
+          emargements: { select: { id: true, presentMatin: true, presentApresMidi: true } },
         },
         orderBy: { formation: { date: "asc" } },
       })
@@ -283,6 +285,14 @@ export default async function ParticipantDashboardPage() {
                     </div>
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
                       {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
+                      {f.sessionStatus === "TERMINEE" && !insc.satisfaction && insc.emargements.some((e) => e.presentMatin || e.presentApresMidi) && (
+                        <Link
+                          href={`/participant/satisfaction/${insc.id}`}
+                          style={{ fontSize: 11, fontWeight: 700, color: "#C8102E", background: "#fff5f6", border: "1px solid #ffc5cc", padding: "4px 10px", borderRadius: 100, textDecoration: "none" }}
+                        >
+                          ⭐ Remplir le questionnaire de satisfaction
+                        </Link>
+                      )}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {insc.statut === "CONFIRMEE" && (
                           <a
@@ -292,6 +302,26 @@ export default async function ParticipantDashboardPage() {
                             style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
                           >
                             🎓 Attestation PDF
+                          </a>
+                        )}
+                        {f.pvSigne && (
+                          <a
+                            href={`/api/pdf/pv-formation/${f.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
+                          >
+                            📄 Télécharger PV de formation
+                          </a>
+                        )}
+                        {f.bilanSigne && (
+                          <a
+                            href={`/api/pdf/bilan/${f.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
+                          >
+                            📊 Télécharger le bilan pédagogique
                           </a>
                         )}
                         <a

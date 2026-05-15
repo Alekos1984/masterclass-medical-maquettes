@@ -158,6 +158,17 @@ export function CertificatRealisationPdf({ company, formateur, formation, emarge
               {formation.lieuNom}{formation.lieuVille ? `, ${formation.lieuVille}` : ""}
             </Text>
           )}
+          {formation.sessionStartedAt && formation.sessionEndedAt && (
+            <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: LIGHT_GRAY, paddingTop: 8, width: "100%" }}>
+              <Text style={s.certifLabel}>Horodatage de session</Text>
+              <Text style={{ fontSize: 8, color: BLACK, textAlign: "center" }}>
+                Début : {new Date(formation.sessionStartedAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </Text>
+              <Text style={{ fontSize: 8, color: BLACK, textAlign: "center", marginTop: 2 }}>
+                Fin : {new Date(formation.sessionEndedAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Chiffres clés */}

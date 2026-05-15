@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import VoiceInputButton from "@/components/VoiceInputButton";
 
 const SPECIALITES = [
@@ -97,12 +97,18 @@ type PublicationItem = {
 interface Props {
   profileData: ProfileData;
   savedPublications: PublicationItem[];
+  signatureBase64?: string | null;
 }
 
-export default function ProfilClient({ profileData, savedPublications }: Props) {
+export default function ProfilClient({ profileData, savedPublications, signatureBase64: initialSignatureBase64 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("identite");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sigEditMode, setSigEditMode] = useState(!initialSignatureBase64);
+  const [savedSignature, setSavedSignature] = useState<string | null>(initialSignatureBase64 ?? null);
+  const [sigSaving, setSigSaving] = useState(false);
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sigDrawing = useRef(false);
   const [bioReformulerLoading, setBioReformulerLoading] = useState(false);
   const [pubmedSearching, setPubmedSearching] = useState(false);
   const [pubmedResult, setPubmedResult] = useState<{ imported: number; total: number; searchUrl: string } | null>(null);
@@ -465,6 +471,106 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
               />
             </div>
           </div>
+          <div style={{ height: 1, background: "#EBEBEB", margin: "16px 0" }} />
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Signature</div>
+          <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 12 }}>
+            Votre signature est apposée sur les documents officiels (PV, bilan, certificats).
+          </div>
+          {savedSignature && !sigEditMode ? (
+            <div>
+              <img
+                src={savedSignature}
+                alt="Signature enregistrée"
+                style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, maxWidth: 400, height: 150, objectFit: "contain", background: "white", display: "block", marginBottom: 10 }}
+              />
+              <button
+                type="button"
+                onClick={() => setSigEditMode(true)}
+                style={{ background: "white", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "var(--black)" }}
+              >
+                ✏️ Modifier
+              </button>
+            </div>
+          ) : (
+            <div>
+              <canvas
+                ref={sigCanvasRef}
+                width={400}
+                height={150}
+                style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, touchAction: "none", cursor: "crosshair", display: "block", background: "white", marginBottom: 10 }}
+                onPointerDown={(e) => {
+                  const canvas = sigCanvasRef.current;
+                  if (!canvas) return;
+                  sigDrawing.current = true;
+                  canvas.setPointerCapture(e.pointerId);
+                  const rect = canvas.getBoundingClientRect();
+                  const ctx = canvas.getContext("2d");
+                  if (!ctx) return;
+                  ctx.beginPath();
+                  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                }}
+                onPointerMove={(e) => {
+                  if (!sigDrawing.current) return;
+                  const canvas = sigCanvasRef.current;
+                  if (!canvas) return;
+                  const rect = canvas.getBoundingClientRect();
+                  const ctx = canvas.getContext("2d");
+                  if (!ctx) return;
+                  ctx.lineWidth = 2;
+                  ctx.lineCap = "round";
+                  ctx.strokeStyle = "#0F0F0F";
+                  ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                  ctx.stroke();
+                }}
+                onPointerUp={() => { sigDrawing.current = false; }}
+              />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const canvas = sigCanvasRef.current;
+                    if (!canvas) return;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) return;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  }}
+                  style={{ background: "white", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "var(--gray)" }}
+                >
+                  Effacer
+                </button>
+                <button
+                  type="button"
+                  disabled={sigSaving}
+                  onClick={async () => {
+                    const canvas = sigCanvasRef.current;
+                    if (!canvas) return;
+                    const dataUrl = canvas.toDataURL("image/png");
+                    setSigSaving(true);
+                    try {
+                      const res = await fetch("/api/formateur/profil/signature", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ signatureBase64: dataUrl }),
+                      });
+                      if (res.ok) {
+                        setSavedSignature(dataUrl);
+                        setSigEditMode(false);
+                      } else {
+                        alert("Erreur lors de la sauvegarde de la signature.");
+                      }
+                    } catch {
+                      alert("Erreur réseau.");
+                    } finally {
+                      setSigSaving(false);
+                    }
+                  }}
+                  style={{ background: "var(--red)", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: sigSaving ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: sigSaving ? 0.7 : 1 }}
+                >
+                  {sigSaving ? "Sauvegarde…" : "💾 Sauvegarder la signature"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

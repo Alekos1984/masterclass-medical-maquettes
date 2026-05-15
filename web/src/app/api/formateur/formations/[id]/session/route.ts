@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-type Action = "start" | "pause" | "resume" | "stop" | "reopen";
+type Action = "start" | "pause" | "resume" | "stop" | "reopen" | "reset";
 
 export async function POST(
   req: NextRequest,
@@ -17,7 +17,7 @@ export async function POST(
   const body = (await req.json()) as { action?: Action };
   const action = body.action;
 
-  if (!action || !["start", "pause", "resume", "stop", "reopen"].includes(action)) {
+  if (!action || !["start", "pause", "resume", "stop", "reopen", "reset"].includes(action)) {
     return NextResponse.json({ error: "Action invalide" }, { status: 400 });
   }
 
@@ -34,6 +34,7 @@ export async function POST(
       sessionStatus: true,
       sessionStartedAt: true,
       sessionEndedAt: true,
+      sessionLog: true,
     },
   });
   if (!formation || formation.formateurId !== profil.id) {
@@ -44,9 +45,10 @@ export async function POST(
   const now = new Date();
 
   const data: {
-    sessionStatus?: string;
+    sessionStatus?: string | null;
     sessionStartedAt?: Date | null;
     sessionEndedAt?: Date | null;
+    sessionLog?: { type: string; time: string }[];
   } = {};
 
   switch (action) {
@@ -81,6 +83,20 @@ export async function POST(
       data.sessionStatus = "EN_PAUSE";
       data.sessionEndedAt = null;
       break;
+    case "reset":
+      data.sessionStatus = null;
+      data.sessionStartedAt = null;
+      data.sessionEndedAt = null;
+      break;
+  }
+
+  // Append event to session log
+  const existing = (formation.sessionLog as { type: string; time: string }[] | null) ?? [];
+  const newLog = [...existing, { type: action, time: now.toISOString() }];
+  if (action === "reset") {
+    data.sessionLog = [];
+  } else {
+    data.sessionLog = newLog;
   }
 
   const updated = await prisma.formation.update({
@@ -90,6 +106,7 @@ export async function POST(
       sessionStatus: true,
       sessionStartedAt: true,
       sessionEndedAt: true,
+      sessionLog: true,
     },
   });
 
@@ -97,5 +114,6 @@ export async function POST(
     sessionStatus: updated.sessionStatus,
     sessionStartedAt: updated.sessionStartedAt?.toISOString() ?? null,
     sessionEndedAt: updated.sessionEndedAt?.toISOString() ?? null,
+    sessionLog: (updated.sessionLog as { type: string; time: string }[] | null) ?? [],
   });
 }

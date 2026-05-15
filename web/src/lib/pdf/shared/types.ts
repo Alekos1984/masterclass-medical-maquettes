@@ -53,6 +53,8 @@ export interface FormationData {
   prixHT: number;
   exonerationTVA: boolean;
   niveau: string;
+  sessionStartedAt?: string | null;
+  sessionEndedAt?: string | null;
 }
 
 export interface ProgrammeItem {

@@ -78,6 +78,15 @@ export default async function FormateurDetailFormationPage({
     minParticipants: formation.minParticipants ?? 8,
     equipements: (formation.equipements as string[]) ?? [],
     sessionStatus: formation.sessionStatus ?? null,
+    sessionLog: (formation.sessionLog as { type: string; time: string }[] | null) ?? null,
+    sessionStartedAt: formation.sessionStartedAt?.toISOString() ?? null,
+    sessionEndedAt: formation.sessionEndedAt?.toISOString() ?? null,
+    pvSigne: formation.pvSigne ?? false,
+    pvSigneAt: formation.pvSigneAt?.toISOString() ?? null,
+    bilanSigne: formation.bilanSigne ?? false,
+    bilanSigneAt: formation.bilanSigneAt?.toISOString() ?? null,
+    certificatSigne: formation.certificatSigne ?? false,
+    certificatSigneAt: formation.certificatSigneAt?.toISOString() ?? null,
   };
 
   return <FormateurDetailClient formation={data} />;

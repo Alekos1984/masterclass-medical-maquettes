@@ -31,10 +31,11 @@ type Formation = {
   sessionStatus: string | null;
   sessionStartedAt: string | null;
   sessionEndedAt: string | null;
+  sessionLog?: { type: string; time: string }[] | null;
   participants: Participant[];
 };
 
-type LogEntry = { type: "start" | "pause" | "resume" | "stop"; time: string };
+type LogEntry = { type: string; time: string };
 type SessionStatus = "IDLE" | "EN_COURS" | "EN_PAUSE" | "TERMINEE";
 
 function useCurrentTime() {
@@ -62,7 +63,7 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
     (formation.sessionStatus as SessionStatus | null) ?? "IDLE"
   );
   const [sessionStartedAt, setSessionStartedAt] = useState<string | null>(formation.sessionStartedAt);
-  const [sessionLog, setSessionLog] = useState<LogEntry[]>([]);
+  const [sessionLog, setSessionLog] = useState<LogEntry[]>(formation.sessionLog ?? []);
   const [sessionBusy, setSessionBusy] = useState(false);
 
   // Email sending state
@@ -78,30 +79,7 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
     setBaseUrl(window.location.origin);
   }, []);
 
-  // Load session log from localStorage (events only — status is DB-backed)
-  useEffect(() => {
-    const stored = localStorage.getItem(`live-session-log-${formation.id}`);
-    if (stored) {
-      try {
-        const data = JSON.parse(stored) as { log?: LogEntry[] };
-        if (data.log) setSessionLog(data.log);
-      } catch {}
-    }
-  }, [formation.id]);
-
-  function appendLog(type: LogEntry["type"]) {
-    const entry: LogEntry = {
-      type,
-      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    };
-    setSessionLog((prev) => {
-      const next = [...prev, entry];
-      localStorage.setItem(`live-session-log-${formation.id}`, JSON.stringify({ log: next }));
-      return next;
-    });
-  }
-
-  async function callSessionApi(action: "start" | "pause" | "resume" | "stop" | "reopen") {
+  async function callSessionApi(action: "start" | "pause" | "resume" | "stop" | "reopen" | "reset") {
     setSessionBusy(true);
     try {
       const res = await fetch(`/api/formateur/formations/${formation.id}/session`, {
@@ -118,9 +96,11 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
         sessionStatus: string | null;
         sessionStartedAt: string | null;
         sessionEndedAt: string | null;
+        sessionLog: LogEntry[];
       };
       setSessionStatus((data.sessionStatus as SessionStatus) ?? "IDLE");
       setSessionStartedAt(data.sessionStartedAt);
+      setSessionLog(data.sessionLog ?? []);
       return true;
     } catch {
       alert("Erreur réseau");
@@ -142,18 +122,15 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
         return;
       }
     }
-    const ok = await callSessionApi("start");
-    if (ok) appendLog("start");
+    await callSessionApi("start");
   }
 
   async function pauseSession() {
-    const ok = await callSessionApi("pause");
-    if (ok) appendLog("pause");
+    await callSessionApi("pause");
   }
 
   async function resumeSession() {
-    const ok = await callSessionApi("resume");
-    if (ok) appendLog("resume");
+    await callSessionApi("resume");
   }
 
   async function stopSession() {
@@ -166,13 +143,12 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
         }
       }
     }
-    const ok = await callSessionApi("stop");
-    if (ok) appendLog("stop");
+    await callSessionApi("stop");
   }
 
-  function clearLog() {
-    localStorage.removeItem(`live-session-log-${formation.id}`);
-    setSessionLog([]);
+  async function resetSession() {
+    if (!window.confirm("Remettre la session à zéro ?")) return;
+    await callSessionApi("reset");
   }
 
   async function sendEmargementEmails() {
@@ -252,18 +228,22 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
     </button>
   );
 
-  const logTypeLabel: Record<LogEntry["type"], string> = {
+  const logTypeLabel: Record<string, string> = {
     start: "▶ Démarrage",
     pause: "⏸ Pause",
     resume: "▶ Reprise",
     stop: "⏹ Arrêt",
+    reset: "↺ Remise à zéro",
+    reopen: "↩ Réouverture",
   };
 
-  const logTypeColor: Record<LogEntry["type"], string> = {
+  const logTypeColor: Record<string, string> = {
     start: "#22c55e",
     pause: "#f97316",
     resume: "#22c55e",
     stop: "#ef4444",
+    reset: "#a78bfa",
+    reopen: "#60a5fa",
   };
 
   return (
@@ -306,6 +286,21 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
                 <span style={{ fontSize: 12, fontWeight: 700, color: ind.color, letterSpacing: 1, textTransform: "uppercase" }}>
                   {ind.label}
                 </span>
+                {/* Reset button for EN_PAUSE or TERMINEE */}
+                {(sessionStatus === "EN_PAUSE" || sessionStatus === "TERMINEE") && (
+                  <button
+                    onClick={resetSession}
+                    disabled={sessionBusy}
+                    title="Remettre la session à zéro"
+                    style={{
+                      background: "none", border: "none", cursor: sessionBusy ? "not-allowed" : "pointer",
+                      fontSize: 14, padding: "2px 4px", opacity: sessionBusy ? 0.4 : 0.7,
+                      color: "rgba(255,255,255,0.6)",
+                    }}
+                  >
+                    ⚙️
+                  </button>
+                )}
               </div>
             );
           })()}
@@ -736,17 +731,6 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
           <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>Journal de session</div>
-              {sessionLog.length > 0 && (
-                <button
-                  onClick={clearLog}
-                  style={{
-                    background: "rgba(200,16,46,0.12)", color: "#C8102E", border: "1px solid rgba(200,16,46,0.25)",
-                    borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  🗑 Effacer le log
-                </button>
-              )}
             </div>
             {sessionLog.length === 0 ? (
               <div style={{ padding: "48px 20px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
@@ -767,14 +751,14 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
                   >
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-                      background: `${logTypeColor[entry.type]}22`,
-                      color: logTypeColor[entry.type],
-                      minWidth: 110, textAlign: "center",
+                      background: `${(logTypeColor[entry.type] ?? "#888")}22`,
+                      color: logTypeColor[entry.type] ?? "#888",
+                      minWidth: 120, textAlign: "center",
                     }}>
-                      {logTypeLabel[entry.type]}
+                      {logTypeLabel[entry.type] ?? entry.type}
                     </span>
                     <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
-                      {entry.time}
+                      {new Date(entry.time).toLocaleString("fr-FR")}
                     </span>
                   </div>
                 ))}
