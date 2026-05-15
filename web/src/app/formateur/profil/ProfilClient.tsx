@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 type TabId = "identite" | "scientifique" | "legal" | "securite";
 
@@ -43,10 +44,53 @@ export default function ProfilClient({ profileData }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("identite");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [bioReformulerLoading, setBioReformulerLoading] = useState(false);
+  const [pubmedSearching, setPubmedSearching] = useState(false);
+  const [pubmedResult, setPubmedResult] = useState<{ count: number; ids: string[]; searchUrl: string } | null>(null);
+  const [pubmedQuery, setPubmedQuery] = useState("");
   const [form, setForm] = useState<ProfileData>(profileData);
 
   const ch = (field: keyof ProfileData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(p => ({ ...p, [field]: e.target.value }));
+
+  async function reformulerBio() {
+    if (!form.bio) return;
+    setBioReformulerLoading(true);
+    try {
+      const res = await fetch("/api/ai/reformuler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte: form.bio, type: "general" }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setForm(p => ({ ...p, bio: data.texte ?? p.bio }));
+    } catch {
+      alert("Erreur lors de la reformulation.");
+    } finally {
+      setBioReformulerLoading(false);
+    }
+  }
+
+  async function searchPubMed() {
+    const query = pubmedQuery.trim() || `${form.firstName} ${form.lastName}`.trim();
+    if (!query) return;
+    setPubmedSearching(true);
+    setPubmedResult(null);
+    try {
+      const res = await fetch(`/api/formateur/pubmed?query=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setPubmedResult(data);
+      if (data.count > 0) {
+        setForm(p => ({ ...p, publications: data.count, pubmedUrl: data.searchUrl }));
+      }
+    } catch {
+      alert("Erreur lors de la recherche PubMed.");
+    } finally {
+      setPubmedSearching(false);
+    }
+  }
 
   async function saveProfile() {
     setLoading(true);
@@ -250,14 +294,23 @@ export default function ProfilClient({ profileData }: Props) {
             />
           </div>
           <div style={fieldStyle}>
-            <label style={labelStyle}>
-              Biographie{" "}
-              <span
-                style={{ color: "var(--gray)", fontWeight: 400, fontSize: 11 }}
-              >
-                (visible sur vos landing pages)
-              </span>
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <label style={labelStyle}>
+                Biographie <span style={{ color: "var(--gray)", fontWeight: 400, fontSize: 11 }}>(visible sur vos landing pages)</span>
+              </label>
+              <div style={{ display: "flex", gap: 6 }}>
+                <VoiceInputButton onTranscript={(t) => setForm(p => ({ ...p, bio: p.bio ? p.bio + " " + t : t }))} />
+                <button
+                  type="button"
+                  onClick={reformulerBio}
+                  disabled={bioReformulerLoading || !form.bio}
+                  className="btn btn-ghost"
+                  style={{ fontSize: 11, padding: "4px 8px" }}
+                >
+                  {bioReformulerLoading ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                </button>
+              </div>
+            </div>
             <textarea
               value={form.bio as string}
               onChange={ch("bio")}
@@ -335,24 +388,42 @@ export default function ProfilClient({ profileData }: Props) {
                     fontFamily: "inherit",
                   }}
                 >
-                  Import PubMed
-                </button>
-                <button
-                  style={{
-                    background: "white",
-                    border: "1.5px solid #E0E0E0",
-                    borderRadius: 8,
-                    padding: "5px 10px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    color: "var(--gray)",
-                    fontFamily: "inherit",
-                  }}
-                >
                   + Ajouter
                 </button>
               </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <input
+                  type="text"
+                  placeholder={`Rechercher par nom (ex: ${form.firstName} ${form.lastName})`}
+                  value={pubmedQuery}
+                  onChange={(e) => setPubmedQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchPubMed()}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button
+                  onClick={searchPubMed}
+                  disabled={pubmedSearching}
+                  style={{
+                    background: "#C8102E", color: "white", border: "none", borderRadius: 8,
+                    padding: "9px 16px", fontSize: 12, fontWeight: 700, cursor: pubmedSearching ? "not-allowed" : "pointer",
+                    fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
+                  }}
+                >
+                  {pubmedSearching ? "Recherche…" : "🔍 Rechercher sur PubMed"}
+                </button>
+              </div>
+              {pubmedResult && (
+                <div style={{ fontSize: 12, color: pubmedResult.count > 0 ? "#2e7d32" : "var(--gray)", background: pubmedResult.count > 0 ? "#e8f5e9" : "#F9F7F4", padding: "8px 12px", borderRadius: 8 }}>
+                  {pubmedResult.count > 0 ? (
+                    <>✅ {pubmedResult.count} publication{pubmedResult.count > 1 ? "s" : ""} trouvée{pubmedResult.count > 1 ? "s" : ""} — compteur et lien PubMed mis à jour.{" "}
+                    <a href={pubmedResult.searchUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#C8102E", fontWeight: 600 }}>Voir sur PubMed ↗</a></>
+                  ) : (
+                    "Aucune publication trouvée pour ce nom. Essayez avec un autre terme."
+                  )}
+                </div>
+              )}
             </div>
             {profileData.publications > 0 ? (
               <div
