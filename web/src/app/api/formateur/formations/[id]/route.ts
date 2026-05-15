@@ -38,6 +38,17 @@ export async function PATCH(
   if (body.prixHT !== undefined) contentFields.prixHT = body.prixHT;
   if (body.publicCible !== undefined) contentFields.publicCible = body.publicCible;
   if (body.restauration !== undefined) contentFields.restauration = body.restauration;
+  if (body.formatFormation !== undefined) contentFields.formatFormation = body.formatFormation;
+  if (body.minParticipants !== undefined) contentFields.minParticipants = body.minParticipants !== null ? Number(body.minParticipants) : null;
+  if (body.equipements !== undefined) contentFields.equipements = body.equipements;
+  if (body.niveau !== undefined) contentFields.niveau = body.niveau;
+  if (body.titre !== undefined) contentFields.titre = body.titre;
+  if (body.specialite !== undefined) contentFields.specialite = body.specialite;
+  if (body.dureeHeures !== undefined) contentFields.dureeHeures = Number(body.dureeHeures);
+  if (body.date !== undefined) contentFields.date = new Date(body.date as string);
+  if (body.heureDebut !== undefined) contentFields.heureDebut = body.heureDebut;
+  if (body.heureFin !== undefined) contentFields.heureFin = body.heureFin;
+  if (body.placesTotal !== undefined) contentFields.placesTotal = Number(body.placesTotal);
 
   if (statut) {
     if (statut === "PUBLIEE" && !PUBLISHABLE.includes(formation.statut)) {

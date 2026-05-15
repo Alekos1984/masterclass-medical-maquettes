@@ -51,6 +51,9 @@ type FormationDetail = {
   demandeSalle: { statut: string; notes: string | null } | null;
   publicCible: string;
   restauration: string;
+  formatFormation: string;
+  minParticipants: number;
+  equipements: string[];
 };
 
 function PillStatus({ status }: { status: string }) {
@@ -74,12 +77,26 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       .map((s) => `${s.time} | ${s.title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`)
       .join("\n")
   );
-  const [publicCibleText, setPublicCibleText] = useState(formation.publicCible ?? "");
-  const [restaurationText, setRestaurationText] = useState(formation.restauration ?? "");
   const [saving, setSaving] = useState<string | null>(null);
   const [savedState, setSavedState] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [reformulerLoading, setReformulerLoading] = useState<string | null>(null);
+  const [infosState, setInfosState] = useState({
+    titre: formation.titre,
+    specialite: formation.specialite,
+    niveau: formation.niveau,
+    date: formation.date.slice(0, 10),
+    heureDebut: formation.heureDebut,
+    heureFin: formation.heureFin,
+    dureeHeures: formation.dureeHeures,
+    placesTotal: formation.placesTotal,
+    minParticipants: formation.minParticipants,
+    prixHT: formation.prixHT,
+    formatFormation: formation.formatFormation,
+    restauration: formation.restauration,
+    publicCible: formation.publicCible,
+    equipements: formation.equipements,
+  });
 
   async function patchFormation(payload: Record<string, unknown>) {
     const res = await fetch(`/api/formateur/formations/${formation.id}`, {
@@ -142,10 +159,25 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     }
   }
 
-  async function saveInfosPratiques() {
+  async function saveInfosGenerales() {
     setSaving("infos");
     try {
-      await patchFormation({ publicCible: publicCibleText, restauration: restaurationText });
+      await patchFormation({
+        titre: infosState.titre,
+        specialite: infosState.specialite,
+        niveau: infosState.niveau,
+        date: infosState.date,
+        heureDebut: infosState.heureDebut,
+        heureFin: infosState.heureFin,
+        dureeHeures: Number(infosState.dureeHeures),
+        placesTotal: Number(infosState.placesTotal),
+        minParticipants: Number(infosState.minParticipants),
+        prixHT: Number(infosState.prixHT),
+        formatFormation: infosState.formatFormation,
+        restauration: infosState.restauration,
+        publicCible: infosState.publicCible,
+        equipements: infosState.equipements,
+      });
       setSavedState("infos");
       setTimeout(() => setSavedState((s) => s === "infos" ? null : s), 2500);
     } catch {
@@ -217,7 +249,10 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       const data = await res.json();
       const slots: ProgrammeSlot[] = Array.isArray(data) ? data : Array.isArray(data.programme) ? data.programme : [];
       const text = slots
-        .map((s) => `${s.time} | ${s.title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`)
+        .map((s) => {
+          const title = s.title ?? (s as unknown as Record<string, string>).titre ?? "";
+          return `${s.time} | ${title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`;
+        })
         .join("\n");
       setProgrammeText(text);
     } catch {
@@ -694,192 +729,254 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
         {/* PANEL: MODIFIER */}
         {activeTab === "modifier" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Description */}
-            <div style={cardStyle}>
-              <div className="card-header">
-                <span className="card-title">Description</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <VoiceInputButton onTranscript={(t) => setDescriptionText((prev) => prev ? prev + " " + t : t)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 20, alignItems: "start" }}>
+            {/* Left column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Description */}
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Description</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <VoiceInputButton onTranscript={(t) => setDescriptionText((prev) => prev ? prev + " " + t : t)} />
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => reformuler("description", descriptionText, setDescriptionText)}
+                      disabled={reformulerLoading === "description" || !descriptionText}
+                    >
+                      {reformulerLoading === "description" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={descriptionText}
+                  onChange={(e) => setDescriptionText(e.target.value)}
+                  rows={5}
+                  style={{
+                    width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                    padding: "10px 12px", fontSize: 13, fontFamily: "inherit",
+                    resize: "vertical", marginBottom: 10, boxSizing: "border-box",
+                    outline: "none",
+                  }}
+                  placeholder="Décrivez votre formation..."
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
-                    className="btn btn-ghost"
-                    onClick={() => reformuler("description", descriptionText, setDescriptionText)}
-                    disabled={reformulerLoading === "description" || !descriptionText}
+                    className="btn btn-red"
+                    onClick={saveDescription}
+                    disabled={saving === "description"}
+                    style={{ background: savedState === "description" ? "#2e7d32" : "#C8102E" }}
                   >
-                    {reformulerLoading === "description" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                    {saving === "description" ? "Sauvegarde…" : savedState === "description" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
                   </button>
                 </div>
               </div>
-              <textarea
-                value={descriptionText}
-                onChange={(e) => setDescriptionText(e.target.value)}
-                rows={5}
-                style={{
-                  width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                  padding: "10px 12px", fontSize: 13, fontFamily: "inherit",
-                  resize: "vertical", marginBottom: 10, boxSizing: "border-box",
-                  outline: "none",
-                }}
-                placeholder="Décrivez votre formation..."
-              />
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  className="btn btn-red"
-                  onClick={saveDescription}
-                  disabled={saving === "description"}
-                  style={{ background: savedState === "description" ? "#2e7d32" : "#C8102E" }}
-                >
-                  {saving === "description" ? "Sauvegarde…" : savedState === "description" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
-                </button>
+
+              {/* Objectifs */}
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Objectifs pédagogiques</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <VoiceInputButton onTranscript={(t) => setObjectifsText((prev) => prev ? prev + "\n" + t : t)} />
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => reformuler("objectifs", objectifsText, setObjectifsText)}
+                      disabled={reformulerLoading === "objectifs" || !objectifsText}
+                    >
+                      {reformulerLoading === "objectifs" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={genererObjectifsIA}
+                      disabled={aiLoading === "objectifs"}
+                    >
+                      {aiLoading === "objectifs" ? "Génération…" : "✨ Générer avec l'IA"}
+                    </button>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
+                  Un objectif par ligne
+                </div>
+                <textarea
+                  value={objectifsText}
+                  onChange={(e) => setObjectifsText(e.target.value)}
+                  rows={6}
+                  style={{
+                    width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                    padding: "10px 12px", fontSize: 13, fontFamily: "inherit",
+                    resize: "vertical", marginBottom: 10, boxSizing: "border-box",
+                    outline: "none",
+                  }}
+                  placeholder="Ex: Maîtriser les gestes de premiers secours&#10;Connaître les protocoles d'urgence"
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    className="btn btn-red"
+                    onClick={saveObjectifs}
+                    disabled={saving === "objectifs"}
+                    style={{ background: savedState === "objectifs" ? "#2e7d32" : "#C8102E" }}
+                  >
+                    {saving === "objectifs" ? "Sauvegarde…" : savedState === "objectifs" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Programme */}
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Programme</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <VoiceInputButton onTranscript={(t) => setProgrammeText((prev) => prev ? prev + "\n" + t : t)} />
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => reformuler("programme", programmeText, setProgrammeText)}
+                      disabled={reformulerLoading === "programme" || !programmeText}
+                    >
+                      {reformulerLoading === "programme" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={genererProgrammeIA}
+                      disabled={aiLoading === "programme"}
+                    >
+                      {aiLoading === "programme" ? "Génération…" : "✨ Générer le programme IA"}
+                    </button>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
+                  Format : <code>HH:MM–HH:MM | Titre | Description | Type</code> — une ligne par créneau
+                </div>
+                <textarea
+                  value={programmeText}
+                  onChange={(e) => setProgrammeText(e.target.value)}
+                  rows={8}
+                  style={{
+                    width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                    padding: "10px 12px", fontSize: 12, fontFamily: "monospace",
+                    resize: "vertical", marginBottom: 10, boxSizing: "border-box",
+                    outline: "none",
+                  }}
+                  placeholder="08:30–09:00 | Accueil et introduction | Présentation des participants | Cours magistral"
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    className="btn btn-red"
+                    onClick={saveProgramme}
+                    disabled={saving === "programme"}
+                    style={{ background: savedState === "programme" ? "#2e7d32" : "#C8102E" }}
+                  >
+                    {saving === "programme" ? "Sauvegarde…" : savedState === "programme" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Objectifs */}
-            <div style={cardStyle}>
-              <div className="card-header">
-                <span className="card-title">Objectifs pédagogiques</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <VoiceInputButton onTranscript={(t) => setObjectifsText((prev) => prev ? prev + "\n" + t : t)} />
-                  <button
-                    className="btn btn-ghost"
-                    onClick={() => reformuler("objectifs", objectifsText, setObjectifsText)}
-                    disabled={reformulerLoading === "objectifs" || !objectifsText}
-                  >
-                    {reformulerLoading === "objectifs" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
-                  </button>
-                  <button
-                    className="btn btn-ghost"
-                    onClick={genererObjectifsIA}
-                    disabled={aiLoading === "objectifs"}
-                  >
-                    {aiLoading === "objectifs" ? "Génération…" : "✨ Générer avec l'IA"}
-                  </button>
+            {/* Right column */}
+            <div style={{ position: "sticky", top: 80 }}>
+              {/* Informations générales */}
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Informations générales</span>
                 </div>
-              </div>
-              <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
-                Un objectif par ligne
-              </div>
-              <textarea
-                value={objectifsText}
-                onChange={(e) => setObjectifsText(e.target.value)}
-                rows={6}
-                style={{
-                  width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                  padding: "10px 12px", fontSize: 13, fontFamily: "inherit",
-                  resize: "vertical", marginBottom: 10, boxSizing: "border-box",
-                  outline: "none",
-                }}
-                placeholder="Ex: Maîtriser les gestes de premiers secours&#10;Connaître les protocoles d'urgence"
-              />
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  className="btn btn-red"
-                  onClick={saveObjectifs}
-                  disabled={saving === "objectifs"}
-                  style={{ background: savedState === "objectifs" ? "#2e7d32" : "#C8102E" }}
-                >
-                  {saving === "objectifs" ? "Sauvegarde…" : savedState === "objectifs" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
-                </button>
-              </div>
-            </div>
+                {(() => {
+                  const inputStyle: React.CSSProperties = { width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "9px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
+                  const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, marginBottom: 5, marginTop: 10 };
+                  const SPECIALITES = [
+                    "Addictologie","Allergologie","Anesthésiologie","Cardiologie","Chirurgie","Dentisterie","Dermatologie","Endocrinologie","Gastro-entérologie","Génétique","Gériatrie","Gynécologie-Obstétrique","Hématologie","Hépatologie","Immunologie","Infectiologie","Médecine de la douleur","Médecine de la reproduction","Médecine du sommeil","Médecine du sport","Médecine du travail","Médecine d'urgence","Médecine générale","Médecine intensive et réanimation","Médecine interne","Médecine palliative","Médecine physique et réadaptation","Médecine vasculaire","Néphrologie","Neurochirurgie","Neurologie","Nutrition","Oncologie","Ophtalmologie","ORL","Orthopédie","Pédiatrie","Pharmacologie","Pneumologie","Psychiatrie","Radiologie","Radiothérapie","Rhumatologie","Urologie",
+                  ];
+                  const EQUIPEMENTS_OPTIONS = [
+                    "Vidéoprojecteur / écran",
+                    "Sono / micro",
+                    "Wi-Fi haut débit",
+                    "Tableau blanc",
+                    "Matériel de simulation",
+                  ];
+                  return (
+                    <>
+                      <label style={labelStyle}>Titre</label>
+                      <input type="text" value={infosState.titre} onChange={e => setInfosState(s => ({...s, titre: e.target.value}))} style={inputStyle} />
 
-            {/* Programme */}
-            <div style={cardStyle}>
-              <div className="card-header">
-                <span className="card-title">Programme</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <VoiceInputButton onTranscript={(t) => setProgrammeText((prev) => prev ? prev + "\n" + t : t)} />
-                  <button
-                    className="btn btn-ghost"
-                    onClick={() => reformuler("programme", programmeText, setProgrammeText)}
-                    disabled={reformulerLoading === "programme" || !programmeText}
-                  >
-                    {reformulerLoading === "programme" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
-                  </button>
-                  <button
-                    className="btn btn-ghost"
-                    onClick={genererProgrammeIA}
-                    disabled={aiLoading === "programme"}
-                  >
-                    {aiLoading === "programme" ? "Génération…" : "✨ Générer le programme IA"}
-                  </button>
-                </div>
-              </div>
-              <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
-                Format : <code>HH:MM–HH:MM | Titre | Description | Type</code> — une ligne par créneau
-              </div>
-              <textarea
-                value={programmeText}
-                onChange={(e) => setProgrammeText(e.target.value)}
-                rows={8}
-                style={{
-                  width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                  padding: "10px 12px", fontSize: 12, fontFamily: "monospace",
-                  resize: "vertical", marginBottom: 10, boxSizing: "border-box",
-                  outline: "none",
-                }}
-                placeholder="08:30–09:00 | Accueil et introduction | Présentation des participants | Cours magistral"
-              />
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  className="btn btn-red"
-                  onClick={saveProgramme}
-                  disabled={saving === "programme"}
-                  style={{ background: savedState === "programme" ? "#2e7d32" : "#C8102E" }}
-                >
-                  {saving === "programme" ? "Sauvegarde…" : savedState === "programme" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
-                </button>
-              </div>
-            </div>
+                      <label style={labelStyle}>Thématique</label>
+                      <select value={infosState.specialite} onChange={e => setInfosState(s => ({...s, specialite: e.target.value}))} style={inputStyle}>
+                        {SPECIALITES.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                      </select>
 
-            {/* Infos pratiques */}
-            <div style={cardStyle}>
-              <div className="card-header">
-                <span className="card-title">Informations pratiques</span>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Public cible
-                  </label>
-                  <input
-                    type="text"
-                    value={publicCibleText}
-                    onChange={(e) => setPublicCibleText(e.target.value)}
-                    placeholder="Ex : Tous professionnels de santé"
-                    style={{
-                      width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                      padding: "9px 12px", fontSize: 13, fontFamily: "inherit", outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Restauration
-                  </label>
-                  <input
-                    type="text"
-                    value={restaurationText}
-                    onChange={(e) => setRestaurationText(e.target.value)}
-                    placeholder="Ex : Pause café matin + déjeuner inclus"
-                    style={{
-                      width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                      padding: "9px 12px", fontSize: 13, fontFamily: "inherit", outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-                <button
-                  className="btn btn-red"
-                  onClick={saveInfosPratiques}
-                  disabled={saving === "infos"}
-                  style={{ background: savedState === "infos" ? "#2e7d32" : "#C8102E" }}
-                >
-                  {saving === "infos" ? "Sauvegarde…" : savedState === "infos" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
-                </button>
+                      <label style={labelStyle}>Niveau</label>
+                      <select value={infosState.niveau} onChange={e => setInfosState(s => ({...s, niveau: e.target.value}))} style={inputStyle}>
+                        <option value="debutant">Débutant</option>
+                        <option value="intermediaire">Intermédiaire</option>
+                        <option value="expert">Expert</option>
+                      </select>
+
+                      <label style={labelStyle}>Format</label>
+                      <select value={infosState.formatFormation} onChange={e => setInfosState(s => ({...s, formatFormation: e.target.value}))} style={inputStyle}>
+                        <option value="masterclass">Masterclass</option>
+                        <option value="atelier">Atelier pratique</option>
+                        <option value="conference">Conférence</option>
+                        <option value="symposium">Symposium</option>
+                      </select>
+
+                      <label style={labelStyle}>Date</label>
+                      <input type="date" value={infosState.date} onChange={e => setInfosState(s => ({...s, date: e.target.value}))} style={inputStyle} />
+
+                      <label style={labelStyle}>Horaires</label>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <input type="time" value={infosState.heureDebut} onChange={e => setInfosState(s => ({...s, heureDebut: e.target.value}))} style={inputStyle} placeholder="Début" />
+                        <input type="time" value={infosState.heureFin} onChange={e => setInfosState(s => ({...s, heureFin: e.target.value}))} style={inputStyle} placeholder="Fin" />
+                      </div>
+
+                      <label style={labelStyle}>Durée</label>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input type="number" value={infosState.dureeHeures} min={1} max={14} onChange={e => setInfosState(s => ({...s, dureeHeures: Number(e.target.value)}))} style={{ ...inputStyle, width: "auto", flex: 1 }} />
+                        <span style={{ fontSize: 13, color: "#6A6A6A", whiteSpace: "nowrap" }}>heures</span>
+                      </div>
+
+                      <label style={labelStyle}>Participants max</label>
+                      <input type="number" value={infosState.placesTotal} min={1} max={50} onChange={e => setInfosState(s => ({...s, placesTotal: Number(e.target.value)}))} style={inputStyle} />
+
+                      <label style={labelStyle}>Participants min</label>
+                      <input type="number" value={infosState.minParticipants} min={1} max={50} onChange={e => setInfosState(s => ({...s, minParticipants: Number(e.target.value)}))} style={inputStyle} />
+
+                      <label style={labelStyle}>Prix HT (€)</label>
+                      <input type="number" value={infosState.prixHT} min={0} step={10} onChange={e => setInfosState(s => ({...s, prixHT: Number(e.target.value)}))} style={inputStyle} />
+
+                      <label style={labelStyle}>Public cible</label>
+                      <input type="text" value={infosState.publicCible} onChange={e => setInfosState(s => ({...s, publicCible: e.target.value}))} placeholder="Ex : Tous professionnels de santé" style={inputStyle} />
+
+                      <label style={labelStyle}>Restauration</label>
+                      <input type="text" value={infosState.restauration} onChange={e => setInfosState(s => ({...s, restauration: e.target.value}))} placeholder="Ex : Pause café matin + Déjeuner" style={inputStyle} />
+
+                      <label style={labelStyle}>Équipements</label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                        {EQUIPEMENTS_OPTIONS.map(eq => (
+                          <label key={eq} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={infosState.equipements.includes(eq)}
+                              onChange={() => {
+                                setInfosState(s => ({
+                                  ...s,
+                                  equipements: s.equipements.includes(eq)
+                                    ? s.equipements.filter(e => e !== eq)
+                                    : [...s.equipements, eq],
+                                }));
+                              }}
+                            />
+                            {eq}
+                          </label>
+                        ))}
+                      </div>
+
+                      <button
+                        className="btn btn-red"
+                        onClick={saveInfosGenerales}
+                        disabled={saving === "infos"}
+                        style={{ background: savedState === "infos" ? "#2e7d32" : "#C8102E", width: "100%", marginTop: 12 }}
+                      >
+                        {saving === "infos" ? "Sauvegarde…" : savedState === "infos" ? "✓ Sauvegardé" : "💾 Sauvegarder les infos"}
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>

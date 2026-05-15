@@ -99,14 +99,6 @@ export default function FormationDetailClient({ formation }: { formation: Format
     },
   ];
 
-  const docs = [
-    "Convention de formation",
-    "Facture participant PDF",
-    "Programme officiel PDF",
-    "Attestation de participation",
-    "Questionnaire de satisfaction",
-  ];
-
   return (
     <>
       {/* NAV */}
@@ -155,7 +147,8 @@ export default function FormationDetailClient({ formation }: { formation: Format
           pointerEvents: "none",
         }} />
 
-        <div style={{ maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 2 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 2, display: "grid", gridTemplateColumns: "1fr 320px", gap: 40, alignItems: "start" }}>
+          {/* Left — existing hero content */}
           <div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
               Formations → {formation.specialite}
@@ -204,6 +197,54 @@ export default function FormationDetailClient({ formation }: { formation: Format
                 <div style={{ fontSize: 14, fontWeight: 700, color: "white" }}>{formation.formateurName}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>{formation.formateurSpec}</div>
               </div>
+            </div>
+          </div>
+
+          {/* Hero Card */}
+          <div style={{ background: "white", borderRadius: 16, padding: 24, boxShadow: "0 8px 40px rgba(0,0,0,0.3)" }}>
+            <div style={{ fontSize: 30, fontWeight: 800, color: "#0F0F0F", letterSpacing: -1, marginBottom: 2 }}>
+              {formation.gratuite ? "Gratuit" : `${formation.prixHT} €`}{" "}
+              {!formation.gratuite && <span style={{ fontSize: 14, fontWeight: 400, color: "#6A6A6A", letterSpacing: 0 }}>HT / participant</span>}
+            </div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 14 }}>Exonéré de TVA (art. 261-4-4° CGI)</div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                <span style={{ color: "#6A6A6A" }}>Places réservées</span>
+                <span style={{ fontWeight: 700, color: "#0F0F0F" }}>{formation.placesReserved} / {formation.placesTotal}</span>
+              </div>
+              <div style={{ background: "#EBEBEB", borderRadius: 100, height: 5, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 100, background: "linear-gradient(90deg, #C8102E, #E8394A)", width: `${fillPct}%` }} />
+              </div>
+              {formation.placesRestantes <= 5 && (
+                <div style={{ fontSize: 11, color: "#C8102E", fontWeight: 600, marginTop: 4 }}>
+                  ⚡ Plus que {formation.placesRestantes} places disponibles
+                </div>
+              )}
+            </div>
+            <Link href="/auth/inscription/participant" style={{ display: "block", width: "100%", background: "#C8102E", color: "white", border: "none", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, boxShadow: "0 4px 14px rgba(200,16,46,0.3)", textAlign: "center", textDecoration: "none" }}>
+              S&apos;inscrire maintenant →
+            </Link>
+            <button style={{ width: "100%", background: "transparent", color: "#6A6A6A", border: "1.5px solid #E0E0E0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Poser une question
+            </button>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #EBEBEB" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
+                📅 <span><strong style={{ color: "#0F0F0F" }}>{formation.dateShort}</strong> · {hours}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
+                📍 <span><strong style={{ color: "#0F0F0F" }}>{formation.lieuVille || "Lieu à confirmer"}</strong>{formation.lieuNom ? ` · ${formation.lieuNom}` : ""}</span>
+              </div>
+              {formation.restauration && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
+                  🍽️ <strong style={{ color: "#0F0F0F" }}>{formation.restauration}</strong>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A" }}>
+                📄 <span><strong style={{ color: "#0F0F0F" }}>Attestation</strong> envoyée sous 24h</span>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 10, paddingTop: 10, borderTop: "1px solid #EBEBEB", textAlign: "center" }}>
+              🔒 Paiement sécurisé · Remboursement J-14
             </div>
           </div>
         </div>
@@ -449,75 +490,9 @@ export default function FormationDetailClient({ formation }: { formation: Format
 
           {/* SIDEBAR */}
           <div style={{ position: "sticky", top: 120 }}>
-            <div style={{ background: "white", border: "1.5px solid #E0E0E0", borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: "#0F0F0F", letterSpacing: -1, marginBottom: 2 }}>
-                {formation.gratuite ? "Gratuit" : `${formation.prixHT} €`}{" "}
-                {!formation.gratuite && <span style={{ fontSize: 13, fontWeight: 400, color: "#6A6A6A", letterSpacing: 0 }}>HT</span>}
-              </div>
-              <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 12 }}>Exonéré de TVA (art. 261-4-4° CGI)</div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
-                  <span style={{ color: "#6A6A6A" }}>Places réservées</span>
-                  <span style={{ fontWeight: 700, color: "#0F0F0F" }}>{formation.placesReserved} / {formation.placesTotal}</span>
-                </div>
-                <div style={{ background: "#EBEBEB", borderRadius: 100, height: 5, overflow: "hidden" }}>
-                  <div style={{ height: "100%", borderRadius: 100, background: "linear-gradient(90deg, #C8102E, #E8394A)", width: `${fillPct}%` }} />
-                </div>
-                {formation.placesRestantes <= 5 && (
-                  <div style={{ fontSize: 11, color: "#C8102E", fontWeight: 600, marginTop: 4 }}>
-                    ⚡ Plus que {formation.placesRestantes} places disponibles
-                  </div>
-                )}
-              </div>
-              <Link
-                href="/auth/inscription/participant"
-                style={{
-                  display: "block",
-                  width: "100%",
-                  background: "#C8102E",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: 13,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  marginBottom: 8,
-                  boxShadow: "0 4px 14px rgba(200,16,46,0.3)",
-                  textAlign: "center",
-                  textDecoration: "none",
-                }}
-              >
-                S&apos;inscrire maintenant →
-              </Link>
-              <button style={{ width: "100%", background: "transparent", color: "#6A6A6A", border: "1.5px solid #E0E0E0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                Poser une question
-              </button>
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #EBEBEB" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                  📅 <span><strong style={{ color: "#0F0F0F" }}>{formation.dateShort}</strong> · {hours}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                  📍 <span>{formation.lieuVille} · <strong style={{ color: "#0F0F0F" }}>{venue}</strong></span>
-                </div>
-                {formation.restauration && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A", marginBottom: 6 }}>
-                    🍽️ <span><strong style={{ color: "#0F0F0F" }}>{formation.restauration}</strong></span>
-                  </div>
-                )}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6A6A6A" }}>
-                  📄 <span><strong style={{ color: "#0F0F0F" }}>Attestation</strong> envoyée sous 24h</span>
-                </div>
-              </div>
-              <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 10, paddingTop: 10, borderTop: "1px solid #EBEBEB", textAlign: "center" }}>
-                🔒 Paiement sécurisé · Remboursement J-14
-              </div>
-            </div>
-
-            <div style={{ background: "#F9F7F4", borderRadius: 14, padding: 18, marginTop: 16 }}>
+            <div style={{ background: "#F9F7F4", borderRadius: 14, padding: 18 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 10 }}>Documents remis</div>
-              {docs.map((doc) => (
+              {["Convention de formation", "Facture participant PDF", "Programme officiel PDF", "Attestation de participation", "Questionnaire de satisfaction"].map((doc) => (
                 <div key={doc} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: "#0F0F0F", marginBottom: 7 }}>
                   <span style={{ color: "#2e7d32", fontSize: 14 }}>✓</span> {doc}
                 </div>

@@ -74,6 +74,9 @@ export default async function FormateurDetailFormationPage({
       : null,
     publicCible: formation.publicCible ?? "",
     restauration: formation.restauration ?? "",
+    formatFormation: formation.formatFormation ?? "",
+    minParticipants: formation.minParticipants ?? 8,
+    equipements: (formation.equipements as string[]) ?? [],
   };
 
   return <FormateurDetailClient formation={data} />;
