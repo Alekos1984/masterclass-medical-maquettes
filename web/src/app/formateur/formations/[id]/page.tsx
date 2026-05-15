@@ -28,7 +28,23 @@ export default async function FormateurDetailFormationPage({
         orderBy: { createdAt: "desc" },
       },
       satisfactions: { select: { id: true } },
-      emargements: { select: { id: true } },
+      emargements: {
+        select: {
+          id: true,
+          inscriptionId: true,
+          presentMatin: true,
+          presentApresMidi: true,
+          pvParticipantSignedAt: true,
+          correctionJustification: true,
+          inscription: {
+            select: {
+              participant: {
+                select: { user: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      },
       demandeSalle: true,
     },
   });
@@ -56,6 +72,17 @@ export default async function FormateurDetailFormationPage({
     programme: formation.programme as { time: string; title: string; description?: string; type?: string }[],
     satisfactionsCount: formation.satisfactions.length,
     emargementsCount: formation.emargements.length,
+    emargements: formation.emargements.map((e) => ({
+      id: e.id,
+      inscriptionId: e.inscriptionId,
+      participantName: e.inscription.participant.user.name ?? "Anonyme",
+      presentMatin: e.presentMatin,
+      presentApresMidi: e.presentApresMidi,
+      pvParticipantSignedAt: e.pvParticipantSignedAt?.toISOString() ?? null,
+      correctionJustification: e.correctionJustification ?? null,
+    })),
+    emargementSigne: formation.emargementSigne ?? false,
+    emargementSigneAt: formation.emargementSigneAt?.toISOString() ?? null,
     inscriptions: formation.inscriptions.map((i) => ({
       id: i.id,
       createdAt: i.createdAt.toISOString(),

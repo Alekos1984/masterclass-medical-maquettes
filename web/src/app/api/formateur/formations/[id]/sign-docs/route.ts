@@ -21,13 +21,14 @@ export async function POST(
     return NextResponse.json({ error: "Formation introuvable" }, { status: 404 });
   }
 
-  const { docs } = await req.json() as { docs: Array<"pv" | "bilan" | "certificat"> | "all" };
+  const { docs } = await req.json() as { docs: Array<"pv" | "bilan" | "certificat" | "emargement"> | "all" };
   const list = docs === "all" ? ["pv", "bilan", "certificat"] : docs;
   const now = new Date();
   const data: Record<string, unknown> = {};
   if (list.includes("pv")) { data.pvSigne = true; data.pvSigneAt = now; }
   if (list.includes("bilan")) { data.bilanSigne = true; data.bilanSigneAt = now; }
   if (list.includes("certificat")) { data.certificatSigne = true; data.certificatSigneAt = now; }
+  if (list.includes("emargement")) { data.emargementSigne = true; data.emargementSigneAt = now; }
 
   const updated = await prisma.formation.update({
     where: { id },
@@ -39,6 +40,8 @@ export async function POST(
       bilanSigneAt: true,
       certificatSigne: true,
       certificatSigneAt: true,
+      emargementSigne: true,
+      emargementSigneAt: true,
     },
   });
 

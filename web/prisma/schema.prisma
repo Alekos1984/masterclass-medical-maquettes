@@ -222,6 +222,9 @@ model ParticipantProfile {
   notifEmail   Boolean @default(true)
   notifRappels Boolean @default(true)
 
+  // Signature participant
+  signatureBase64 String? @db.Text
+
   inscriptions Inscription[]
 
   createdAt DateTime @default(now())
@@ -295,6 +298,8 @@ model Formation {
   bilanSigneAt     DateTime?
   certificatSigne  Boolean  @default(false)
   certificatSigneAt DateTime?
+  emargementSigne  Boolean  @default(false)
+  emargementSigneAt DateTime?
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
@@ -514,6 +519,11 @@ model Emargement {
   presentApresMidi   Boolean   @default(false)
   signatureMatin     DateTime?
   signatureApresMidi DateTime?
+
+  pvParticipantSignedAt       DateTime?
+  pvParticipantSignatureBase64 String?  @db.Text
+  correctionPresence          Boolean?
+  correctionJustification     String?  @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

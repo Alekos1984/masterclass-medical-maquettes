@@ -69,6 +69,17 @@ type FormationDetail = {
   bilanSigneAt?: string | null;
   certificatSigne?: boolean | null;
   certificatSigneAt?: string | null;
+  emargements?: {
+    id: string;
+    inscriptionId: string;
+    participantName: string;
+    presentMatin: boolean;
+    presentApresMidi: boolean;
+    pvParticipantSignedAt: string | null;
+    correctionJustification: string | null;
+  }[];
+  emargementSigne?: boolean;
+  emargementSigneAt?: string | null;
 };
 
 function PillStatus({ status }: { status: string }) {
@@ -161,9 +172,16 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     bilanSigneAt: formation.bilanSigneAt ?? null,
     certificatSigne: formation.certificatSigne ?? false,
     certificatSigneAt: formation.certificatSigneAt ?? null,
+    emargementSigne: formation.emargementSigne ?? false,
+    emargementSigneAt: formation.emargementSigneAt ?? null,
   });
 
-  async function signDocs(docs: "pv" | "bilan" | "certificat" | "all") {
+  // Emargement correction state
+  const [correctionState, setCorrectionState] = useState<{
+    [id: string]: { open: boolean; presentMatin: boolean; presentApresMidi: boolean; justification: string };
+  }>({});
+
+  async function signDocs(docs: "pv" | "bilan" | "certificat" | "emargement" | "all") {
     const res = await fetch(`/api/formateur/formations/${formation.id}/sign-docs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -447,7 +465,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #E0E0E0" }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0F0F" }}>
-                  {viewDoc === "pv" ? "Procès-verbal de formation" : viewDoc === "bilan" ? "Bilan pédagogique" : "Certificat de réalisation"}
+                  {viewDoc === "pv" ? "Procès-verbal de formation" : viewDoc === "bilan" ? "Bilan pédagogique" : viewDoc === "emargement" ? "Émargement consolidé" : "Certificat de réalisation"}
                 </div>
                 <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>
                   {formation.titre} · {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(formation.date))}
@@ -509,6 +527,50 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                     />
                   </div>
                   <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600 }}>Acquis de la formation</label>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setAcquisLoading(true);
+                          try {
+                            const res = await fetch("/api/formateur/ai/acquis", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                titre: formation.titre,
+                                objectifs: formation.objectifs ?? [],
+                                description: formation.description ?? "",
+                              }),
+                            });
+                            if (!res.ok) throw new Error();
+                            const data = await res.json() as { acquis: string };
+                            setPvFields((f) => ({ ...f, acquis: data.acquis }));
+                          } catch {
+                            alert("Erreur lors de la génération IA.");
+                          } finally {
+                            setAcquisLoading(false);
+                          }
+                        }}
+                        disabled={acquisLoading}
+                        style={{
+                          background: "white", color: "#6A6A6A", border: "1.5px solid #E0E0E0",
+                          borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                          cursor: acquisLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                        }}
+                      >
+                        {acquisLoading ? "Génération…" : "✨ Générer avec l'IA"}
+                      </button>
+                    </div>
+                    <textarea
+                      value={pvFields.acquis}
+                      onChange={(e) => setPvFields((f) => ({ ...f, acquis: e.target.value }))}
+                      rows={4}
+                      placeholder="Acquis de la formation pour les participants..."
+                      style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
                     <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Participants présents ({formation.inscriptions.length})</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       {formation.inscriptions.map((insc, i) => (
@@ -520,6 +582,45 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                       {formation.inscriptions.length === 0 && <div style={{ fontSize: 13, color: "#6A6A6A" }}>Aucun participant inscrit</div>}
                     </div>
                   </div>
+                  {/* Signatures des participants */}
+                  {(formation.emargements ?? []).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Signatures des participants</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {(formation.emargements ?? [])
+                          .filter((e) => e.presentMatin || e.presentApresMidi)
+                          .map((e) => (
+                            <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#F9F7F4", borderRadius: 8 }}>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 600 }}>{e.participantName}</div>
+                                <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2 }}>
+                                  {e.presentMatin && e.presentApresMidi ? "Journée complète" : e.presentMatin ? "Matin" : "Après-midi"}
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                {e.pvParticipantSignedAt ? (
+                                  <>
+                                    <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>
+                                      ✓ Signé le {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(e.pvParticipantSignedAt))}
+                                    </span>
+                                    <a
+                                      href={`/api/pdf/pv-formation/${formation.id}/participant/${e.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ fontSize: 11, color: "#C8102E", fontWeight: 700, textDecoration: "none" }}
+                                    >
+                                      ⬇ Télécharger PV co-signé
+                                    </a>
+                                  </>
+                                ) : (
+                                  <span style={{ fontSize: 12, color: "#f97316", fontWeight: 600 }}>⏳ En attente de signature</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -592,11 +693,167 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   )}
                 </div>
               )}
+
+              {/* Emargement consolidé overlay */}
+              {viewDoc === "emargement" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 4 }}>
+                    Liste des inscriptions avec présences et corrections possibles.
+                  </div>
+                  {(formation.emargements ?? []).length === 0 ? (
+                    <div style={{ fontSize: 13, color: "#6A6A6A", textAlign: "center" as const, padding: "24px 0" }}>
+                      Aucun émargement enregistré pour cette formation.
+                    </div>
+                  ) : (
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ background: "#F9F7F4" }}>
+                          <th style={{ fontSize: 11, fontWeight: 700, padding: "8px 10px", textAlign: "left" as const, borderBottom: "1px solid #E0E0E0" }}>Participant</th>
+                          <th style={{ fontSize: 11, fontWeight: 700, padding: "8px 10px", textAlign: "center" as const, borderBottom: "1px solid #E0E0E0" }}>Matin</th>
+                          <th style={{ fontSize: 11, fontWeight: 700, padding: "8px 10px", textAlign: "center" as const, borderBottom: "1px solid #E0E0E0" }}>Après-midi</th>
+                          <th style={{ fontSize: 11, fontWeight: 700, padding: "8px 10px", textAlign: "center" as const, borderBottom: "1px solid #E0E0E0" }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(formation.emargements ?? []).map((e) => {
+                          const cs = correctionState[e.id];
+                          return (
+                            <>
+                              <tr key={e.id} style={{ borderBottom: "1px solid #F0F0F0" }}>
+                                <td style={{ padding: "10px 10px", fontSize: 13, fontWeight: 600 }}>{e.participantName}</td>
+                                <td style={{ padding: "10px 10px", textAlign: "center" as const, fontSize: 14 }}>
+                                  {e.presentMatin ? "✓" : "✗"}
+                                </td>
+                                <td style={{ padding: "10px 10px", textAlign: "center" as const, fontSize: 14 }}>
+                                  {e.presentApresMidi ? "✓" : "✗"}
+                                </td>
+                                <td style={{ padding: "10px 10px", textAlign: "center" as const }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setCorrectionState((prev) => ({
+                                      ...prev,
+                                      [e.id]: prev[e.id]?.open
+                                        ? { ...prev[e.id], open: false }
+                                        : { open: true, presentMatin: e.presentMatin, presentApresMidi: e.presentApresMidi, justification: e.correctionJustification ?? "" },
+                                    }))}
+                                    style={{
+                                      background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0",
+                                      borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                                      cursor: "pointer", fontFamily: "inherit",
+                                    }}
+                                  >
+                                    ✏️ Corriger
+                                  </button>
+                                </td>
+                              </tr>
+                              {cs?.open && (
+                                <tr key={`${e.id}-correction`}>
+                                  <td colSpan={4} style={{ padding: "12px 10px", background: "#FFF8E1", borderBottom: "1px solid #E0E0E0" }}>
+                                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
+                                      <div style={{ display: "flex", gap: 16 }}>
+                                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                                          <input
+                                            type="checkbox"
+                                            checked={cs.presentMatin}
+                                            onChange={(ev) => setCorrectionState((prev) => ({ ...prev, [e.id]: { ...prev[e.id], presentMatin: ev.target.checked } }))}
+                                          />
+                                          Présent matin
+                                        </label>
+                                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                                          <input
+                                            type="checkbox"
+                                            checked={cs.presentApresMidi}
+                                            onChange={(ev) => setCorrectionState((prev) => ({ ...prev, [e.id]: { ...prev[e.id], presentApresMidi: ev.target.checked } }))}
+                                          />
+                                          Présent après-midi
+                                        </label>
+                                      </div>
+                                      <textarea
+                                        value={cs.justification}
+                                        onChange={(ev) => setCorrectionState((prev) => ({ ...prev, [e.id]: { ...prev[e.id], justification: ev.target.value } }))}
+                                        rows={2}
+                                        placeholder="Justification de la correction (min. 10 caractères)..."
+                                        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "8px 10px", fontSize: 12, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                                      />
+                                      <div style={{ display: "flex", gap: 8 }}>
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            const res = await fetch(`/api/formateur/formations/${formation.id}/emargement-correction`, {
+                                              method: "POST",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({
+                                                emargementId: e.id,
+                                                presentMatin: cs.presentMatin,
+                                                presentApresMidi: cs.presentApresMidi,
+                                                justification: cs.justification,
+                                              }),
+                                            });
+                                            if (!res.ok) {
+                                              const err = await res.json().catch(() => ({})) as { error?: string };
+                                              alert(err.error ?? "Erreur");
+                                              return;
+                                            }
+                                            setCorrectionState((prev) => ({ ...prev, [e.id]: { ...prev[e.id], open: false } }));
+                                          }}
+                                          style={{
+                                            background: "#0F0F0F", color: "white", border: "none", borderRadius: 6,
+                                            padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                                          }}
+                                        >
+                                          ✓ Valider la correction
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setCorrectionState((prev) => ({ ...prev, [e.id]: { ...prev[e.id], open: false } }))}
+                                          style={{
+                                            background: "white", color: "#6A6A6A", border: "1.5px solid #E0E0E0", borderRadius: 6,
+                                            padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                                          }}
+                                        >
+                                          Annuler
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Footer action */}
             <div style={{ padding: "16px 24px", borderTop: "1px solid #E0E0E0" }}>
               {(() => {
+                if (viewDoc === "emargement") {
+                  const isSigned = signState.emargementSigne;
+                  const signedAt = signState.emargementSigneAt;
+                  if (isSigned) {
+                    return (
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#e8f5e9", borderRadius: 8, fontSize: 13, color: "#2e7d32", fontWeight: 600 }}>
+                        ✓ Signé le {signedAt ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(signedAt)) : "—"}
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      type="button"
+                      onClick={async () => { await signDocs("emargement"); }}
+                      style={{
+                        background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
+                        padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      ✍️ Signer l&apos;émargement
+                    </button>
+                  );
+                }
                 const isSigned =
                   viewDoc === "pv" ? signState.pvSigne :
                   viewDoc === "bilan" ? signState.bilanSigne :
@@ -616,7 +873,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   <button
                     type="button"
                     onClick={async () => {
-                      if (viewDoc && viewDoc !== "emargement") await signDocs(viewDoc);
+                      if (viewDoc) await signDocs(viewDoc);
                       setViewDoc(null);
                     }}
                     style={{
@@ -981,7 +1238,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   { key: "pv" as const, label: "PV de formation", signed: signState.pvSigne, signedAt: signState.pvSigneAt },
                   { key: "bilan" as const, label: "Bilan pédagogique", signed: signState.bilanSigne, signedAt: signState.bilanSigneAt },
                   { key: "certificat" as const, label: "Certificat de réalisation", signed: signState.certificatSigne, signedAt: signState.certificatSigneAt },
-                ] as Array<{ key: "pv" | "bilan" | "certificat"; label: string; signed: boolean; signedAt: string | null }>).map((doc, i, arr) => (
+                  { key: "emargement" as const, label: "Feuille d'émargement", signed: signState.emargementSigne, signedAt: signState.emargementSigneAt },
+                ] as Array<{ key: "pv" | "bilan" | "certificat" | "emargement"; label: string; signed: boolean; signedAt: string | null }>).map((doc, i, arr) => (
                   <div
                     key={doc.key}
                     style={{
@@ -1044,7 +1302,6 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 {[
                   { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}`, sub: "Certifiée demi-journée" },
-                  { icon: "📋", label: "PV de formation", href: `/api/pdf/pv-formation/${formation.id}`, sub: "Procès-verbal de clôture" },
                   { icon: "📜", label: "Certificat de réalisation", href: `/api/pdf/certificat-realisation/${formation.id}`, sub: "Art. L6353-1 Code du travail" },
                   { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "Envoyé aux participants J+1" },
                   { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses · Analyse IA` : "Disponible J+3" },
@@ -1070,6 +1327,26 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                     <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
                   </a>
                 ))}
+                {/* PV — opens overlay instead of direct PDF */}
+                <button
+                  type="button"
+                  onClick={() => setViewDoc("pv")}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                    border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
+                    color: "#0F0F0F", background: "white", cursor: "pointer", fontFamily: "inherit",
+                    transition: "border-color 0.15s, background 0.15s", textAlign: "left" as const,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
+                >
+                  <span style={{ fontSize: 20 }}>📋</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>Suivi des PV</div>
+                    <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>Signatures participants</div>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>→</span>
+                </button>
               </div>
             </div>
 
