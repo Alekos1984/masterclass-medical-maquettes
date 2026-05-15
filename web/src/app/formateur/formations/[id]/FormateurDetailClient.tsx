@@ -138,11 +138,20 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   }
 
   // View/Sign overlay state
-  const [viewDoc, setViewDoc] = useState<"pv" | "bilan" | "certificat" | null>(null);
+  const [viewDoc, setViewDoc] = useState<"pv" | "bilan" | "certificat" | "emargement" | null>(null);
 
-  // Overlay local field state (visual preview only, not persisted)
-  const [pvFields, setPvFields] = useState({ objectifsAtteints: "", observations: "" });
-  const [bilanFields, setBilanFields] = useState({ resume: "", recommandations: "", pointsForts: "" });
+  // Overlay local field state — pre-populated from formation data
+  const [pvFields, setPvFields] = useState({
+    objectifsAtteints: (formation.objectifs ?? []).join("\n"),
+    observations: formation.description ?? "",
+    acquis: "",
+  });
+  const [bilanFields, setBilanFields] = useState({
+    resume: formation.description ?? "",
+    recommandations: "",
+    pointsForts: (formation.objectifs ?? []).join("\n"),
+  });
+  const [acquisLoading, setAcquisLoading] = useState(false);
 
   // Sign state for official documents
   const [signState, setSignState] = useState({
@@ -607,7 +616,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   <button
                     type="button"
                     onClick={async () => {
-                      await signDocs(viewDoc!);
+                      if (viewDoc && viewDoc !== "emargement") await signDocs(viewDoc);
                       setViewDoc(null);
                     }}
                     style={{
