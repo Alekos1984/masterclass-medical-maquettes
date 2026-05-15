@@ -155,7 +155,11 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       const res = await fetch("/api/ai/objectifs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ titre: formation.titre, specialite: formation.specialite }),
+        body: JSON.stringify({
+          titre: formation.titre,
+          specialite: formation.specialite,
+          objectifsRaw: objectifsText,
+        }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -179,6 +183,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           titre: formation.titre,
           specialite: formation.specialite,
           dureeHeures: formation.dureeHeures,
+          description: descriptionText,
           objectifs,
         }),
       });
@@ -267,17 +272,30 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         <div className="topbar-right">
           {statutPill(statut)}
           {isPubilee && (
-            <Link
-              href={`/formateur/emargement/${formation.id}`}
-              style={{
-                background: "#C8102E", color: "white", border: "none", borderRadius: 8,
-                padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                fontFamily: "inherit", display: "inline-flex", alignItems: "center",
-                gap: 6, textDecoration: "none",
-              }}
-            >
-              ✍️ Émargement
-            </Link>
+            <>
+              <Link
+                href={`/formateur/formations/${formation.id}/live`}
+                style={{
+                  background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
+                  padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit", display: "inline-flex", alignItems: "center",
+                  gap: 6, textDecoration: "none",
+                }}
+              >
+                ▶ Lancer la formation
+              </Link>
+              <Link
+                href={`/formateur/emargement/${formation.id}`}
+                style={{
+                  background: "#C8102E", color: "white", border: "none", borderRadius: 8,
+                  padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit", display: "inline-flex", alignItems: "center",
+                  gap: 6, textDecoration: "none",
+                }}
+              >
+                ✍️ Émargement
+              </Link>
+            </>
           )}
         </div>
       </div>
