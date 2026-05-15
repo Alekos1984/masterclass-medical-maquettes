@@ -155,6 +155,9 @@ model FormateurProfile {
   iban          String?
   bic           String?
 
+  // Signature formateur
+  signatureBase64  String?  @db.Text
+
   // Stripe
   stripeCustomerId String? @unique
   stripeAccountId  String? @unique // Stripe Connect Express
@@ -285,6 +288,13 @@ model Formation {
   sessionStatus    String?   // "IDLE" | "EN_COURS" | "EN_PAUSE" | "TERMINEE"
   sessionStartedAt DateTime?
   sessionEndedAt   DateTime?
+  sessionLog       Json?    // array of { type: string, time: string }
+  pvSigne          Boolean  @default(false)
+  pvSigneAt        DateTime?
+  bilanSigne       Boolean  @default(false)
+  bilanSigneAt     DateTime?
+  certificatSigne  Boolean  @default(false)
+  certificatSigneAt DateTime?
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
