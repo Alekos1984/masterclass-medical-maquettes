@@ -18,6 +18,13 @@ type Inscription = {
   };
 };
 
+type ProgrammeSlot = {
+  time: string;
+  title: string;
+  description?: string;
+  type?: string;
+};
+
 type FormationDetail = {
   id: string;
   titre: string;
@@ -34,6 +41,9 @@ type FormationDetail = {
   prixHT: number;
   gratuite: boolean;
   statut: string;
+  description: string;
+  objectifs: string[];
+  programme: ProgrammeSlot[];
   satisfactionsCount: number;
   emargementsCount: number;
   inscriptions: Inscription[];
@@ -52,6 +62,119 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   const [activeTab, setActiveTab] = useState("inscrits");
   const [statut, setStatut] = useState(formation.statut);
   const [publishing, setPublishing] = useState(false);
+
+  // Modifier tab state
+  const [descriptionText, setDescriptionText] = useState(formation.description ?? "");
+  const [objectifsText, setObjectifsText] = useState((formation.objectifs ?? []).join("\n"));
+  const [programmeText, setProgrammeText] = useState(
+    (formation.programme ?? [])
+      .map((s) => `${s.time} | ${s.title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`)
+      .join("\n")
+  );
+  const [saving, setSaving] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+
+  async function patchFormation(payload: Record<string, unknown>) {
+    const res = await fetch(`/api/formateur/formations/${formation.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
+  }
+
+  async function saveDescription() {
+    setSaving("description");
+    try {
+      await patchFormation({ description: descriptionText });
+    } catch {
+      alert("Erreur lors de la sauvegarde.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function saveObjectifs() {
+    setSaving("objectifs");
+    try {
+      const objectifs = objectifsText.split("\n").filter(Boolean);
+      await patchFormation({ objectifs });
+    } catch {
+      alert("Erreur lors de la sauvegarde.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function saveProgramme() {
+    setSaving("programme");
+    try {
+      const programme = programmeText
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          const parts = line.split(" | ");
+          return {
+            time: parts[0]?.trim() ?? "",
+            title: parts[1]?.trim() ?? "",
+            description: parts[2]?.trim() ?? "",
+            type: parts[3]?.trim() ?? "Cours magistral",
+          };
+        });
+      await patchFormation({ programme });
+    } catch {
+      alert("Erreur lors de la sauvegarde.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function genererObjectifsIA() {
+    setAiLoading("objectifs");
+    try {
+      const res = await fetch("/api/ai/objectifs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titre: formation.titre, specialite: formation.specialite }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const lines: string[] = Array.isArray(data) ? data : Array.isArray(data.objectifs) ? data.objectifs : [];
+      setObjectifsText(lines.join("\n"));
+    } catch {
+      alert("Erreur lors de la génération IA.");
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function genererProgrammeIA() {
+    setAiLoading("programme");
+    try {
+      const objectifs = objectifsText.split("\n").filter(Boolean);
+      const res = await fetch("/api/ai/programme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titre: formation.titre,
+          specialite: formation.specialite,
+          dureeHeures: formation.dureeHeures,
+          objectifs,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const slots: ProgrammeSlot[] = Array.isArray(data) ? data : Array.isArray(data.programme) ? data.programme : [];
+      const text = slots
+        .map((s) => `${s.time} | ${s.title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`)
+        .join("\n");
+      setProgrammeText(text);
+    } catch {
+      alert("Erreur lors de la génération IA.");
+    } finally {
+      setAiLoading(null);
+    }
+  }
 
   async function publierFormation() {
     setPublishing(true);
@@ -86,6 +209,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     { key: "emargement", label: "✍️ Émargement" },
     { key: "evaluations", label: "⭐ Évaluations" },
     { key: "infos", label: "ℹ️ Informations" },
+    { key: "modifier", label: "✏️ Modifier" },
   ];
 
   const cardStyle = {
@@ -499,6 +623,115 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               </div>
               <div style={{ fontSize: 13 }}>
                 Les participants reçoivent le questionnaire de satisfaction automatiquement à J+1. La synthèse sera disponible ici à J+3.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL: MODIFIER */}
+        {activeTab === "modifier" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Description */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Description</span>
+              </div>
+              <textarea
+                value={descriptionText}
+                onChange={(e) => setDescriptionText(e.target.value)}
+                rows={5}
+                style={{
+                  width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                  padding: "10px 12px", fontSize: 13, fontFamily: "inherit",
+                  resize: "vertical", marginBottom: 10, boxSizing: "border-box",
+                  outline: "none",
+                }}
+                placeholder="Décrivez votre formation..."
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-red"
+                  onClick={saveDescription}
+                  disabled={saving === "description"}
+                >
+                  {saving === "description" ? "Sauvegarde…" : "💾 Sauvegarder"}
+                </button>
+              </div>
+            </div>
+
+            {/* Objectifs */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Objectifs pédagogiques</span>
+                <button
+                  className="btn btn-ghost"
+                  onClick={genererObjectifsIA}
+                  disabled={aiLoading === "objectifs"}
+                >
+                  {aiLoading === "objectifs" ? "Génération…" : "✨ Générer avec l'IA"}
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
+                Un objectif par ligne
+              </div>
+              <textarea
+                value={objectifsText}
+                onChange={(e) => setObjectifsText(e.target.value)}
+                rows={6}
+                style={{
+                  width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                  padding: "10px 12px", fontSize: 13, fontFamily: "inherit",
+                  resize: "vertical", marginBottom: 10, boxSizing: "border-box",
+                  outline: "none",
+                }}
+                placeholder="Ex: Maîtriser les gestes de premiers secours&#10;Connaître les protocoles d'urgence"
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-red"
+                  onClick={saveObjectifs}
+                  disabled={saving === "objectifs"}
+                >
+                  {saving === "objectifs" ? "Sauvegarde…" : "💾 Sauvegarder"}
+                </button>
+              </div>
+            </div>
+
+            {/* Programme */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Programme</span>
+                <button
+                  className="btn btn-ghost"
+                  onClick={genererProgrammeIA}
+                  disabled={aiLoading === "programme"}
+                >
+                  {aiLoading === "programme" ? "Génération…" : "✨ Générer le programme IA"}
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
+                Format : <code>HH:MM–HH:MM | Titre | Description | Type</code> — une ligne par créneau
+              </div>
+              <textarea
+                value={programmeText}
+                onChange={(e) => setProgrammeText(e.target.value)}
+                rows={8}
+                style={{
+                  width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                  padding: "10px 12px", fontSize: 12, fontFamily: "monospace",
+                  resize: "vertical", marginBottom: 10, boxSizing: "border-box",
+                  outline: "none",
+                }}
+                placeholder="08:30–09:00 | Accueil et introduction | Présentation des participants | Cours magistral"
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-red"
+                  onClick={saveProgramme}
+                  disabled={saving === "programme"}
+                >
+                  {saving === "programme" ? "Sauvegarde…" : "💾 Sauvegarder"}
+                </button>
               </div>
             </div>
           </div>
