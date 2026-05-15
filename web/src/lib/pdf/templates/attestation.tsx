@@ -145,7 +145,7 @@ export function AttestationPdf({ company, formateur, formation, participant }: P
         {/* Signatures */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>L'organisme de formation</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Masterclass Médical</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
               {company.representantLegal ?? company.raisonSociale}
             </Text>

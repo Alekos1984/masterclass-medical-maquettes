@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { PdfHeader } from "../shared/Header";
 import { base, RED, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData, FormateurData, FormationData, EmargementData } from "../shared/types";
@@ -104,6 +104,12 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+function formatSignatureDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("fr-FR") + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function CertificatRealisationPdf({ company, formateur, formation, emargements }: Props) {
   const refNum = `CERT-${formation.id.slice(0, 8).toUpperCase()}`;
   const presents = emargements.filter((e) => e.presentMatin || e.presentApresMidi).length;
@@ -136,7 +142,7 @@ export function CertificatRealisationPdf({ company, formateur, formation, emarge
 
         {/* Bloc principal de certification */}
         <View style={s.certifBox}>
-          <Text style={s.certifLabel}>L'organisme de formation</Text>
+          <Text style={s.certifLabel}>La plateforme</Text>
           <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: BLACK, marginBottom: 2, textAlign: "center" }}>
             {company.raisonSociale}
           </Text>
@@ -241,7 +247,7 @@ export function CertificatRealisationPdf({ company, formateur, formation, emarge
           <Text style={s.legalText}>
             Ce certificat de réalisation est établi conformément à l'article L6353-1 du Code du travail.
             Il atteste que l'action de formation a été effectivement dispensée et que les heures indiquées ont été réalisées.
-            Ce document peut être transmis à l'OPCO ou à l'employeur dans le cadre d'une demande de prise en charge.
+            Ce document atteste que la formation a été dispensée par l'intervenant.
             {"\n"}{company.raisonSociale}{company.siret ? ` — SIRET ${company.siret}` : ""}{company.numeroDeclaration ? ` — N° déclaration activité ${company.numeroDeclaration}` : ""}.
           </Text>
         </View>
@@ -251,13 +257,17 @@ export function CertificatRealisationPdf({ company, formateur, formation, emarge
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le formateur</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
-            <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature</Text></View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Le {formatDate(today)}</Text>
-          </View>
-          <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>L'organisme de formation</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{company.representantLegal ?? company.raisonSociale}</Text>
-            <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
+            <View style={s.signatureBox}>
+              {formation.certificatSigne && formation.signatureFormateurBase64 ? (
+                <>
+                  <Image src={formation.signatureFormateurBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
+                  <Text style={{ fontSize: 9, fontFamily: "Times-BoldItalic", color: BLACK }}>{formation.formateurNomComplet}</Text>
+                  <Text style={{ fontSize: 7, color: "#1565c0" }}>Signé le {formatSignatureDate(formation.certificatSigneAt)}</Text>
+                </>
+              ) : (
+                <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
+              )}
+            </View>
             <Text style={{ fontSize: 7, color: GRAY }}>Le {formatDate(today)}</Text>
           </View>
         </View>

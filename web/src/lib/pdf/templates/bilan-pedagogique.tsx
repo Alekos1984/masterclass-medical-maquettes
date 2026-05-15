@@ -216,7 +216,7 @@ export function BilanPedagogiquePdf({ company, formateur, formation, reponses, t
             </View>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>L'organisme de formation</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Masterclass Médical</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 12 }}>{company.raisonSociale}</Text>
             <View style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_GRAY, height: 40, justifyContent: "flex-end" }}>
               <Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text>
