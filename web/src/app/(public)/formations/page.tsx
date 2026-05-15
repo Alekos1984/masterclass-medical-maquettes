@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import CatalogueClient from "./CatalogueClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function CataloguePage() {
   const formations = await prisma.formation.findMany({
     where: { statut: "PUBLIEE" },
