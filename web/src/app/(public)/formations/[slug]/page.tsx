@@ -86,6 +86,8 @@ export default async function FormationDetailPage({ params }: { params: Promise<
     linkedinUrl: f.formateur.linkedinUrl ?? "",
     researchgateUrl: f.formateur.researchgateUrl ?? "",
     pubmedUrl: f.formateur.pubmedUrl ?? "",
+    publicCible: f.publicCible ?? "",
+    restauration: f.restauration ?? "",
   };
 
   return <FormationDetailClient formation={formation} />;

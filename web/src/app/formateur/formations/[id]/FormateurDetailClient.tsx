@@ -49,6 +49,8 @@ type FormationDetail = {
   emargementsCount: number;
   inscriptions: Inscription[];
   demandeSalle: { statut: string; notes: string | null } | null;
+  publicCible: string;
+  restauration: string;
 };
 
 function PillStatus({ status }: { status: string }) {
@@ -72,6 +74,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       .map((s) => `${s.time} | ${s.title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`)
       .join("\n")
   );
+  const [publicCibleText, setPublicCibleText] = useState(formation.publicCible ?? "");
+  const [restaurationText, setRestaurationText] = useState(formation.restauration ?? "");
   const [saving, setSaving] = useState<string | null>(null);
   const [savedState, setSavedState] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
@@ -131,6 +135,19 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       await patchFormation({ programme });
       setSavedState("programme");
       setTimeout(() => setSavedState((s) => s === "programme" ? null : s), 2500);
+    } catch {
+      alert("Erreur lors de la sauvegarde.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function saveInfosPratiques() {
+    setSaving("infos");
+    try {
+      await patchFormation({ publicCible: publicCibleText, restauration: restaurationText });
+      setSavedState("infos");
+      setTimeout(() => setSavedState((s) => s === "infos" ? null : s), 2500);
     } catch {
       alert("Erreur lors de la sauvegarde.");
     } finally {
@@ -811,6 +828,57 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   style={{ background: savedState === "programme" ? "#2e7d32" : "#C8102E" }}
                 >
                   {saving === "programme" ? "Sauvegarde…" : savedState === "programme" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
+                </button>
+              </div>
+            </div>
+
+            {/* Infos pratiques */}
+            <div style={cardStyle}>
+              <div className="card-header">
+                <span className="card-title">Informations pratiques</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                    Public cible
+                  </label>
+                  <input
+                    type="text"
+                    value={publicCibleText}
+                    onChange={(e) => setPublicCibleText(e.target.value)}
+                    placeholder="Ex : Tous professionnels de santé"
+                    style={{
+                      width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                      padding: "9px 12px", fontSize: 13, fontFamily: "inherit", outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                    Restauration
+                  </label>
+                  <input
+                    type="text"
+                    value={restaurationText}
+                    onChange={(e) => setRestaurationText(e.target.value)}
+                    placeholder="Ex : Pause café matin + déjeuner inclus"
+                    style={{
+                      width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                      padding: "9px 12px", fontSize: 13, fontFamily: "inherit", outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+                <button
+                  className="btn btn-red"
+                  onClick={saveInfosPratiques}
+                  disabled={saving === "infos"}
+                  style={{ background: savedState === "infos" ? "#2e7d32" : "#C8102E" }}
+                >
+                  {saving === "infos" ? "Sauvegarde…" : savedState === "infos" ? "✓ Sauvegardé" : "💾 Sauvegarder"}
                 </button>
               </div>
             </div>

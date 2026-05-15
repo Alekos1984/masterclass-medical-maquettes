@@ -72,6 +72,8 @@ export default async function FormateurDetailFormationPage({
     demandeSalle: formation.demandeSalle
       ? { statut: formation.demandeSalle.statut, notes: formation.demandeSalle.notes ?? null }
       : null,
+    publicCible: formation.publicCible ?? "",
+    restauration: formation.restauration ?? "",
   };
 
   return <FormateurDetailClient formation={data} />;

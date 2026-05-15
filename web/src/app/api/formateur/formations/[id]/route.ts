@@ -36,6 +36,8 @@ export async function PATCH(
   if (body.heureFin !== undefined) contentFields.heureFin = body.heureFin;
   if (body.placesTotal !== undefined) contentFields.placesTotal = body.placesTotal;
   if (body.prixHT !== undefined) contentFields.prixHT = body.prixHT;
+  if (body.publicCible !== undefined) contentFields.publicCible = body.publicCible;
+  if (body.restauration !== undefined) contentFields.restauration = body.restauration;
 
   if (statut) {
     if (statut === "PUBLIEE" && !PUBLISHABLE.includes(formation.statut)) {

@@ -267,6 +267,10 @@ model Formation {
   conflitsInterets String? @db.Text
   declarationCoi   Boolean @default(false)
 
+  // Infos pratiques (éditables par le formateur)
+  publicCible  String? // ex: "Tous professionnels de santé", "Médecins spécialistes"
+  restauration String? // ex: "Pause café + déjeuner inclus", "Pause café uniquement"
+
   // Documents
   programmeDocUrl String?
   supportCoursUrl String?

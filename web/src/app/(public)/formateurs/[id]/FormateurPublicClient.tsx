@@ -290,7 +290,94 @@ export default function FormateurPublicClient({ profil }: Props) {
         </div>
       </div>
 
-      {/* FORMATIONS — top priority */}
+      {/* BIO + PUBLICATIONS — above formations */}
+      <section style={{ background: "white", padding: "48px 40px", borderBottom: "1px solid #F0F0F0" }}>
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: pubCount > 0 ? "1fr 300px" : "1fr",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          {/* Biographie — always shown */}
+          <div
+            style={{
+              background: "#F8F8FA",
+              border: "1.5px solid #EBEBEB",
+              borderRadius: 16,
+              padding: "28px 32px",
+            }}
+          >
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", letterSpacing: -0.3, margin: "0 0 16px" }}>
+              Biographie
+            </h2>
+            {profil.bio ? (
+              <p style={{ fontSize: 15, color: "#444", lineHeight: 1.75, margin: 0, whiteSpace: "pre-line" }}>
+                {profil.bio}
+              </p>
+            ) : (
+              <p style={{ fontSize: 14, color: "#aaa", lineHeight: 1.75, margin: 0, fontStyle: "italic" }}>
+                Ce formateur n&apos;a pas encore renseigné sa biographie.
+              </p>
+            )}
+          </div>
+
+          {/* Publications card */}
+          {pubCount > 0 && (
+            <div
+              style={{
+                background: "linear-gradient(135deg, #080810, #1a0408)",
+                border: "1.5px solid rgba(200,16,46,0.25)",
+                borderRadius: 16,
+                padding: "28px 28px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+                gap: 16,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: 1 }}>
+                Publications scientifiques
+              </div>
+              <div style={{ fontSize: 56, fontWeight: 900, color: "white", letterSpacing: -2, lineHeight: 1 }}>
+                {pubCount}
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+                référencée{pubCount > 1 ? "s" : ""} sur PubMed
+              </div>
+              <button
+                onClick={() => setDrawerOpen(true)}
+                style={{
+                  background: "#C8102E",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "10px 24px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  width: "100%",
+                  marginTop: 4,
+                }}
+              >
+                Voir les publications →
+              </button>
+              {profil.pubmedUrl && (
+                <a href={profil.pubmedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#88aaee", textDecoration: "none" }}>
+                  Consulter sur PubMed ↗
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* FORMATIONS */}
       <section
         id="formations"
         style={{ background: "#F8F8FA", flex: 1, padding: "48px 40px" }}
@@ -420,99 +507,7 @@ export default function FormateurPublicClient({ profil }: Props) {
         </div>
       </section>
 
-      {/* BIO + PUBLICATIONS — side by side cards */}
-      <section
-        style={{
-          background: "white",
-          padding: "48px 40px",
-          borderTop: "1px solid #F0F0F0",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: profil.bio && pubCount > 0 ? "1fr 320px" : "1fr",
-            gap: 24,
-            alignItems: "start",
-          }}
-        >
-          {/* Biographie */}
-          {profil.bio && (
-            <div
-              style={{
-                background: "#F8F8FA",
-                border: "1.5px solid #EBEBEB",
-                borderRadius: 16,
-                padding: "28px 32px",
-              }}
-            >
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", marginBottom: 16, letterSpacing: -0.3, margin: "0 0 16px" }}>
-                Biographie
-              </h2>
-              <p style={{ fontSize: 15, color: "#444", lineHeight: 1.75, margin: 0, whiteSpace: "pre-line" }}>
-                {profil.bio}
-              </p>
-            </div>
-          )}
 
-          {/* Publications card */}
-          {pubCount > 0 && (
-            <div
-              style={{
-                background: "linear-gradient(135deg, #080810, #1a0408)",
-                border: "1.5px solid rgba(200,16,46,0.25)",
-                borderRadius: 16,
-                padding: "28px 28px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-                gap: 16,
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: 1 }}>
-                Publications scientifiques
-              </div>
-              <div style={{ fontSize: 56, fontWeight: 900, color: "white", letterSpacing: -2, lineHeight: 1 }}>
-                {pubCount}
-              </div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
-                référencée{pubCount > 1 ? "s" : ""} sur PubMed
-              </div>
-              <button
-                onClick={() => setDrawerOpen(true)}
-                style={{
-                  background: "#C8102E",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "10px 24px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  width: "100%",
-                  marginTop: 4,
-                }}
-              >
-                Voir les publications →
-              </button>
-              {profil.pubmedUrl && (
-                <a
-                  href={profil.pubmedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: "#88aaee", textDecoration: "none" }}
-                >
-                  Consulter sur PubMed ↗
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* PUBLICATIONS DRAWER */}
       {drawerOpen && (
