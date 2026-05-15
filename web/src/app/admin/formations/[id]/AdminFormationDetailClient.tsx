@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Paiement = {
   id: string;
@@ -58,8 +60,40 @@ const PDF_BUTTONS: { label: string; icon: string; href: (id: string) => string; 
   { label: "Bilan pédagogique", icon: "📊", href: (id) => `/api/pdf/bilan/${id}?ai=true`, sub: "Analyse IA J+3" },
 ];
 
+const STATUT_TRANSITIONS: Record<string, { label: string; next: string; btnClass?: string }[]> = {
+  BROUILLON: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-primary" }],
+  EN_ATTENTE_SALLE: [{ label: "Confirmer la salle", next: "SALLE_CONFIRMEE" }, { label: "Publier", next: "PUBLIEE", btnClass: "btn btn-primary" }],
+  SALLE_CONFIRMEE: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-primary" }],
+  PUBLIEE: [{ label: "Marquer complète", next: "COMPLETE" }, { label: "Annuler", next: "ANNULEE" }],
+  COMPLETE: [],
+  ANNULEE: [{ label: "Réactiver (brouillon)", next: "BROUILLON" }],
+};
+
 export default function AdminFormationDetailClient({ formation }: { formation: Formation }) {
-  const statut = STATUT_DISPLAY[formation.statut] ?? { label: formation.statut, pillClass: "pill-gray" };
+  const router = useRouter();
+  const [changingStatut, setChangingStatut] = useState(false);
+  const [currentStatut, setCurrentStatut] = useState(formation.statut);
+
+  const statut = STATUT_DISPLAY[currentStatut] ?? { label: currentStatut, pillClass: "pill-gray" };
+  const transitions = STATUT_TRANSITIONS[currentStatut] ?? [];
+
+  async function changeStatut(next: string) {
+    setChangingStatut(true);
+    try {
+      const res = await fetch(`/api/admin/formations/${formation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statut: next }),
+      });
+      if (res.ok) {
+        setCurrentStatut(next);
+        router.refresh();
+      }
+    } finally {
+      setChangingStatut(false);
+    }
+  }
+
   const inscrits = formation.placesTotal - formation.placesRestantes;
   const tauxSatisfaction =
     formation.inscriptions.length > 0
@@ -74,7 +108,18 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
           <div className="topbar-sep"></div>
           <span className="topbar-title">{formation.titre}</span>
         </div>
-        <div className="topbar-right">
+        <div className="topbar-right" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {transitions.map((t) => (
+            <button
+              key={t.next}
+              className={t.btnClass ?? "btn btn-ghost"}
+              style={{ fontSize: 12 }}
+              disabled={changingStatut}
+              onClick={() => changeStatut(t.next)}
+            >
+              {t.label}
+            </button>
+          ))}
           <span className={`pill ${statut.pillClass}`}>{statut.label}</span>
         </div>
       </div>

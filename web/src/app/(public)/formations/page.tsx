@@ -27,7 +27,7 @@ export default async function CataloguePage() {
 
   if (data.length === 0) {
     return (
-      <>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         {/* NAV */}
         <nav className="public-nav" style={{ position: "sticky", top: 0, zIndex: 100 }}>
           <Link href="/" className="public-nav-logo">
@@ -68,7 +68,7 @@ export default async function CataloguePage() {
         </div>
 
         {/* EMPTY STATE */}
-        <div style={{ textAlign: "center", padding: "80px 40px", color: "var(--gray)" }}>
+        <div style={{ flex: 1, textAlign: "center", padding: "80px 40px", color: "var(--gray)" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🎓</div>
           <div style={{ fontSize: "1.2rem", fontWeight: 800, marginBottom: 8 }}>Aucune formation disponible pour l&apos;instant</div>
           <p>Les formations seront affichées ici dès qu&apos;elles seront publiées.</p>
@@ -91,7 +91,7 @@ export default async function CataloguePage() {
             </div>
           </div>
         </footer>
-      </>
+      </div>
     );
   }
 

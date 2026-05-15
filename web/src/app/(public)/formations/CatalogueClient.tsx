@@ -46,7 +46,7 @@ export default function CatalogueClient({ formations }: Props) {
   });
 
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* NAV */}
       <nav className="public-nav" style={{ position: "sticky", top: 0, zIndex: 100 }}>
         <Link href="/" className="public-nav-logo">
@@ -166,7 +166,7 @@ export default function CatalogueClient({ formations }: Props) {
       )}
 
       {/* FOOTER */}
-      <footer style={{ background: "#0F0F0F", padding: "24px 40px", marginTop: 40 }}>
+      <footer style={{ background: "#0F0F0F", padding: "24px 40px", marginTop: "auto" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 26, height: 26, borderRadius: 6, background: "#C8102E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "white" }}>M</div>
@@ -179,6 +179,6 @@ export default function CatalogueClient({ formations }: Props) {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
