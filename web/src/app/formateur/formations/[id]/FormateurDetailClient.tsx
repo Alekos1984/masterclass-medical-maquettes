@@ -311,9 +311,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 {[
-                  { icon: "📄", label: "Programme officiel", href: `/api/pdf/programme/${formation.id}` },
-                  { icon: "🖼️", label: "Affiche A4", href: `/api/pdf/affiche/${formation.id}` },
-                  { icon: "✨", label: "Affiche A4 (IA)", href: `/api/pdf/affiche/${formation.id}?ai=true`, sub: "Accroche générée par IA" },
+                  { icon: "📄", label: "Programme officiel", href: `/api/pdf/programme/${formation.id}`, sub: "Format Qualiopi" },
+                  { icon: "🖼️", label: "Affiche A4", href: `/api/pdf/affiche/${formation.id}?ai=true`, sub: "Accroche générée par IA" },
                   { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "À imprimer le jour J" },
                 ].map((doc) => (
                   <a
@@ -350,10 +349,10 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 {[
-                  { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}` },
-                  { icon: "📋", label: "PV de formation", href: `/api/pdf/pv-formation/${formation.id}` },
-                  { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses` : "Disponible J+3" },
-                  { icon: "✨", label: "Bilan pédagogique (IA)", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: "Analyse qualitative par IA" },
+                  { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}`, sub: "Certifiée demi-journée" },
+                  { icon: "📋", label: "PV de formation", href: `/api/pdf/pv-formation/${formation.id}`, sub: "Procès-verbal de clôture" },
+                  { icon: "📜", label: "Certificat de réalisation", href: `/api/pdf/certificat-realisation/${formation.id}`, sub: "Art. L6353-1 Code du travail" },
+                  { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses · Analyse IA` : "Disponible J+3" },
                 ].map((doc) => (
                   <a
                     key={doc.href}
@@ -384,6 +383,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               <div style={cardStyle}>
                 <div className="card-header">
                   <span className="card-title">Documents par participant</span>
+                  <span style={{ fontSize: 11, color: "#6A6A6A" }}>Convention · Convocation · Attestation · Facture</span>
                 </div>
                 <table>
                   <thead>
@@ -403,6 +403,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                         <td><PillStatus status={insc.statut} /></td>
                         <td>
                           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
+                            <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convocation</a>
                             <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convention</a>
                             {insc.statut === "CONFIRMEE" && (
                               <a href={`/api/pdf/attestation/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Attestation</a>

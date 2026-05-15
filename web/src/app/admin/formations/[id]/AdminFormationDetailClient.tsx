@@ -48,15 +48,14 @@ const INSCRIPTION_STATUT: Record<string, { label: string; pillClass: string }> =
   LISTE_ATTENTE: { label: "Liste d'attente", pillClass: "pill-blue" },
 };
 
-const PDF_BUTTONS = [
-  { label: "Programme", href: (id: string) => `/api/pdf/programme/${id}` },
-  { label: "Questionnaire", href: (id: string) => `/api/pdf/questionnaire/${id}` },
-  { label: "Affiche A4", href: (id: string) => `/api/pdf/affiche/${id}` },
-  { label: "Affiche IA", href: (id: string) => `/api/pdf/affiche/${id}?ai=true` },
-  { label: "Feuille présence", href: (id: string) => `/api/pdf/feuille-presence/${id}` },
-  { label: "PV formation", href: (id: string) => `/api/pdf/pv-formation/${id}` },
-  { label: "Bilan", href: (id: string) => `/api/pdf/bilan/${id}` },
-  { label: "Bilan IA", href: (id: string) => `/api/pdf/bilan/${id}?ai=true` },
+const PDF_BUTTONS: { label: string; icon: string; href: (id: string) => string; sub?: string }[] = [
+  { label: "Programme officiel", icon: "📄", href: (id) => `/api/pdf/programme/${id}`, sub: "Qualiopi" },
+  { label: "Affiche A4", icon: "🖼️", href: (id) => `/api/pdf/affiche/${id}?ai=true`, sub: "Accroche IA" },
+  { label: "Questionnaire", icon: "📝", href: (id) => `/api/pdf/questionnaire/${id}`, sub: "Papier — jour J" },
+  { label: "Feuille de présence", icon: "✅", href: (id) => `/api/pdf/feuille-presence/${id}` },
+  { label: "PV de formation", icon: "📋", href: (id) => `/api/pdf/pv-formation/${id}` },
+  { label: "Certificat de réalisation", icon: "📜", href: (id) => `/api/pdf/certificat-realisation/${id}`, sub: "Art. L6353-1 CDT" },
+  { label: "Bilan pédagogique", icon: "📊", href: (id) => `/api/pdf/bilan/${id}?ai=true`, sub: "Analyse IA J+3" },
 ];
 
 export default function AdminFormationDetailClient({ formation }: { formation: Formation }) {
@@ -106,17 +105,24 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
             <div className="card-title">Documents à générer</div>
             <span style={{ fontSize: 11, color: "var(--gray)" }}>Ouvre dans un nouvel onglet</span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 4 }}>
             {PDF_BUTTONS.map((btn) => (
               <a
                 key={btn.label}
                 href={btn.href(formation.id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-ghost"
-                style={{ fontSize: 12, textDecoration: "none" }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
+                  border: "1.5px solid var(--light-gray)", borderRadius: 8, textDecoration: "none",
+                  color: "var(--black)", transition: "border-color 0.15s",
+                }}
               >
-                📄 {btn.label}
+                <span style={{ fontSize: 16 }}>{btn.icon}</span>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600 }}>{btn.label}</div>
+                  {btn.sub && <div style={{ fontSize: 10, color: "var(--gray)" }}>{btn.sub}</div>}
+                </div>
               </a>
             ))}
           </div>
@@ -158,51 +164,16 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
                       <td style={{ fontSize: 12 }}>{ins.nbEmargements}</td>
                       <td>
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                          <a
-                            href={`/api/pdf/convention/${ins.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-ghost"
-                            style={{ fontSize: 11, textDecoration: "none" }}
-                          >
-                            Conv.
-                          </a>
-                          {canAttestation ? (
-                            <a
-                              href={`/api/pdf/attestation/${ins.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-ghost"
-                              style={{ fontSize: 11, textDecoration: "none" }}
-                            >
-                              Attest.
-                            </a>
-                          ) : (
-                            <span
-                              className="btn btn-ghost"
-                              style={{ fontSize: 11, opacity: 0.4, cursor: "not-allowed" }}
-                            >
-                              Attest.
-                            </span>
-                          )}
-                          {canFacture ? (
-                            <a
-                              href={`/api/pdf/facture/${ins.paiement!.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-ghost"
-                              style={{ fontSize: 11, textDecoration: "none" }}
-                            >
-                              Facture
-                            </a>
-                          ) : (
-                            <span
-                              className="btn btn-ghost"
-                              style={{ fontSize: 11, opacity: 0.4, cursor: "not-allowed" }}
-                            >
-                              Facture
-                            </span>
-                          )}
+                          <a href={`/api/pdf/convocation/${ins.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, textDecoration: "none" }}>Convoc.</a>
+                          <a href={`/api/pdf/convention/${ins.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, textDecoration: "none" }}>Conv.</a>
+                          {canAttestation
+                            ? <a href={`/api/pdf/attestation/${ins.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, textDecoration: "none" }}>Attest.</a>
+                            : <span className="btn btn-ghost" style={{ fontSize: 11, opacity: 0.35, cursor: "not-allowed" }}>Attest.</span>
+                          }
+                          {canFacture
+                            ? <a href={`/api/pdf/facture/${ins.paiement!.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, textDecoration: "none" }}>Facture</a>
+                            : <span className="btn btn-ghost" style={{ fontSize: 11, opacity: 0.35, cursor: "not-allowed" }}>Facture</span>
+                          }
                         </div>
                       </td>
                     </tr>
