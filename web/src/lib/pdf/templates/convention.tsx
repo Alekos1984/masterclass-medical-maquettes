@@ -80,7 +80,7 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
         <Text style={base.sectionTitle}>Entre les parties</Text>
         <View style={s.partiesGrid}>
           <View style={s.partieCard}>
-            <Text style={s.partieCardTitle}>L'organisme de formation</Text>
+            <Text style={s.partieCardTitle}>Masterclass Médical</Text>
             <View style={base.infoRow}>
               <Text style={base.infoLabel}>Raison sociale</Text>
               <Text style={base.infoValue}>{company.raisonSociale}</Text>
@@ -196,14 +196,14 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
         <Text style={s.articleTitle}>Article 6 — Litiges</Text>
         <Text style={s.articleText}>
           En cas de litige, les parties s'engagent à rechercher une solution amiable avant tout recours juridictionnel.
-          À défaut, les tribunaux compétents seront ceux du ressort du siège social de l'organisme de formation.
+          À défaut, les tribunaux compétents seront ceux du ressort du siège social de Masterclass Médical.
         </Text>
 
         {/* Signatures */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 6 }}>
-              L'organisme de formation
+              Masterclass Médical
             </Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
               {company.representantLegal ?? company.raisonSociale}

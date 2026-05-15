@@ -28,7 +28,7 @@ export function PdfHeader({
           </View>
           <View>
             <Text style={base.logoText}>{company.raisonSociale}</Text>
-            <Text style={base.logoSub}>Organisme de formation</Text>
+            <Text style={base.logoSub}>Masterclass Médical</Text>
           </View>
         </View>
       </View>

@@ -121,7 +121,7 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
         </Text>
 
         <Text style={{ fontSize: 9, color: BLACK, lineHeight: 1.7, marginBottom: 16 }}>
-          {company.representantLegal ?? company.raisonSociale}, représentant l'organisme de formation {company.raisonSociale},
+          {company.representantLegal ?? company.raisonSociale}, représentant Masterclass Médical ({company.raisonSociale}),
           a l'honneur de convoquer {participant.titre ? `${participant.titre} ` : ""}{participant.nom}
           à la formation professionnelle continue dont les modalités sont précisées ci-dessous.
         </Text>
@@ -180,7 +180,7 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
         {/* Signature */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>L'organisme de formation</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Masterclass Médical</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{company.representantLegal ?? company.raisonSociale}</Text>
             <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
             <Text style={{ fontSize: 7, color: GRAY }}>Fait à {company.ville ?? "___"}, le {formatDate(today)}</Text>

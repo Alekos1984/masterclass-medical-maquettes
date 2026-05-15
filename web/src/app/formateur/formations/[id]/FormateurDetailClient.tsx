@@ -124,6 +124,26 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     }
   }
 
+  async function resetSessionFromDetail() {
+    if (!window.confirm("Remettre la session à zéro ? Le journal de session sera effacé.")) return;
+    const res = await fetch(`/api/formateur/formations/${formation.id}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reset" }),
+    });
+    if (res.ok) {
+      setSessionStatus(null);
+      setSessionMenuOpen(false);
+    }
+  }
+
+  // View/Sign overlay state
+  const [viewDoc, setViewDoc] = useState<"pv" | "bilan" | "certificat" | null>(null);
+
+  // Overlay local field state (visual preview only, not persisted)
+  const [pvFields, setPvFields] = useState({ objectifsAtteints: "", observations: "" });
+  const [bilanFields, setBilanFields] = useState({ resume: "", recommandations: "", pointsForts: "" });
+
   // Sign state for official documents
   const [signState, setSignState] = useState({
     pvSigne: formation.pvSigne ?? false,
@@ -395,6 +415,215 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
   return (
     <>
+      {/* Document view/sign overlay */}
+      {viewDoc !== null && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setViewDoc(null)}
+            style={{
+              position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 999,
+            }}
+          />
+          {/* Panel */}
+          <div
+            style={{
+              position: "fixed", right: 0, top: 0, height: "100vh", width: "70%",
+              background: "white", zIndex: 1000, overflowY: "auto",
+              boxShadow: "-4px 0 32px rgba(0,0,0,0.15)",
+              display: "flex", flexDirection: "column",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #E0E0E0" }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0F0F" }}>
+                  {viewDoc === "pv" ? "Procès-verbal de formation" : viewDoc === "bilan" ? "Bilan pédagogique" : "Certificat de réalisation"}
+                </div>
+                <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>
+                  {formation.titre} · {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(formation.date))}
+                  {formation.lieuNom ? ` · ${formation.lieuNom}` : formation.lieuVille ? ` · ${formation.lieuVille}` : ""}
+                  {` · ${formation.dureeHeures}h`}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewDoc(null)}
+                style={{
+                  background: "#F5F5F5", border: "none", borderRadius: 8,
+                  width: 36, height: 36, fontSize: 18, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "24px", flex: 1 }}>
+              {/* Common metadata */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+                {[
+                  { key: "Formation", val: formation.titre },
+                  { key: "Date", val: new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(formation.date)) },
+                  { key: "Lieu", val: formation.lieuNom ?? formation.lieuVille ?? "—" },
+                  { key: "Durée", val: `${formation.dureeHeures}h` },
+                ].map((r, i) => (
+                  <div key={i} style={{ background: "#F9F7F4", borderRadius: 8, padding: "10px 12px" }}>
+                    <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>{r.key}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F" }}>{r.val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* PV fields */}
+              {viewDoc === "pv" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Objectifs atteints</label>
+                    <textarea
+                      value={pvFields.objectifsAtteints}
+                      onChange={(e) => setPvFields((f) => ({ ...f, objectifsAtteints: e.target.value }))}
+                      rows={4}
+                      placeholder="Décrivez les objectifs atteints lors de la formation..."
+                      style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Observations</label>
+                    <textarea
+                      value={pvFields.observations}
+                      onChange={(e) => setPvFields((f) => ({ ...f, observations: e.target.value }))}
+                      rows={4}
+                      placeholder="Observations du formateur sur le déroulement..."
+                      style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Participants présents ({formation.inscriptions.length})</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {formation.inscriptions.map((insc, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#F9F7F4", borderRadius: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{insc.participant.name}</span>
+                          {insc.participant.specialite && <span style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.specialite}</span>}
+                        </div>
+                      ))}
+                      {formation.inscriptions.length === 0 && <div style={{ fontSize: 13, color: "#6A6A6A" }}>Aucun participant inscrit</div>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bilan fields */}
+              {viewDoc === "bilan" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Résumé</label>
+                    <textarea
+                      value={bilanFields.resume}
+                      onChange={(e) => setBilanFields((f) => ({ ...f, resume: e.target.value }))}
+                      rows={4}
+                      placeholder="Résumé du bilan pédagogique..."
+                      style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Recommandations</label>
+                    <textarea
+                      value={bilanFields.recommandations}
+                      onChange={(e) => setBilanFields((f) => ({ ...f, recommandations: e.target.value }))}
+                      rows={4}
+                      placeholder="Recommandations pour les prochaines sessions..."
+                      style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Points forts</label>
+                    <textarea
+                      value={bilanFields.pointsForts}
+                      onChange={(e) => setBilanFields((f) => ({ ...f, pointsForts: e.target.value }))}
+                      rows={4}
+                      placeholder="Points forts de la formation..."
+                      style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Certificat fields */}
+              {viewDoc === "certificat" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Objectifs réalisés</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {(formation.objectifs ?? []).map((obj, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 12px", background: "#F9F7F4", borderRadius: 8 }}>
+                          <span style={{ color: "#2e7d32", fontWeight: 700, marginTop: 1 }}>✓</span>
+                          <span style={{ fontSize: 13 }}>{obj}</span>
+                        </div>
+                      ))}
+                      {(formation.objectifs ?? []).length === 0 && <div style={{ fontSize: 13, color: "#6A6A6A" }}>Aucun objectif défini</div>}
+                    </div>
+                  </div>
+                  {(formation.sessionStartedAt || formation.sessionEndedAt) && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {formation.sessionStartedAt && (
+                        <div style={{ background: "#F9F7F4", borderRadius: 8, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Début de session</div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(formation.sessionStartedAt))}</div>
+                        </div>
+                      )}
+                      {formation.sessionEndedAt && (
+                        <div style={{ background: "#F9F7F4", borderRadius: 8, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Fin de session</div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(formation.sessionEndedAt))}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer action */}
+            <div style={{ padding: "16px 24px", borderTop: "1px solid #E0E0E0" }}>
+              {(() => {
+                const isSigned =
+                  viewDoc === "pv" ? signState.pvSigne :
+                  viewDoc === "bilan" ? signState.bilanSigne :
+                  signState.certificatSigne;
+                const signedAt =
+                  viewDoc === "pv" ? signState.pvSigneAt :
+                  viewDoc === "bilan" ? signState.bilanSigneAt :
+                  signState.certificatSigneAt;
+                if (isSigned) {
+                  return (
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#e8f5e9", borderRadius: 8, fontSize: 13, color: "#2e7d32", fontWeight: 600 }}>
+                      ✓ Signé le {signedAt ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(signedAt)) : "—"}
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await signDocs(viewDoc!);
+                      setViewDoc(null);
+                    }}
+                    style={{
+                      background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
+                      padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    ✍️ Signer ce document
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* TOPBAR */}
       <div className="topbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -414,30 +643,30 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           {statutPill(statut)}
           {isPubilee && (
             <>
-              {(sessionStatus === "EN_COURS" || sessionStatus === "EN_PAUSE") ? (
+              {sessionStatus === "EN_COURS" ? (
                 <Link
                   href={`/formateur/formations/${formation.id}/live`}
                   style={{
-                    background: sessionStatus === "EN_COURS" ? "#22c55e" : "#f97316",
-                    color: "white", border: "none", borderRadius: 8,
+                    background: "#22c55e", color: "white", border: "none", borderRadius: 8,
                     padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer",
                     fontFamily: "inherit", display: "inline-flex", alignItems: "center",
                     gap: 6, textDecoration: "none",
                   }}
                 >
-                  ● {sessionStatus === "EN_COURS" ? "Session en cours" : "En pause"}
+                  ● Session en cours
                 </Link>
-              ) : sessionStatus === "TERMINEE" ? (
+              ) : sessionStatus === "EN_PAUSE" ? (
                 <div ref={sessionMenuRef} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <span
+                  <Link
+                    href={`/formateur/formations/${formation.id}/live`}
                     style={{
-                      background: "#EBEBEB", color: "#444", borderRadius: 8,
+                      background: "#f97316", color: "white", border: "none", borderRadius: 8,
                       padding: "8px 14px", fontSize: 13, fontWeight: 700,
-                      display: "inline-flex", alignItems: "center", gap: 6,
+                      display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none",
                     }}
                   >
-                    ✓ Session terminée
-                  </span>
+                    ⏸ En pause
+                  </Link>
                   <button
                     type="button"
                     onClick={() => setSessionMenuOpen((v) => !v)}
@@ -450,25 +679,28 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                     ⚙️
                   </button>
                   {sessionMenuOpen && (
-                    <div
-                      style={{
-                        position: "absolute", top: "100%", right: 0, marginTop: 6,
-                        background: "white", border: "1px solid #E0E0E0", borderRadius: 8,
-                        boxShadow: "0 6px 18px rgba(0,0,0,0.08)", padding: 6, zIndex: 30, minWidth: 200,
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={reopenSession}
-                        disabled={reopening}
-                        style={{
-                          background: "transparent", border: "none", width: "100%",
-                          textAlign: "left", padding: "8px 10px", borderRadius: 6,
-                          fontSize: 13, fontWeight: 600, cursor: reopening ? "not-allowed" : "pointer",
-                          fontFamily: "inherit", color: "#0F0F0F",
-                        }}
-                      >
+                    <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, background: "white", border: "1px solid #E0E0E0", borderRadius: 8, boxShadow: "0 6px 18px rgba(0,0,0,0.08)", padding: 6, zIndex: 30, minWidth: 200 }}>
+                      <button type="button" onClick={resetSessionFromDetail} style={{ background: "transparent", border: "none", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "#C8102E" }}>
+                        ↺ Remettre à zéro
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : sessionStatus === "TERMINEE" ? (
+                <div ref={sessionMenuRef} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ background: "#EBEBEB", color: "#444", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    ✓ Session terminée
+                  </span>
+                  <button type="button" onClick={() => setSessionMenuOpen((v) => !v)} aria-label="Options session" style={{ background: "#EBEBEB", color: "#444", border: "none", borderRadius: 8, padding: "8px 10px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                    ⚙️
+                  </button>
+                  {sessionMenuOpen && (
+                    <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, background: "white", border: "1px solid #E0E0E0", borderRadius: 8, boxShadow: "0 6px 18px rgba(0,0,0,0.08)", padding: 6, zIndex: 30, minWidth: 200 }}>
+                      <button type="button" onClick={reopenSession} disabled={reopening} style={{ background: "transparent", border: "none", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: reopening ? "not-allowed" : "pointer", fontFamily: "inherit", color: "#0F0F0F" }}>
                         {reopening ? "Réouverture…" : "↻ Rouvrir la session"}
+                      </button>
+                      <button type="button" onClick={resetSessionFromDetail} style={{ background: "transparent", border: "none", width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "#C8102E" }}>
+                        ↺ Remettre à zéro
                       </button>
                     </div>
                   )}
@@ -761,19 +993,32 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                         )}
                       </div>
                     </div>
-                    {!doc.signed && (
+                    <div style={{ display: "flex", gap: 6 }}>
                       <button
                         type="button"
-                        onClick={() => signDocs(doc.key)}
+                        onClick={() => setViewDoc(doc.key)}
                         style={{
                           background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0",
-                          borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600,
+                          borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600,
                           cursor: "pointer", fontFamily: "inherit",
                         }}
                       >
-                        Signer
+                        👁 Voir
                       </button>
-                    )}
+                      {!doc.signed && (
+                        <button
+                          type="button"
+                          onClick={() => signDocs(doc.key)}
+                          style={{
+                            background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0",
+                            borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                            cursor: "pointer", fontFamily: "inherit",
+                          }}
+                        >
+                          ✍️ Signer
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
