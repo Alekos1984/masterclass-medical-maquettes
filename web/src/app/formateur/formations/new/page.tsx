@@ -58,6 +58,8 @@ export default function NouvelleFormationPage() {
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
   const [ville, setVille] = useState("");
+  const [nomEtablissement, setNomEtablissement] = useState("");
+  const [datesFlexibles, setDatesFlexibles] = useState(true);
   const [prix, setPrix] = useState("");
   const [objectives, setObjectives] = useState("");
   const [description, setDescription] = useState("");
@@ -451,14 +453,16 @@ export default function NouvelleFormationPage() {
                   </div>
                 </div>
                 <div
+                  onClick={() => setDatesFlexibles((v) => !v)}
                   style={{
                     width: 42,
                     height: 24,
                     borderRadius: 100,
-                    background: "#C8102E",
+                    background: datesFlexibles ? "#C8102E" : "#D0D0D0",
                     position: "relative" as const,
                     cursor: "pointer",
                     flexShrink: 0,
+                    transition: "background 0.2s",
                   }}
                 >
                   <div
@@ -466,10 +470,11 @@ export default function NouvelleFormationPage() {
                       position: "absolute" as const,
                       width: 18,
                       height: 18,
-                      left: 21,
+                      left: datesFlexibles ? 21 : 3,
                       top: 3,
                       background: "white",
                       borderRadius: "50%",
+                      transition: "left 0.2s",
                     }}
                   />
                 </div>
@@ -682,6 +687,8 @@ export default function NouvelleFormationPage() {
                       <input
                         type="text"
                         placeholder="Ex : Marriott Lyon, Palais des Congrès…"
+                        value={nomEtablissement}
+                        onChange={(e) => setNomEtablissement(e.target.value)}
                         style={inputStyle}
                       />
                       <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 5 }}>
@@ -690,13 +697,26 @@ export default function NouvelleFormationPage() {
                     </div>
                     <div>
                       <label style={labelStyle}>Capacité souhaitée <span style={{ color: "#C8102E" }}>*</span></label>
-                      <select style={inputStyle}>
+                      <select
+                        value={
+                          maxPart < 10 ? "Moins de 10 personnes"
+                          : maxPart <= 25 ? "10 à 25 personnes"
+                          : maxPart <= 50 ? "25 à 50 personnes"
+                          : maxPart <= 100 ? "50 à 100 personnes"
+                          : "Plus de 100 personnes"
+                        }
+                        onChange={() => {}}
+                        style={{ ...inputStyle, background: "#F9F7F4", color: "#444" }}
+                      >
                         <option>Moins de 10 personnes</option>
                         <option>10 à 25 personnes</option>
                         <option>25 à 50 personnes</option>
                         <option>50 à 100 personnes</option>
                         <option>Plus de 100 personnes</option>
                       </select>
+                      <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 4 }}>
+                        Calculé depuis le nombre max de participants
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1134,7 +1154,8 @@ export default function NouvelleFormationPage() {
                       body: JSON.stringify({
                         titre, thematique, format, duree,
                         dateDebut, dateFin, maxPart, minPart,
-                        ville, checkedEquip, restauration, checkedResto,
+                        ville, nomEtablissement, datesFlexibles,
+                        checkedEquip, restauration, checkedResto,
                         objectives, description, prixType, prix,
                       }),
                     });
