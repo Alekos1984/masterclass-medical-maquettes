@@ -149,7 +149,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   }
 
   // View/Sign overlay state
-  const [viewDoc, setViewDoc] = useState<"pv" | "bilan" | "certificat" | "emargement" | null>(null);
+  const [viewDoc, setViewDoc] = useState<"pv" | "pv-suivi" | "bilan" | "certificat" | "emargement" | null>(null);
 
   // Overlay local field state — pre-populated from formation data
   const [pvFields, setPvFields] = useState({
@@ -465,7 +465,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #E0E0E0" }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0F0F" }}>
-                  {viewDoc === "pv" ? "Procès-verbal de formation" : viewDoc === "bilan" ? "Bilan pédagogique" : viewDoc === "emargement" ? "Émargement consolidé" : "Certificat de réalisation"}
+                  {viewDoc === "pv" ? "Procès-verbal de formation" : viewDoc === "pv-suivi" ? "Suivi des PV — signatures participants" : viewDoc === "bilan" ? "Bilan pédagogique" : viewDoc === "emargement" ? "Émargement consolidé" : "Certificat de réalisation"}
                 </div>
                 <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>
                   {formation.titre} · {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(formation.date))}
@@ -502,6 +502,67 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   </div>
                 ))}
               </div>
+
+              {/* PV Suivi — participant signature tracking */}
+              {viewDoc === "pv-suivi" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {!signState.pvSigne && (
+                    <div style={{ background: "#fff3cd", border: "1px solid #ffc107", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#856404" }}>
+                      ⚠️ Le formateur n'a pas encore signé le PV. Les participants ne peuvent pas signer tant que la signature du formateur n'est pas apposée.
+                    </div>
+                  )}
+                  {(formation.emargements ?? []).filter(e => e.presentMatin || e.presentApresMidi).length === 0 ? (
+                    <div style={{ fontSize: 13, color: "#6A6A6A", padding: "20px 0" }}>Aucun participant n'a émargé pour cette formation.</div>
+                  ) : (
+                    (formation.emargements ?? [])
+                      .filter(e => e.presentMatin || e.presentApresMidi)
+                      .map(e => (
+                        <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", border: "1.5px solid #E0E0E0", borderRadius: 10, background: e.pvParticipantSignedAt ? "#f0fdf4" : "white" }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700 }}>{e.participantName}</div>
+                            <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2 }}>
+                              {e.presentMatin && e.presentApresMidi ? "Journée complète" : e.presentMatin ? "Matin uniquement" : "Après-midi uniquement"}
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            {e.pvParticipantSignedAt ? (
+                              <>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: "#2e7d32" }}>
+                                  ✓ Signé le {new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(e.pvParticipantSignedAt))}
+                                </span>
+                                <a
+                                  href={`/api/pdf/pv-formation/${formation.id}/participant/${e.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ fontSize: 12, fontWeight: 700, color: "#C8102E", textDecoration: "none", background: "#fff5f6", border: "1px solid #C8102E", borderRadius: 6, padding: "5px 10px" }}
+                                >
+                                  ⬇ PV co-signé
+                                </a>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "#f97316" }}>⏳ En attente</span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                  {/* Formateur signs here if not yet done */}
+                  {!signState.pvSigne && (
+                    <button
+                      type="button"
+                      onClick={async () => { await signDocs("pv"); }}
+                      style={{ marginTop: 8, background: "#C8102E", color: "white", border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      ✍️ Signer le PV (formateur)
+                    </button>
+                  )}
+                  {signState.pvSigne && (
+                    <div style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600, marginTop: 4 }}>
+                      ✓ Votre signature apposée le {new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(signState.pvSigneAt!))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* PV fields */}
               {viewDoc === "pv" && (
@@ -854,6 +915,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                     </button>
                   );
                 }
+                if (viewDoc === "pv-suivi") return null;
                 const isSigned =
                   viewDoc === "pv" ? signState.pvSigne :
                   viewDoc === "bilan" ? signState.bilanSigne :
@@ -873,7 +935,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   <button
                     type="button"
                     onClick={async () => {
-                      if (viewDoc) await signDocs(viewDoc);
+                      if (viewDoc) await signDocs(viewDoc as "pv" | "bilan" | "certificat" | "emargement");
                       setViewDoc(null);
                     }}
                     style={{
@@ -1330,7 +1392,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 {/* PV — opens overlay instead of direct PDF */}
                 <button
                   type="button"
-                  onClick={() => setViewDoc("pv")}
+                  onClick={() => setViewDoc("pv-suivi")}
                   style={{
                     display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                     border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
