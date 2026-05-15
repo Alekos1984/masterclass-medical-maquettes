@@ -83,7 +83,7 @@ export default async function FormateurPortfolioPage() {
         <div className="topbar-title">Portfolio pédagogique</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <Link
-            href="/formations"
+            href={`/formateurs/${profil.id}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -224,10 +224,10 @@ export default async function FormateurPortfolioPage() {
                 marginBottom: 10,
               }}
             >
-              masterclassmedical.fr/{slug}
+              masterclassmedical.fr/formateurs/…
             </div>
             <Link
-              href="/formations"
+              href={`/formateurs/${profil.id}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{

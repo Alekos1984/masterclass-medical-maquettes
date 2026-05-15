@@ -5,7 +5,7 @@ import { getOpenAI } from "./openai";
  * Input: free text from the formateur
  * Output: array of 3-6 SMART objectives
  */
-export async function restructurerObjectifs(objectifsRaw: string, titre: string, specialite?: string): Promise<string[]> {
+export async function restructurerObjectifs(objectifsRaw: string, titre: string, specialite?: string, description?: string): Promise<string[]> {
   const openai = getOpenAI();
 
   const hasRaw = objectifsRaw.trim().length > 0;
@@ -18,9 +18,11 @@ Chaque objectif doit :
 - Respecter le format Qualiopi
 Retourne un JSON : { "objectifs": ["...", "...", "..."] } — entre 3 et 6 objectifs.`;
 
+  const descriptionSuffix = description && description.trim() ? `\n\nDescription de la formation :\n${description}` : "";
+
   const userContent = hasRaw
-    ? `Formation : "${titre}"${specialite ? ` — ${specialite}` : ""}\n\nObjectifs actuels :\n${objectifsRaw}`
-    : `Formation : "${titre}"${specialite ? ` — spécialité : ${specialite}` : ""}\n\nGénère 4 à 5 objectifs pédagogiques SMART adaptés à cette formation médicale.`;
+    ? `Formation : "${titre}"${specialite ? ` — ${specialite}` : ""}\n\nObjectifs actuels :\n${objectifsRaw}${descriptionSuffix}`
+    : `Formation : "${titre}"${specialite ? ` — spécialité : ${specialite}` : ""}\n\nGénère 4 à 5 objectifs pédagogiques SMART adaptés à cette formation médicale.${descriptionSuffix}`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
