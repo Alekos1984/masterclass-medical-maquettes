@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 const STEPS = [
   { num: 1, label: "Étape 1", title: "Informations" },
@@ -54,6 +55,46 @@ export default function NouvelleFormationPage() {
   const [objectifsAiLoading, setObjectifsAiLoading] = useState(false);
   const [programmeAiLoading, setProgrammeAiLoading] = useState(false);
   const [programmeAi, setProgrammeAi] = useState<string[]>([]);
+  const [reformulerObjectifsLoading, setReformulerObjectifsLoading] = useState(false);
+  const [reformulerDescLoading, setReformulerDescLoading] = useState(false);
+
+  async function reformulerObjectifs() {
+    if (!objectives) return;
+    setReformulerObjectifsLoading(true);
+    try {
+      const res = await fetch("/api/ai/reformuler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte: objectives, type: "objectifs" }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setObjectives(data.texte ?? objectives);
+    } catch {
+      alert("Erreur lors de la reformulation.");
+    } finally {
+      setReformulerObjectifsLoading(false);
+    }
+  }
+
+  async function reformulerDescription() {
+    if (!description) return;
+    setReformulerDescLoading(true);
+    try {
+      const res = await fetch("/api/ai/reformuler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte: description, type: "description" }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setDescription(data.texte ?? description);
+    } catch {
+      alert("Erreur lors de la reformulation.");
+    } finally {
+      setReformulerDescLoading(false);
+    }
+  }
 
   // Form fields
   const [titre, setTitre] = useState("");
@@ -964,46 +1005,69 @@ export default function NouvelleFormationPage() {
                   onChange={(e) => setObjectives(e.target.value)}
                   style={{ ...inputStyle, minHeight: 120, resize: "vertical" as const, lineHeight: 1.6 }}
                 />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6, gap: 8, flexWrap: "wrap" as const }}>
                   <div style={{ fontSize: 12, color: "#6A6A6A" }}>
                     Listez 3 à 5 objectifs mesurables. Un par ligne.
                   </div>
-                  <button
-                    type="button"
-                    disabled={objectifsAiLoading}
-                    onClick={async () => {
-                      setObjectifsAiLoading(true);
-                      try {
-                        const res = await fetch("/api/ai/objectifs", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ objectifsRaw: objectives, titre }),
-                        });
-                        if (!res.ok) throw new Error("Erreur serveur");
-                        const data = await res.json();
-                        setObjectives(Array.isArray(data.objectifs) ? data.objectifs.join("\n") : data.objectifs);
-                      } catch {
-                        alert("Erreur lors de la génération des objectifs.");
-                      } finally {
-                        setObjectifsAiLoading(false);
-                      }
-                    }}
-                    style={{
-                      background: objectifsAiLoading ? "#E0E0E0" : "#fff5f6",
-                      color: objectifsAiLoading ? "#6A6A6A" : "#C8102E",
-                      border: "1.5px solid #C8102E",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: objectifsAiLoading ? "not-allowed" : "pointer",
-                      fontFamily: "inherit",
-                      flexShrink: 0,
-                      whiteSpace: "nowrap" as const,
-                    }}
-                  >
-                    {objectifsAiLoading ? "Génération…" : "✨ Améliorer avec l'IA"}
-                  </button>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <VoiceInputButton onTranscript={(t) => setObjectives((prev) => prev ? prev + "\n" + t : t)} />
+                    <button
+                      type="button"
+                      disabled={reformulerObjectifsLoading || !objectives}
+                      onClick={reformulerObjectifs}
+                      style={{
+                        background: reformulerObjectifsLoading ? "#E0E0E0" : "#fff5f6",
+                        color: reformulerObjectifsLoading ? "#6A6A6A" : "#C8102E",
+                        border: "1.5px solid #C8102E",
+                        borderRadius: 8,
+                        padding: "6px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: reformulerObjectifsLoading || !objectives ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        flexShrink: 0,
+                        whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      {reformulerObjectifsLoading ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={objectifsAiLoading}
+                      onClick={async () => {
+                        setObjectifsAiLoading(true);
+                        try {
+                          const res = await fetch("/api/ai/objectifs", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ objectifsRaw: objectives, titre }),
+                          });
+                          if (!res.ok) throw new Error("Erreur serveur");
+                          const data = await res.json();
+                          setObjectives(Array.isArray(data.objectifs) ? data.objectifs.join("\n") : data.objectifs);
+                        } catch {
+                          alert("Erreur lors de la génération des objectifs.");
+                        } finally {
+                          setObjectifsAiLoading(false);
+                        }
+                      }}
+                      style={{
+                        background: objectifsAiLoading ? "#E0E0E0" : "#fff5f6",
+                        color: objectifsAiLoading ? "#6A6A6A" : "#C8102E",
+                        border: "1.5px solid #C8102E",
+                        borderRadius: 8,
+                        padding: "6px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: objectifsAiLoading ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        flexShrink: 0,
+                        whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      {objectifsAiLoading ? "Génération…" : "✨ Améliorer avec l'IA"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1022,56 +1086,79 @@ export default function NouvelleFormationPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   style={{ ...inputStyle, minHeight: 160, resize: "vertical" as const, lineHeight: 1.6 }}
                 />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6, gap: 8, flexWrap: "wrap" as const }}>
                   <div style={{ fontSize: 12, color: "#6A6A6A" }}>
                     Cette description apparaîtra sur la landing page publique de votre formation.
                   </div>
-                  <button
-                    type="button"
-                    disabled={programmeAiLoading}
-                    onClick={async () => {
-                      setProgrammeAiLoading(true);
-                      setProgrammeAi([]);
-                      try {
-                        const dureeHeures = parseInt(duree.replace("h", "")) || 7;
-                        const res = await fetch("/api/ai/programme", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            titre,
-                            description,
-                            dureeHeures,
-                            heureDebut: "08:30",
-                            objectifs: objectives.split("\n").filter(Boolean),
-                          }),
-                        });
-                        if (!res.ok) throw new Error("Erreur serveur");
-                        const data = await res.json();
-                        if (Array.isArray(data.programme)) {
-                          setProgrammeAi(data.programme);
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <VoiceInputButton onTranscript={(t) => setDescription((prev) => prev ? prev + " " + t : t)} />
+                    <button
+                      type="button"
+                      disabled={reformulerDescLoading || !description}
+                      onClick={reformulerDescription}
+                      style={{
+                        background: reformulerDescLoading ? "#E0E0E0" : "#fff5f6",
+                        color: reformulerDescLoading ? "#6A6A6A" : "#C8102E",
+                        border: "1.5px solid #C8102E",
+                        borderRadius: 8,
+                        padding: "6px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: reformulerDescLoading || !description ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        flexShrink: 0,
+                        whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      {reformulerDescLoading ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={programmeAiLoading}
+                      onClick={async () => {
+                        setProgrammeAiLoading(true);
+                        setProgrammeAi([]);
+                        try {
+                          const dureeHeures = parseInt(duree.replace("h", "")) || 7;
+                          const res = await fetch("/api/ai/programme", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              titre,
+                              description,
+                              dureeHeures,
+                              heureDebut: "08:30",
+                              objectifs: objectives.split("\n").filter(Boolean),
+                            }),
+                          });
+                          if (!res.ok) throw new Error("Erreur serveur");
+                          const data = await res.json();
+                          if (Array.isArray(data.programme)) {
+                            setProgrammeAi(data.programme);
+                          }
+                        } catch {
+                          alert("Erreur lors de la génération du programme.");
+                        } finally {
+                          setProgrammeAiLoading(false);
                         }
-                      } catch {
-                        alert("Erreur lors de la génération du programme.");
-                      } finally {
-                        setProgrammeAiLoading(false);
-                      }
-                    }}
-                    style={{
-                      background: programmeAiLoading ? "#E0E0E0" : "#fff5f6",
-                      color: programmeAiLoading ? "#6A6A6A" : "#C8102E",
-                      border: "1.5px solid #C8102E",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: programmeAiLoading ? "not-allowed" : "pointer",
-                      fontFamily: "inherit",
-                      flexShrink: 0,
-                      whiteSpace: "nowrap" as const,
-                    }}
-                  >
-                    {programmeAiLoading ? "Génération…" : "✨ Générer le programme IA"}
-                  </button>
+                      }}
+                      style={{
+                        background: programmeAiLoading ? "#E0E0E0" : "#fff5f6",
+                        color: programmeAiLoading ? "#6A6A6A" : "#C8102E",
+                        border: "1.5px solid #C8102E",
+                        borderRadius: 8,
+                        padding: "6px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: programmeAiLoading ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        flexShrink: 0,
+                        whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      {programmeAiLoading ? "Génération…" : "✨ Générer le programme IA"}
+                    </button>
+                  </div>
                 </div>
                 {programmeAi.length > 0 && (
                   <div style={{ marginTop: 14, border: "1.5px solid #C8102E", borderRadius: 10, overflow: "hidden" }}>

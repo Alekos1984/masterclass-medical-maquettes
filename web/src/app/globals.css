@@ -436,6 +436,7 @@ tbody tr:hover td { background: var(--off-white); cursor: pointer; }
 .btn { border: none; border-radius: 7px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .btn-red { background: var(--red); color: white; }
 .btn-ghost { background: var(--off-white); color: var(--gray); border: 1px solid #E0E0E0; }
+.btn.btn-ghost:hover { border-color: #C8102E; color: var(--black); background: #fff5f6; }
 .btn-green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
 .btn-warn { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
 
