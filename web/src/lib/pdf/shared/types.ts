@@ -55,6 +55,14 @@ export interface FormationData {
   niveau: string;
   sessionStartedAt?: string | null;
   sessionEndedAt?: string | null;
+  signatureFormateurBase64?: string | null;
+  formateurNomComplet?: string | null;
+  pvSigne?: boolean;
+  pvSigneAt?: string | null;
+  bilanSigne?: boolean;
+  bilanSigneAt?: string | null;
+  certificatSigne?: boolean;
+  certificatSigneAt?: string | null;
 }
 
 export interface ProgrammeItem {

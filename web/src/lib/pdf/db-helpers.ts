@@ -37,6 +37,9 @@ export async function getFormationData(formationId: string): Promise<{
   });
   if (!f) return null;
 
+  const profil = f.formateur;
+  const formateurNomComplet = `${profil.titre ? profil.titre + " " : ""}${profil.user?.name ?? ""}`.trim();
+
   return {
     formation: {
       id: f.id,
@@ -60,6 +63,14 @@ export async function getFormationData(formationId: string): Promise<{
       niveau: f.niveau,
       sessionStartedAt: f.sessionStartedAt?.toISOString() ?? null,
       sessionEndedAt: f.sessionEndedAt?.toISOString() ?? null,
+      signatureFormateurBase64: profil.signatureBase64 ?? null,
+      formateurNomComplet,
+      pvSigne: f.pvSigne,
+      pvSigneAt: f.pvSigneAt?.toISOString() ?? null,
+      bilanSigne: f.bilanSigne,
+      bilanSigneAt: f.bilanSigneAt?.toISOString() ?? null,
+      certificatSigne: f.certificatSigne,
+      certificatSigneAt: f.certificatSigneAt?.toISOString() ?? null,
     },
     formateur: {
       nom: f.formateur.user.name ?? "Formateur",
