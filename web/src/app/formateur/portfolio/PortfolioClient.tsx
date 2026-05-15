@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type FormationRow = {
   id: string;
@@ -303,7 +304,8 @@ export default function PortfolioClient({ formations, initials }: Props) {
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button
+                    <Link
+                      href={`/formateur/formations/${f.id}`}
                       style={{
                         flex: 1,
                         textAlign: "center",
@@ -315,12 +317,16 @@ export default function PortfolioClient({ formations, initials }: Props) {
                         color: "var(--gray)",
                         cursor: "pointer",
                         background: "white",
-                        fontFamily: "inherit",
+                        textDecoration: "none",
+                        display: "block",
                       }}
                     >
                       Voir détail
-                    </button>
-                    <button
+                    </Link>
+                    <a
+                      href={`/api/pdf/bilan/${f.id}?ai=true`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       style={{
                         flex: 1,
                         textAlign: "center",
@@ -332,11 +338,12 @@ export default function PortfolioClient({ formations, initials }: Props) {
                         color: "var(--gray)",
                         cursor: "pointer",
                         background: "white",
-                        fontFamily: "inherit",
+                        textDecoration: "none",
+                        display: "block",
                       }}
                     >
-                      {isVisible ? "↓ Bilan PDF" : "Rendre visible"}
-                    </button>
+                      ↓ Bilan PDF
+                    </a>
                   </div>
                 </div>
               </div>

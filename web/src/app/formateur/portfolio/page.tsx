@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -80,24 +81,30 @@ export default async function FormateurPortfolioPage() {
     <>
       <div className="topbar">
         <div className="topbar-title">Portfolio pédagogique</div>
-        <button
-          style={{
-            background: "white",
-            border: "1.5px solid #E0E0E0",
-            borderRadius: 8,
-            padding: "8px 16px",
-            fontSize: 13,
-            fontWeight: 700,
-            color: "var(--gray)",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          📤 Exporter PDF
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Link
+            href="/formations"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: "white",
+              border: "1.5px solid #E0E0E0",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "var(--gray)",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              textDecoration: "none",
+            }}
+          >
+            🌐 Voir la page publique
+          </Link>
+        </div>
       </div>
 
       <div className="content">
@@ -219,7 +226,10 @@ export default async function FormateurPortfolioPage() {
             >
               masterclassmedical.fr/{slug}
             </div>
-            <button
+            <Link
+              href="/formations"
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 background: "var(--red)",
                 color: "white",
@@ -230,10 +240,12 @@ export default async function FormateurPortfolioPage() {
                 fontWeight: 700,
                 cursor: "pointer",
                 fontFamily: "inherit",
+                textDecoration: "none",
+                display: "inline-block",
               }}
             >
               Voir ma page →
-            </button>
+            </Link>
           </div>
         </div>
 
