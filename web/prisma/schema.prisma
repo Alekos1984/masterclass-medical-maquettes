@@ -135,16 +135,16 @@ model FormateurProfile {
   // Identité professionnelle
   titre      String?
   specialite String?
-  rpps       String?  @unique
+  rpps       String? @unique
   phone      String?
   adresse    String?
   ville      String?
   codePostal String?
 
   // CV scientifique
-  bio             String?  @db.Text
+  bio             String? @db.Text
   experienceAns   Int?
-  publications    Int?     @default(0)
+  publications    Int?    @default(0)
   linkedinUrl     String?
   researchgateUrl String?
   pubmedUrl       String?
@@ -217,7 +217,7 @@ model Formation {
   titre         String
   specialite    String
   niveau        String // debutant | intermediaire | expert
-  description   String  @db.Text
+  description   String @db.Text
   objectifs     Json // string[]
   programme     Json // { heure, titre, description, type }[]
   bibliographie Json?
@@ -254,11 +254,12 @@ model Formation {
   // Les 3 premières formations du formateur sont gratuites (pas d'abonnement requis)
   gratuite Boolean @default(false)
 
-  inscriptions Inscription[]
-  demandeSalle DemandeSalle?
-  paiements    Paiement[]
-  virements    Virement[]
-  emargements  Emargement[]
+  inscriptions  Inscription[]
+  demandeSalle  DemandeSalle?
+  paiements     Paiement[]
+  virements     Virement[]
+  emargements   Emargement[]
+  satisfactions SatisfactionReponse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -274,11 +275,11 @@ model DemandeSalle {
   statut StatutDemandeSalle @default(EN_ATTENTE)
 
   // Contact hôtel
-  hotelNom     String?
-  hotelEmail   String?
-  hotelPhone   String?
-  emailEnvoye  Boolean   @default(false)
-  dateContact  DateTime?
+  hotelNom    String?
+  hotelEmail  String?
+  hotelPhone  String?
+  emailEnvoye Boolean   @default(false)
+  dateContact DateTime?
 
   // Devis
   devisHT      Decimal?  @db.Decimal(10, 2)
@@ -324,12 +325,13 @@ model Inscription {
   attestationUrl   String?
 
   // Évaluation post-formation
-  noteSatisfaction Int?    // 1-5
+  noteSatisfaction Int? // 1-5
   commentaire      String? @db.Text
 
   paiement      Paiement?
   remboursement Remboursement?
   emargements   Emargement[]
+  satisfaction  SatisfactionReponse?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -350,12 +352,12 @@ model Paiement {
   stripeId String? @unique // PaymentIntent ID ou Invoice ID Stripe
 
   // Un seul lien sera non-null selon le type
-  inscriptionId  String?      @unique
-  inscription    Inscription? @relation(fields: [inscriptionId], references: [id])
-  demandeSalleId String?      @unique
+  inscriptionId  String?       @unique
+  inscription    Inscription?  @relation(fields: [inscriptionId], references: [id])
+  demandeSalleId String?       @unique
   demandeSalle   DemandeSalle? @relation(fields: [demandeSalleId], references: [id])
   formationId    String?
-  formation      Formation?   @relation(fields: [formationId], references: [id])
+  formation      Formation?    @relation(fields: [formationId], references: [id])
 
   // Facture générée
   numeroFacture String? @unique
@@ -395,19 +397,63 @@ model Remboursement {
   inscriptionId String      @unique
   inscription   Inscription @relation(fields: [inscriptionId], references: [id])
 
-  motif         String
-  statut        StatutRemboursement @default(EN_ATTENTE)
-  montant       Decimal             @db.Decimal(10, 2)
-  eligible      Boolean // J-14 ou formation annulée
-  raisonRefus   String?
+  motif       String
+  statut      StatutRemboursement @default(EN_ATTENTE)
+  montant     Decimal             @db.Decimal(10, 2)
+  eligible    Boolean // J-14 ou formation annulée
+  raisonRefus String?
 
   stripeRefundId String? @unique
 
-  dateDemande    DateTime @default(now())
+  dateDemande    DateTime  @default(now())
   dateTraitement DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── PARAMÈTRES ORGANISME ─────────────────────────────────────────────────────
+
+model CompanySettings {
+  id                String  @id @default("singleton")
+  raisonSociale     String  @default("Masterclass Medical")
+  siret             String?
+  numeroDeclaration String? // N° déclaration d'activité formation professionnelle
+  adresse           String?
+  codePostal        String?
+  ville             String?
+  phone             String?
+  email             String?
+  representantLegal String?
+  siteWeb           String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// ─── SATISFACTION ─────────────────────────────────────────────────────────────
+
+model SatisfactionReponse {
+  id            String      @id @default(cuid())
+  inscriptionId String      @unique
+  inscription   Inscription @relation(fields: [inscriptionId], references: [id])
+  formationId   String
+  formation     Formation   @relation(fields: [formationId], references: [id])
+
+  noteContenu      Int?
+  noteFormateur    Int?
+  noteOrganisation Int?
+  noteSupport      Int?
+  noteGlobal       Int?
+
+  objectifsAtteints  Boolean?
+  recommanderait     Boolean?
+  pointsForts        String?  @db.Text
+  pointsAmelioration String?  @db.Text
+  commentaireLibre   String?  @db.Text
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // ─── ÉMARGEMENT ───────────────────────────────────────────────────────────────
@@ -432,4 +478,3 @@ model Emargement {
 
   @@unique([formationId, inscriptionId])
 }
-
