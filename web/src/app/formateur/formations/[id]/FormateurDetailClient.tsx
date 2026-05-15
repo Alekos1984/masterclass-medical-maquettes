@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { StatutFormation } from "@/generated/prisma/enums";
+import VoiceInputButton from "@/components/VoiceInputButton";
 
 type Inscription = {
   id: string;
@@ -73,6 +74,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   );
   const [saving, setSaving] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [reformulerLoading, setReformulerLoading] = useState<string | null>(null);
 
   async function patchFormation(payload: Record<string, unknown>) {
     const res = await fetch(`/api/formateur/formations/${formation.id}`, {
@@ -126,6 +128,24 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       alert("Erreur lors de la sauvegarde.");
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function reformuler(type: "description" | "objectifs" | "programme", texte: string, setter: (v: string) => void) {
+    setReformulerLoading(type);
+    try {
+      const res = await fetch("/api/ai/reformuler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte, type }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setter(data.texte ?? texte);
+    } catch {
+      alert("Erreur lors de la reformulation.");
+    } finally {
+      setReformulerLoading(null);
     }
   }
 
@@ -635,6 +655,16 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={cardStyle}>
               <div className="card-header">
                 <span className="card-title">Description</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <VoiceInputButton onTranscript={(t) => setDescriptionText((prev) => prev ? prev + " " + t : t)} />
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => reformuler("description", descriptionText, setDescriptionText)}
+                    disabled={reformulerLoading === "description" || !descriptionText}
+                  >
+                    {reformulerLoading === "description" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                  </button>
+                </div>
               </div>
               <textarea
                 value={descriptionText}
@@ -663,13 +693,23 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={cardStyle}>
               <div className="card-header">
                 <span className="card-title">Objectifs pédagogiques</span>
-                <button
-                  className="btn btn-ghost"
-                  onClick={genererObjectifsIA}
-                  disabled={aiLoading === "objectifs"}
-                >
-                  {aiLoading === "objectifs" ? "Génération…" : "✨ Générer avec l'IA"}
-                </button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <VoiceInputButton onTranscript={(t) => setObjectifsText((prev) => prev ? prev + "\n" + t : t)} />
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => reformuler("objectifs", objectifsText, setObjectifsText)}
+                    disabled={reformulerLoading === "objectifs" || !objectifsText}
+                  >
+                    {reformulerLoading === "objectifs" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={genererObjectifsIA}
+                    disabled={aiLoading === "objectifs"}
+                  >
+                    {aiLoading === "objectifs" ? "Génération…" : "✨ Générer avec l'IA"}
+                  </button>
+                </div>
               </div>
               <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
                 Un objectif par ligne
@@ -701,13 +741,23 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={cardStyle}>
               <div className="card-header">
                 <span className="card-title">Programme</span>
-                <button
-                  className="btn btn-ghost"
-                  onClick={genererProgrammeIA}
-                  disabled={aiLoading === "programme"}
-                >
-                  {aiLoading === "programme" ? "Génération…" : "✨ Générer le programme IA"}
-                </button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <VoiceInputButton onTranscript={(t) => setProgrammeText((prev) => prev ? prev + "\n" + t : t)} />
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => reformuler("programme", programmeText, setProgrammeText)}
+                    disabled={reformulerLoading === "programme" || !programmeText}
+                  >
+                    {reformulerLoading === "programme" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={genererProgrammeIA}
+                    disabled={aiLoading === "programme"}
+                  >
+                    {aiLoading === "programme" ? "Génération…" : "✨ Générer le programme IA"}
+                  </button>
+                </div>
               </div>
               <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
                 Format : <code>HH:MM–HH:MM | Titre | Description | Type</code> — une ligne par créneau
