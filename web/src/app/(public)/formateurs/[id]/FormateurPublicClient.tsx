@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 type FormationItem = {
@@ -64,6 +65,8 @@ function getInitials(name: string): string {
 
 export default function FormateurPublicClient({ profil }: Props) {
   const initials = getInitials(profil.nom);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const pubCount = profil.publicationsList.length || profil.publications;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -90,7 +93,6 @@ export default function FormateurPublicClient({ profil }: Props) {
           overflow: "hidden",
         }}
       >
-        {/* Grid overlay */}
         <div
           style={{
             position: "absolute",
@@ -100,7 +102,6 @@ export default function FormateurPublicClient({ profil }: Props) {
             backgroundSize: "64px 64px",
           }}
         />
-        {/* Radial glow */}
         <div
           style={{
             position: "absolute",
@@ -127,7 +128,6 @@ export default function FormateurPublicClient({ profil }: Props) {
           {/* Left — identity */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-              {/* Avatar */}
               <div
                 style={{
                   width: 72,
@@ -244,26 +244,11 @@ export default function FormateurPublicClient({ profil }: Props) {
           </div>
 
           {/* Right — stats */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
-              {
-                val: profil.experienceAns > 0 ? `${profil.experienceAns} ans` : "—",
-                label: "Expérience",
-              },
-              {
-                val: profil.publications > 0 ? String(profil.publications) : "—",
-                label: "Publications",
-              },
-              {
-                val: String(profil.formations.length),
-                label: "Formations",
-              },
+              { val: profil.experienceAns > 0 ? `${profil.experienceAns} ans` : "—", label: "Expérience" },
+              { val: pubCount > 0 ? String(pubCount) : "—", label: "Publications" },
+              { val: String(profil.formations.length), label: "Formations" },
             ].map((s, i) => (
               <div
                 key={i}
@@ -276,31 +261,14 @@ export default function FormateurPublicClient({ profil }: Props) {
                   minWidth: 130,
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 800,
-                    color: "white",
-                    letterSpacing: -0.8,
-                    lineHeight: 1,
-                  }}
-                >
+                <div style={{ fontSize: 28, fontWeight: 800, color: "white", letterSpacing: -0.8, lineHeight: 1 }}>
                   {s.val}
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.35)",
-                    marginTop: 4,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   {s.label}
                 </div>
               </div>
             ))}
-
             <a
               href="#formations"
               style={{
@@ -322,152 +290,13 @@ export default function FormateurPublicClient({ profil }: Props) {
         </div>
       </div>
 
-      {/* BIO */}
-      {profil.bio && (
-        <section
-          style={{
-            background: "white",
-            padding: "48px 40px",
-            borderBottom: "1px solid #F0F0F0",
-          }}
-        >
-          <div style={{ maxWidth: 760, margin: "0 auto" }}>
-            <h2
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                color: "#111",
-                marginBottom: 16,
-                letterSpacing: -0.3,
-              }}
-            >
-              À propos
-            </h2>
-            <p
-              style={{
-                fontSize: 15,
-                color: "#444",
-                lineHeight: 1.75,
-                margin: 0,
-                whiteSpace: "pre-line",
-              }}
-            >
-              {profil.bio}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* PUBLICATIONS */}
-      {profil.publicationsList.length > 0 && (
-        <section
-          style={{
-            background: "#F8F8FA",
-            padding: "48px 40px",
-            borderBottom: "1px solid #F0F0F0",
-          }}
-        >
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 28 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#111", margin: 0, letterSpacing: -0.5 }}>
-                Publications scientifiques
-              </h2>
-              <span style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>
-                {profil.publicationsList.length} référencée{profil.publicationsList.length > 1 ? "s" : ""}
-              </span>
-              {profil.pubmedUrl && (
-                <a
-                  href={profil.pubmedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: "#C8102E", fontWeight: 700, marginLeft: "auto", textDecoration: "none" }}
-                >
-                  Voir toutes sur PubMed ↗
-                </a>
-              )}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {profil.publicationsList.map((pub) => (
-                <div
-                  key={pub.id}
-                  style={{
-                    background: "white",
-                    border: "1.5px solid #EBEBEB",
-                    borderRadius: 12,
-                    padding: "16px 20px",
-                  }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111", lineHeight: 1.4, marginBottom: 6 }}>
-                    {pub.url ? (
-                      <a href={pub.url} target="_blank" rel="noopener noreferrer" style={{ color: "#111", textDecoration: "none" }}>
-                        {pub.titre}
-                      </a>
-                    ) : pub.titre}
-                  </div>
-                  <div style={{ fontSize: 13, color: "#555", marginBottom: 6 }}>{pub.auteurs}</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    {pub.revue && (
-                      <span style={{ fontSize: 12, fontStyle: "italic", color: "#777" }}>{pub.revue}</span>
-                    )}
-                    {pub.annee && (
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, color: "#C8102E",
-                        background: "#fff0f2", borderRadius: 20, padding: "2px 10px",
-                      }}>
-                        {pub.annee}
-                      </span>
-                    )}
-                    {pub.doi && (
-                      <a
-                        href={`https://doi.org/${pub.doi}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ fontSize: 12, color: "#1565c0", fontWeight: 600, textDecoration: "none" }}
-                      >
-                        DOI ↗
-                      </a>
-                    )}
-                    {pub.pmid && (
-                      <a
-                        href={`https://pubmed.ncbi.nlm.nih.gov/${pub.pmid}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          fontSize: 11, fontWeight: 700, color: "#1565c0",
-                          background: "#e3f2fd", borderRadius: 20, padding: "2px 10px",
-                          textDecoration: "none",
-                        }}
-                      >
-                        PubMed
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* FORMATIONS */}
+      {/* FORMATIONS — top priority */}
       <section
         id="formations"
-        style={{
-          background: "#F8F8FA",
-          flex: 1,
-          padding: "48px 40px",
-        }}
+        style={{ background: "#F8F8FA", flex: 1, padding: "48px 40px" }}
       >
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <h2
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: "#111",
-              marginBottom: 28,
-              letterSpacing: -0.5,
-            }}
-          >
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#111", marginBottom: 28, letterSpacing: -0.5 }}>
             Formations disponibles
           </h2>
 
@@ -490,13 +319,7 @@ export default function FormateurPublicClient({ profil }: Props) {
               </div>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                gap: 20,
-              }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
               {profil.formations.map((f) => {
                 const placesRestantes = f.placesRestantes;
                 const placesLabel =
@@ -506,11 +329,7 @@ export default function FormateurPublicClient({ profil }: Props) {
                     ? `${placesRestantes} place${placesRestantes > 1 ? "s" : ""} restante${placesRestantes > 1 ? "s" : ""}`
                     : `${placesRestantes} places restantes`;
                 const placesColor =
-                  placesRestantes === 0
-                    ? "#C8102E"
-                    : placesRestantes <= 3
-                    ? "#f97316"
-                    : "#888";
+                  placesRestantes === 0 ? "#C8102E" : placesRestantes <= 3 ? "#f97316" : "#888";
 
                 return (
                   <div
@@ -522,42 +341,22 @@ export default function FormateurPublicClient({ profil }: Props) {
                       overflow: "hidden",
                       display: "flex",
                       flexDirection: "column",
-                      transition: "box-shadow 0.2s",
                     }}
                   >
-                    {/* Card header */}
                     <div
                       style={{
                         background: "linear-gradient(135deg, #080810, #1a0408)",
                         padding: "16px 18px",
-                        position: "relative",
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "#ff8a96",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: 0.8,
-                          marginBottom: 6,
-                        }}
-                      >
+                      <div style={{ fontSize: 11, color: "#ff8a96", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
                         🩺 {f.specialite}
                       </div>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 800,
-                          color: "white",
-                          lineHeight: 1.3,
-                        }}
-                      >
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "white", lineHeight: 1.3 }}>
                         {f.titre}
                       </div>
                     </div>
 
-                    {/* Card body */}
                     <div style={{ padding: "16px 18px", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <div style={{ fontSize: 13, color: "#444" }}>
@@ -578,7 +377,6 @@ export default function FormateurPublicClient({ profil }: Props) {
                         </div>
                       </div>
 
-                      {/* Footer row */}
                       <div
                         style={{
                           marginTop: "auto",
@@ -622,6 +420,242 @@ export default function FormateurPublicClient({ profil }: Props) {
         </div>
       </section>
 
+      {/* BIO + PUBLICATIONS — side by side cards */}
+      <section
+        style={{
+          background: "white",
+          padding: "48px 40px",
+          borderTop: "1px solid #F0F0F0",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: profil.bio && pubCount > 0 ? "1fr 320px" : "1fr",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          {/* Biographie */}
+          {profil.bio && (
+            <div
+              style={{
+                background: "#F8F8FA",
+                border: "1.5px solid #EBEBEB",
+                borderRadius: 16,
+                padding: "28px 32px",
+              }}
+            >
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", marginBottom: 16, letterSpacing: -0.3, margin: "0 0 16px" }}>
+                Biographie
+              </h2>
+              <p style={{ fontSize: 15, color: "#444", lineHeight: 1.75, margin: 0, whiteSpace: "pre-line" }}>
+                {profil.bio}
+              </p>
+            </div>
+          )}
+
+          {/* Publications card */}
+          {pubCount > 0 && (
+            <div
+              style={{
+                background: "linear-gradient(135deg, #080810, #1a0408)",
+                border: "1.5px solid rgba(200,16,46,0.25)",
+                borderRadius: 16,
+                padding: "28px 28px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+                gap: 16,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: 1 }}>
+                Publications scientifiques
+              </div>
+              <div style={{ fontSize: 56, fontWeight: 900, color: "white", letterSpacing: -2, lineHeight: 1 }}>
+                {pubCount}
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+                référencée{pubCount > 1 ? "s" : ""} sur PubMed
+              </div>
+              <button
+                onClick={() => setDrawerOpen(true)}
+                style={{
+                  background: "#C8102E",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "10px 24px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  width: "100%",
+                  marginTop: 4,
+                }}
+              >
+                Voir les publications →
+              </button>
+              {profil.pubmedUrl && (
+                <a
+                  href={profil.pubmedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: "#88aaee", textDecoration: "none" }}
+                >
+                  Consulter sur PubMed ↗
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* PUBLICATIONS DRAWER */}
+      {drawerOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setDrawerOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.45)",
+              zIndex: 200,
+            }}
+          />
+          {/* Panel */}
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: "min(520px, 92vw)",
+              background: "white",
+              zIndex: 201,
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "-8px 0 40px rgba(0,0,0,0.18)",
+            }}
+          >
+            {/* Drawer header */}
+            <div
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid #EBEBEB",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#111" }}>
+                  Publications scientifiques
+                </div>
+                <div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>
+                  {profil.publicationsList.length} référencée{profil.publicationsList.length > 1 ? "s" : ""}
+                </div>
+              </div>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  background: "none",
+                  border: "1.5px solid #E0E0E0",
+                  borderRadius: 8,
+                  width: 32,
+                  height: 32,
+                  cursor: "pointer",
+                  fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#555",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Drawer body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+              {profil.publicationsList.map((pub) => (
+                <div
+                  key={pub.id}
+                  style={{
+                    border: "1.5px solid #EBEBEB",
+                    borderRadius: 10,
+                    padding: "14px 16px",
+                    background: "#FAFAFA",
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.4, marginBottom: 5 }}>
+                    {pub.url ? (
+                      <a href={pub.url} target="_blank" rel="noopener noreferrer" style={{ color: "#111", textDecoration: "none" }}>
+                        {pub.titre}
+                      </a>
+                    ) : pub.titre}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#555", marginBottom: 6 }}>{pub.auteurs}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {pub.revue && <span style={{ fontSize: 11, fontStyle: "italic", color: "#777" }}>{pub.revue}</span>}
+                    {pub.annee && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#C8102E", background: "#fff0f2", borderRadius: 20, padding: "2px 8px" }}>
+                        {pub.annee}
+                      </span>
+                    )}
+                    {pub.doi && (
+                      <a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#1565c0", fontWeight: 600, textDecoration: "none" }}>
+                        DOI ↗
+                      </a>
+                    )}
+                    {pub.pmid && (
+                      <a
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${pub.pmid}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: 11, fontWeight: 700, color: "#1565c0", background: "#e3f2fd", borderRadius: 20, padding: "2px 8px", textDecoration: "none" }}
+                      >
+                        PubMed
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Drawer footer */}
+            {profil.pubmedUrl && (
+              <div style={{ padding: "16px 24px", borderTop: "1px solid #EBEBEB", flexShrink: 0 }}>
+                <a
+                  href={profil.pubmedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#1565c0",
+                    textDecoration: "none",
+                    padding: "10px",
+                    border: "1.5px solid #90caf9",
+                    borderRadius: 8,
+                    background: "#e3f2fd",
+                  }}
+                >
+                  Voir toutes les publications sur PubMed ↗
+                </a>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {/* FOOTER */}
       <footer style={{ background: "#0F0F0F", padding: "24px 40px" }}>
         <div
@@ -655,19 +689,13 @@ export default function FormateurPublicClient({ profil }: Props) {
             <span style={{ fontSize: 14, fontWeight: 700, color: "white" }}>Masterclass Médical</span>
           </div>
           <div style={{ display: "flex", gap: 20 }}>
-            <Link
-              href="/auth/inscription/formateur"
-              style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}
-            >
+            <Link href="/auth/inscription/formateur" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
               Devenir formateur
             </Link>
             <a href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
               CGU
             </a>
-            <a
-              href="mailto:contact@masterclassmedical.fr"
-              style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}
-            >
+            <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
               Contact
             </a>
           </div>

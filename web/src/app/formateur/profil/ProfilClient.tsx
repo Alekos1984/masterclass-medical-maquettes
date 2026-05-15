@@ -196,8 +196,13 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
-      else { alert("Erreur lors de la sauvegarde."); }
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      } else {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        alert(data.error ?? "Erreur lors de la sauvegarde.");
+      }
     } finally {
       setLoading(false);
     }

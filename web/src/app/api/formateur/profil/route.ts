@@ -17,33 +17,43 @@ export async function PATCH(req: NextRequest) {
 
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: session.user.id },
-      data: { name: fullName || undefined },
-    }),
-    prisma.formateurProfile.update({
-      where: { userId: session.user.id },
-      data: {
-        titre: titre || null,
-        phone: phone || null,
-        specialite: specialite || null,
-        adresse: adresse || null,
-        ville: ville || null,
-        codePostal: codePostal || null,
-        bio: bio || null,
-        experienceAns: experienceAns ? Number(experienceAns) : null,
-        linkedinUrl: linkedinUrl || null,
-        researchgateUrl: researchgateUrl || null,
-        pubmedUrl: pubmedUrl || null,
-        siret: siret || null,
-        raisonSociale: raisonSociale || null,
-        iban: iban || null,
-        bic: bic || null,
-        rpps: rpps || null,
-      },
-    }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: { name: fullName || undefined },
+      }),
+      prisma.formateurProfile.update({
+        where: { userId: session.user.id },
+        data: {
+          titre: titre || null,
+          phone: phone || null,
+          specialite: specialite || null,
+          adresse: adresse || null,
+          ville: ville || null,
+          codePostal: codePostal || null,
+          bio: bio || null,
+          experienceAns: experienceAns !== undefined && experienceAns !== "" ? Number(experienceAns) : null,
+          linkedinUrl: linkedinUrl || null,
+          researchgateUrl: researchgateUrl || null,
+          pubmedUrl: pubmedUrl || null,
+          siret: siret || null,
+          raisonSociale: raisonSociale || null,
+          iban: iban || null,
+          bic: bic || null,
+          rpps: rpps || null,
+        },
+      }),
+    ]);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Unique constraint on RPPS
+    if (msg.includes("rpps") && msg.includes("Unique")) {
+      return NextResponse.json({ error: "Ce numéro RPPS est déjà utilisé par un autre compte." }, { status: 409 });
+    }
+    console.error("[PATCH /api/formateur/profil]", msg);
+    return NextResponse.json({ error: "Erreur lors de la sauvegarde : " + msg }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
