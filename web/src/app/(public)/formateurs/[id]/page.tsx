@@ -11,6 +11,7 @@ export default async function FormateurPublicPage({ params }: { params: Promise<
     where: { id },
     include: {
       user: { select: { name: true, email: true } },
+      publicationsList: { orderBy: [{ annee: "desc" }, { createdAt: "desc" }] },
       formations: {
         where: { statut: "PUBLIEE" },
         orderBy: { date: "asc" },
@@ -39,6 +40,16 @@ export default async function FormateurPublicPage({ params }: { params: Promise<
     linkedinUrl: profil.linkedinUrl ?? "",
     researchgateUrl: profil.researchgateUrl ?? "",
     pubmedUrl: profil.pubmedUrl ?? "",
+    publicationsList: profil.publicationsList.map((p) => ({
+      id: p.id,
+      pmid: p.pmid ?? null,
+      titre: p.titre,
+      auteurs: p.auteurs,
+      revue: p.revue ?? null,
+      annee: p.annee ?? null,
+      doi: p.doi ?? null,
+      url: p.url ?? null,
+    })),
     formations: profil.formations.map((f) => ({
       id: f.id,
       slug: f.slug,

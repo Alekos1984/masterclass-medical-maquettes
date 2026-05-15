@@ -60,6 +60,7 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
   const [pubmedSearching, setPubmedSearching] = useState(false);
   const [pubmedResult, setPubmedResult] = useState<{ imported: number; total: number; searchUrl: string } | null>(null);
   const [pubmedQuery, setPubmedQuery] = useState("");
+  const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [publications, setPublications] = useState<PublicationItem[]>(savedPublications);
   const [form, setForm] = useState<ProfileData>(profileData);
 
@@ -85,8 +86,8 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
     }
   }
 
-  async function searchPubMed() {
-    const query = pubmedQuery.trim() || `${form.firstName} ${form.lastName}`.trim();
+  async function searchPubMed(customQuery?: string) {
+    const query = (customQuery ?? pubmedQuery).trim() || `${form.firstName} ${form.lastName}`.trim();
     if (!query) return;
     setPubmedSearching(true);
     setPubmedResult(null);
@@ -412,34 +413,72 @@ export default function ProfilClient({ profileData, savedPublications }: Props) 
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <input
-                  type="text"
-                  placeholder={`Rechercher par nom (ex: ${form.firstName} ${form.lastName})`}
-                  value={pubmedQuery}
-                  onChange={(e) => setPubmedQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && searchPubMed()}
-                  style={{ ...inputStyle, flex: 1 }}
-                />
+              {/* Primary action — auto-search by full name */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
                 <button
-                  onClick={searchPubMed}
+                  onClick={() => searchPubMed(`${form.firstName} ${form.lastName}`)}
                   disabled={pubmedSearching}
                   style={{
                     background: "#C8102E", color: "white", border: "none", borderRadius: 8,
-                    padding: "9px 16px", fontSize: 12, fontWeight: 700, cursor: pubmedSearching ? "not-allowed" : "pointer",
+                    padding: "9px 16px", fontSize: 13, fontWeight: 700,
+                    cursor: pubmedSearching ? "not-allowed" : "pointer",
                     fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
                   }}
                 >
-                  {pubmedSearching ? "Recherche…" : "🔍 Rechercher sur PubMed"}
+                  {pubmedSearching ? "Recherche en cours…" : `🔍 Rechercher « ${form.firstName} ${form.lastName} » sur PubMed`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomSearch((v) => !v)}
+                  style={{
+                    background: "transparent", border: "1.5px solid #E0E0E0", borderRadius: 8,
+                    padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    color: "var(--gray)", fontFamily: "inherit", whiteSpace: "nowrap",
+                  }}
+                >
+                  {showCustomSearch ? "▲ Masquer" : "▼ Recherche personnalisée"}
                 </button>
               </div>
+
+              {/* Secondary — custom search */}
+              {showCustomSearch && (
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Ex : Dupont J[Author] AND cardiology"
+                    value={pubmedQuery}
+                    onChange={(e) => setPubmedQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && searchPubMed()}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <button
+                    onClick={() => searchPubMed()}
+                    disabled={pubmedSearching || !pubmedQuery.trim()}
+                    style={{
+                      background: "#333", color: "white", border: "none", borderRadius: 8,
+                      padding: "9px 14px", fontSize: 12, fontWeight: 700,
+                      cursor: (pubmedSearching || !pubmedQuery.trim()) ? "not-allowed" : "pointer",
+                      fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
+                      opacity: !pubmedQuery.trim() ? 0.5 : 1,
+                    }}
+                  >
+                    Lancer
+                  </button>
+                </div>
+              )}
+
               {pubmedResult && (
-                <div style={{ fontSize: 12, color: pubmedResult.imported > 0 ? "#2e7d32" : "var(--gray)", background: pubmedResult.imported > 0 ? "#e8f5e9" : "#F9F7F4", padding: "8px 12px", borderRadius: 8 }}>
+                <div style={{
+                  fontSize: 12,
+                  color: pubmedResult.imported > 0 ? "#2e7d32" : "#795548",
+                  background: pubmedResult.imported > 0 ? "#e8f5e9" : "#FFF8E1",
+                  padding: "8px 12px", borderRadius: 8,
+                }}>
                   {pubmedResult.total > 0 ? (
-                    <>✅ {pubmedResult.imported} publication{pubmedResult.imported > 1 ? "s" : ""} importée{pubmedResult.imported > 1 ? "s" : ""} ({pubmedResult.total} au total sur PubMed) — lien mis à jour.{" "}
+                    <>✅ {pubmedResult.imported} publication{pubmedResult.imported > 1 ? "s" : ""} importée{pubmedResult.imported > 1 ? "s" : ""} ({pubmedResult.total} au total sur PubMed).{" "}
                     <a href={pubmedResult.searchUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#C8102E", fontWeight: 600 }}>Voir sur PubMed ↗</a></>
                   ) : (
-                    "Aucune publication trouvée pour ce nom. Essayez avec un autre terme."
+                    "Aucune publication trouvée pour ce nom. Essayez avec la recherche personnalisée (ex : Dupont J[Author])."
                   )}
                 </div>
               )}
