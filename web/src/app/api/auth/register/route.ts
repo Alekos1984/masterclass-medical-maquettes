@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, emailBienvenueParticipant, emailBienvenueFormateur } from "@/lib/brevo";
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,6 +63,13 @@ export async function POST(req: NextRequest) {
         },
       });
     }
+
+    const nomComplet = `${prenom} ${nom}`.trim();
+    const htmlContent = userRole === "FORMATEUR"
+      ? emailBienvenueFormateur({ nom: nomComplet })
+      : emailBienvenueParticipant({ nom: nomComplet });
+
+    sendEmail({ to: [{ email, name: nomComplet }], subject: "Bienvenue sur Masterclass Médical 🎉", htmlContent }).catch(() => {});
 
     return NextResponse.json(
       { message: "Compte créé avec succès", userId: user.id },

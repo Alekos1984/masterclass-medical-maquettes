@@ -129,37 +129,63 @@ export function PvFormationPdf({ company, formateur, formation, emargements, par
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le formateur</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
             <View style={s.signatureBox}>
-              {formation.pvSigne && formation.signatureFormateurBase64 ? (
-                <>
-                  <Image src={formation.signatureFormateurBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
-                  <Text style={{ fontSize: 9, fontFamily: "Times-BoldItalic", color: BLACK }}>{formation.formateurNomComplet}</Text>
-                  <Text style={{ fontSize: 7, color: "#1565c0" }}>Signé le {formatSignatureDate(formation.pvSigneAt)}</Text>
-                </>
+              {formation.pvSigne ? (
+                formation.signatureFormateurBase64
+                  ? <Image src={formation.signatureFormateurBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
+                  : <View style={{ flex: 1 }} />
               ) : (
-                <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
+                <Text style={{ fontSize: 8, color: GRAY }}>Signature à apposer</Text>
               )}
             </View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Le {formatDate(new Date().toISOString())}</Text>
+            {formation.pvSigne && (
+              <>
+                <Text style={{ fontSize: 10, fontFamily: "Times-BoldItalic", color: BLACK, marginTop: 4 }}>
+                  {formation.formateurNomComplet ?? formateur.nom}
+                </Text>
+                <Text style={{ fontSize: 7, color: "#1565c0", marginTop: 2 }}>
+                  Signé le {formatSignatureDate(formation.pvSigneAt)}
+                </Text>
+              </>
+            )}
           </View>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Signature du participant</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
-              {participantNomComplet ? `${participantNomComplet}` : "Nom et prénom : ________________________"}
+              {participantNomComplet ?? "Nom et prénom : ________________________"}
             </Text>
             <View style={s.signatureBox}>
-              {participantSignatureBase64 ? (
-                <>
-                  <Image src={participantSignatureBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
-                  <Text style={{ fontSize: 9, fontFamily: "Times-BoldItalic", color: BLACK }}>{participantNomComplet ?? ""}</Text>
-                  <Text style={{ fontSize: 7, color: "#1565c0" }}>Signé le {formatSignatureDate(pvParticipantSignedAt)}</Text>
-                </>
+              {pvParticipantSignedAt ? (
+                participantSignatureBase64
+                  ? <Image src={participantSignatureBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
+                  : <View style={{ flex: 1 }} />
               ) : (
-                <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
+                <Text style={{ fontSize: 8, color: GRAY }}>Signature à apposer</Text>
               )}
             </View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Le {formatDate(new Date().toISOString())}</Text>
+            {pvParticipantSignedAt && (
+              <>
+                <Text style={{ fontSize: 10, fontFamily: "Times-BoldItalic", color: BLACK, marginTop: 4 }}>
+                  {participantNomComplet ?? ""}
+                </Text>
+                <Text style={{ fontSize: 7, color: "#1565c0", marginTop: 2 }}>
+                  Signé le {formatSignatureDate(pvParticipantSignedAt)}
+                </Text>
+              </>
+            )}
           </View>
         </View>
+
+        {/* Certification numérique */}
+        {formation.pvSigne && formation.pvSigneAt && (
+          <View style={{ marginTop: 12, padding: 8, backgroundColor: "#f8f9ff", borderRadius: 4, borderWidth: 1, borderColor: "#dde3f5" }}>
+            <Text style={{ fontSize: 7, color: "#1565c0", fontFamily: "Helvetica-Bold" }}>
+              ◆ Document certifié numériquement
+            </Text>
+            <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>
+              Horodatage : {new Date(formation.pvSigneAt).toLocaleString("fr-FR")} · Formation ID : {formation.id.slice(0, 12).toUpperCase()} · Ce document est un original numérique non modifiable.
+            </Text>
+          </View>
+        )}
 
         <View style={base.footer} fixed>
           <Text style={base.footerText}>{refNum} — {company.raisonSociale}</Text>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, emailPVPretPourSignature } from "@/lib/brevo";
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +22,13 @@ export async function POST(
 
   const formation = await prisma.formation.findUnique({
     where: { id },
-    select: { formateurId: true, signatureFormateurSnap: true },
+    select: {
+      formateurId: true,
+      signatureFormateurSnap: true,
+      titre: true,
+      date: true,
+      pvSigne: true,
+    },
   });
   if (!formation || formation.formateurId !== profil.id) {
     return NextResponse.json({ error: "Formation introuvable" }, { status: 404 });
@@ -75,6 +82,33 @@ export async function POST(
       signatureFormateurSnap: true,
     },
   });
+
+  // If PV was just signed, email participants with emargement to co-sign
+  if (list.includes("pv") && !formation.pvSigne) {
+    const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr";
+    const dateFormatted = formation.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+    const emargements = await prisma.emargement.findMany({
+      where: { formationId: id, OR: [{ presentMatin: true }, { presentApresMidi: true }] },
+      include: { inscription: { include: { participant: { include: { user: { select: { name: true, email: true } } } } } } },
+    });
+
+    for (const emg of emargements) {
+      const participantEmail = emg.inscription.participant.user.email;
+      const participantNom = emg.inscription.participant.user.name ?? "Participant";
+      if (!participantEmail) continue;
+      sendEmail({
+        to: [{ email: participantEmail, name: participantNom }],
+        subject: `PV de formation disponible — ${formation.titre}`,
+        htmlContent: emailPVPretPourSignature({
+          participantNom,
+          formationTitre: formation.titre,
+          formationDate: dateFormatted,
+          pvUrl: `${baseUrl}/participant/pv/${emg.id}`,
+        }),
+      }).catch(() => {});
+    }
+  }
 
   return NextResponse.json({
     ...updated,
