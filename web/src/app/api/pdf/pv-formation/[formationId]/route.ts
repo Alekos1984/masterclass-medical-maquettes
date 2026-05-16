@@ -4,6 +4,7 @@ import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getFormationData } from "@/lib/pdf/db-helpers";
 import { PvFormationPdf } from "@/lib/pdf/templates/pv-formation";
 import { computeDocSeal } from "@/lib/pdf/seal";
+import { lockPdf } from "@/lib/pdf/encrypt";
 import { prisma } from "@/lib/prisma";
 import type { EmargementData } from "@/lib/pdf/shared/types";
 
@@ -47,7 +48,7 @@ export async function GET(
     signatureApresMidi: e.signatureApresMidi?.toISOString() ?? null,
   }));
 
-  const buffer = await renderPdf(
+  let buffer = await renderPdf(
     React.createElement(PvFormationPdf, {
       company,
       formateur: data.formateur,
@@ -55,6 +56,10 @@ export async function GET(
       emargements: emargementsData,
     })
   );
+
+  if (data.formation.pvSigne && data.formation.documentSeal) {
+    buffer = await lockPdf(buffer, data.formation.documentSeal);
+  }
 
   return pdfResponse(buffer, `pv-${formationId}.pdf`);
 }
