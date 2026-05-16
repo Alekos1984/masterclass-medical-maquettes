@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const participantEmail = insc.participant.user.email;
     if (!participantEmail) continue;
 
-    const emargementUrl = `${baseUrl}/emargement/${emg.token}`;
+    const emargementUrl = `${baseUrl}/emarger/${emg.token}`;
     const participantNom = insc.participant.user.name ?? "Participant";
 
     try {

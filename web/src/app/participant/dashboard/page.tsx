@@ -59,7 +59,7 @@ export default async function ParticipantDashboardPage() {
           formation: true,
           paiement: { select: { id: true } },
           satisfaction: { select: { id: true } },
-          emargements: { select: { id: true, presentMatin: true, presentApresMidi: true } },
+          emargements: { select: { id: true, presentMatin: true, presentApresMidi: true, pvParticipantSignedAt: true } },
         },
         orderBy: { formation: { date: "asc" } },
       })
@@ -304,16 +304,28 @@ export default async function ParticipantDashboardPage() {
                             🎓 Attestation PDF
                           </a>
                         )}
-                        {f.pvSigne && (
-                          <a
-                            href={`/api/pdf/pv-formation/${f.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
-                          >
-                            📄 Télécharger PV de formation
-                          </a>
-                        )}
+                        {f.pvSigne && (() => {
+                          const myEmg = insc.emargements.find((e) => e.presentMatin || e.presentApresMidi);
+                          if (!myEmg) return null;
+                          const pvParticipantSigne = !!myEmg.pvParticipantSignedAt;
+                          return pvParticipantSigne ? (
+                            <a
+                              href={`/api/pdf/pv-formation/${f.id}/participant/${myEmg.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ border: "1.5px solid #c8e6c9", background: "#e8f5e9", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "#2e7d32" }}
+                            >
+                              📄 PV co-signé
+                            </a>
+                          ) : (
+                            <Link
+                              href={`/participant/pv/${myEmg.id}`}
+                              style={{ border: "1.5px solid #ffc5cc", background: "#fff5f6", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "#C8102E" }}
+                            >
+                              ✍️ Signer le PV
+                            </Link>
+                          );
+                        })()}
                         {f.bilanSigne && (
                           <a
                             href={`/api/pdf/bilan/${f.id}`}

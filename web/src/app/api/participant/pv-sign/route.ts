@@ -6,12 +6,14 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const { emargementId } = await req.json() as { emargementId: string };
+  const { emargementId, signatureBase64: signatureFromBody } = await req.json() as {
+    emargementId: string;
+    signatureBase64?: string;
+  };
 
   const profil = await prisma.participantProfile.findUnique({ where: { userId: session.user.id } });
   if (!profil) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
 
-  // Load emargement with inscription and formation
   const emargement = await prisma.emargement.findUnique({
     where: { id: emargementId },
     include: {
@@ -22,19 +24,26 @@ export async function POST(req: NextRequest) {
 
   if (!emargement) return NextResponse.json({ error: "Émargement introuvable" }, { status: 404 });
 
-  // Verify the inscription belongs to this participant
   if (emargement.inscription.participantId !== profil.id) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
-  // Verify formateur has already signed the PV
   if (!emargement.formation.pvSigne) {
     return NextResponse.json({ error: "Le formateur n'a pas encore signé le PV" }, { status: 400 });
   }
 
-  // Verify participant has a signature saved
-  if (!profil.signatureBase64) {
-    return NextResponse.json({ error: "Signez d'abord dans votre profil" }, { status: 400 });
+  // Resolve signature: from request body > from profile
+  const resolvedSignature = signatureFromBody || profil.signatureBase64 || null;
+  if (!resolvedSignature) {
+    return NextResponse.json({ error: "Aucune signature disponible. Dessinez votre signature." }, { status: 400 });
+  }
+
+  // Save back to profile if not already set
+  if (!profil.signatureBase64 && resolvedSignature) {
+    await prisma.participantProfile.update({
+      where: { id: profil.id },
+      data: { signatureBase64: resolvedSignature },
+    }).catch(() => {});
   }
 
   const now = new Date();
@@ -42,7 +51,7 @@ export async function POST(req: NextRequest) {
     where: { id: emargementId },
     data: {
       pvParticipantSignedAt: now,
-      pvParticipantSignatureBase64: profil.signatureBase64,
+      pvParticipantSignatureBase64: resolvedSignature,
     },
     select: {
       pvParticipantSignedAt: true,
