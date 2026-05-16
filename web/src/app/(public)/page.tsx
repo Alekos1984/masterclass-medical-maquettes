@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 
 function useScrollHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -84,9 +85,16 @@ function StatsBar() {
   );
 }
 
+function dashboardHref(role?: string | null) {
+  if (role === "FORMATEUR") return "/formateur/dashboard";
+  if (role === "ADMIN") return "/admin/dashboard";
+  return "/participant/dashboard";
+}
+
 export default function LandingPage() {
   const scrolled = useScrollHeader();
   useReveal();
+  const { data: session } = useSession();
 
   const scrollTo = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -110,8 +118,21 @@ export default function LandingPage() {
           <a href="#formateurs" className="nav-pill" onClick={scrollTo("#formateurs")}>Pour qui</a>
         </nav>
         <div className="header-right">
-          <Link href="/auth/login" className="nav-pill">Se connecter</Link>
-          <Link href="/auth/inscription/formateur" className="nav-cta">Organiser une formation</Link>
+          {session ? (
+            <>
+              <span className="nav-pill" style={{ color: "#6A6A6A", fontSize: 13 }}>
+                {session.user?.name ?? session.user?.email}
+              </span>
+              <Link href={dashboardHref(session.user?.role)} className="nav-cta">
+                Mon tableau de bord
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" className="nav-pill">Se connecter</Link>
+              <Link href="/auth/inscription/formateur" className="nav-cta">Organiser une formation</Link>
+            </>
+          )}
         </div>
       </header>
 
