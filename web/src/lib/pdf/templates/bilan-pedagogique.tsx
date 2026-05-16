@@ -242,7 +242,7 @@ export function BilanPedagogiquePdf({ company, formateur, formation, reponses, t
                   {formation.formateurNomComplet ?? formateur.nom}
                 </Text>
                 <Text style={{ fontSize: 7, color: "#1565c0" }}>
-                  ◆ Signé numériquement le {formation.bilanSigneAt ? (new Date(formation.bilanSigneAt).toLocaleDateString("fr-FR") + " à " + new Date(formation.bilanSigneAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })) : ""}
+                  [Signature numerique] {formation.bilanSigneAt ? (new Date(formation.bilanSigneAt).toLocaleDateString("fr-FR") + " a " + new Date(formation.bilanSigneAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })) : ""}
                 </Text>
               </View>
             ) : (
@@ -257,7 +257,7 @@ export function BilanPedagogiquePdf({ company, formateur, formation, reponses, t
         {formation.bilanSigne && formation.bilanSigneAt && formation.documentSeal && (
           <View style={{ marginTop: 12, padding: 8, backgroundColor: "#f8f9ff", borderRadius: 4, borderWidth: 1, borderColor: "#dde3f5" }}>
             <Text style={{ fontSize: 7, color: "#1565c0", fontFamily: "Helvetica-Bold" }}>
-              ◆ Document certifié numériquement — Intégrité garantie par HMAC-SHA-256
+              DOCUMENT CERTIFIE NUMERIQUEMENT - Integrite garantie par HMAC-SHA-256
             </Text>
             <Text style={{ fontSize: 6, color: GRAY, marginTop: 3, fontFamily: "Helvetica" }}>
               Horodatage : {new Date(formation.bilanSigneAt).toLocaleString("fr-FR")} · Signataire : {formation.formateurNomComplet}

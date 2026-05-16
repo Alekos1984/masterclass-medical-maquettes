@@ -4,6 +4,7 @@ import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getFormationData } from "@/lib/pdf/db-helpers";
 import { BilanPedagogiquePdf } from "@/lib/pdf/templates/bilan-pedagogique";
 import { computeDocSeal } from "@/lib/pdf/seal";
+import { lockPdf } from "@/lib/pdf/encrypt";
 import { genererBilan } from "@/lib/ai/bilan";
 import { prisma } from "@/lib/prisma";
 import type { SatisfactionData } from "@/lib/pdf/shared/types";
@@ -49,7 +50,7 @@ export async function GET(
     );
   }
 
-  const buffer = await renderPdf(
+  let buffer = await renderPdf(
     React.createElement(BilanPedagogiquePdf, {
       company,
       formateur: data.formateur,
@@ -58,6 +59,10 @@ export async function GET(
       texteAnalyse,
     })
   );
+
+  if (data.formation.bilanSigne && data.formation.documentSeal) {
+    buffer = await lockPdf(buffer, data.formation.documentSeal);
+  }
 
   return pdfResponse(buffer, `bilan-${formationId}.pdf`);
 }

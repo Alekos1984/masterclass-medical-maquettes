@@ -263,7 +263,7 @@ export function CertificatRealisationPdf({ company, formateur, formation, emarge
                   {formation.formateurNomComplet ?? formateur.nom}
                 </Text>
                 <Text style={{ fontSize: 7, color: "#1565c0" }}>
-                  ◆ Signé numériquement le {formatSignatureDate(formation.certificatSigneAt)}
+                  [Signature numerique] {formatSignatureDate(formation.certificatSigneAt)}
                 </Text>
               </View>
             ) : (
@@ -278,7 +278,7 @@ export function CertificatRealisationPdf({ company, formateur, formation, emarge
         {formation.certificatSigne && formation.certificatSigneAt && formation.documentSeal && (
           <View style={{ marginTop: 12, padding: 8, backgroundColor: "#f8f9ff", borderRadius: 4, borderWidth: 1, borderColor: "#dde3f5" }}>
             <Text style={{ fontSize: 7, color: "#1565c0", fontFamily: "Helvetica-Bold" }}>
-              ◆ Document certifié numériquement — Intégrité garantie par HMAC-SHA-256
+              DOCUMENT CERTIFIE NUMERIQUEMENT - Integrite garantie par HMAC-SHA-256
             </Text>
             <Text style={{ fontSize: 6, color: GRAY, marginTop: 3, fontFamily: "Helvetica" }}>
               Horodatage : {new Date(formation.certificatSigneAt).toLocaleString("fr-FR")} · Signataire : {formation.formateurNomComplet}
