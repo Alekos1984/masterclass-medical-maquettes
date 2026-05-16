@@ -403,15 +403,17 @@ export default function LandingPage() {
             <h4>Contact</h4>
             <a href="mailto:contact@masterclass-medical.fr">Nous contacter</a>
             <a href="#">LinkedIn</a>
-            <a href="#">Mentions légales</a>
-            <a href="#">CGU</a>
+            <a href="/legal/mentions-legales">Mentions légales</a>
+            <a href="/legal/cgu-formateur">CGU Formateurs</a>
+            <a href="/legal/cgu-participant">CGU Participants</a>
           </div>
         </div>
         <div className="footer-bottom">
           <span>© 2026 Masterclass Médical — Tous droits réservés</span>
           <div>
-            <a href="#">Confidentialité</a>
-            <a href="#">CGU</a>
+            <a href="/legal/confidentialite">Confidentialité</a>
+            <a href="/legal/cgu-formateur">CGU Formateurs</a>
+            <a href="/legal/cgu-participant">CGU Participants</a>
           </div>
         </div>
       </footer>
