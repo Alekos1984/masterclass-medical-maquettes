@@ -141,24 +141,19 @@ export function PvFormationPdf({ company, formateur, formation, emargements, par
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le formateur</Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
-            <View style={s.signatureBox}>
-              {formation.pvSigne ? (
-                formation.signatureFormateurBase64
-                  ? <Image src={formation.signatureFormateurBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
-                  : <View style={{ flex: 1 }} />
-              ) : (
-                <Text style={{ fontSize: 8, color: GRAY }}>Signature à apposer</Text>
-              )}
-            </View>
-            {formation.pvSigne && (
-              <>
-                <Text style={{ fontSize: 10, fontFamily: "Times-BoldItalic", color: BLACK, marginTop: 4 }}>
+            {formation.pvSigne ? (
+              <View style={{ borderWidth: 1, borderColor: "#dde3f5", borderRadius: 6, padding: 10, backgroundColor: "#f8f9ff" }}>
+                <Text style={{ fontSize: 12, fontFamily: "Times-BoldItalic", color: BLACK, marginBottom: 4 }}>
                   {formation.formateurNomComplet ?? formateur.nom}
                 </Text>
-                <Text style={{ fontSize: 7, color: "#1565c0", marginTop: 2 }}>
-                  Signé le {formatSignatureDate(formation.pvSigneAt)}
+                <Text style={{ fontSize: 7, color: "#1565c0" }}>
+                  ◆ Signé numériquement le {formatSignatureDate(formation.pvSigneAt)}
                 </Text>
-              </>
+              </View>
+            ) : (
+              <View style={s.signatureBox}>
+                <Text style={{ fontSize: 8, color: GRAY }}>En attente de signature numérique</Text>
+              </View>
             )}
           </View>
           <View style={s.signatureBlock}>
@@ -188,14 +183,20 @@ export function PvFormationPdf({ company, formateur, formation, emargements, par
           </View>
         </View>
 
-        {/* Certification numérique */}
-        {formation.pvSigne && formation.pvSigneAt && (
+        {/* Sceau d'intégrité numérique */}
+        {formation.pvSigne && formation.pvSigneAt && formation.documentSeal && (
           <View style={{ marginTop: 12, padding: 8, backgroundColor: "#f8f9ff", borderRadius: 4, borderWidth: 1, borderColor: "#dde3f5" }}>
             <Text style={{ fontSize: 7, color: "#1565c0", fontFamily: "Helvetica-Bold" }}>
-              ◆ Document certifié numériquement
+              ◆ Document certifié numériquement — Intégrité garantie par HMAC-SHA-256
             </Text>
-            <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>
-              Horodatage : {new Date(formation.pvSigneAt).toLocaleString("fr-FR")} · Formation ID : {formation.id.slice(0, 12).toUpperCase()} · Ce document est un original numérique non modifiable.
+            <Text style={{ fontSize: 6, color: GRAY, marginTop: 3, fontFamily: "Helvetica" }}>
+              Horodatage : {new Date(formation.pvSigneAt).toLocaleString("fr-FR")} · Signataire : {formation.formateurNomComplet}
+            </Text>
+            <Text style={{ fontSize: 6, color: "#444", marginTop: 2, fontFamily: "Helvetica" }}>
+              Sceau : {formation.documentSeal}
+            </Text>
+            <Text style={{ fontSize: 6, color: GRAY, marginTop: 2, fontFamily: "Helvetica-Oblique" }}>
+              Ce sceau cryptographique est lié au contenu du document et à un secret serveur. Toute modification invalide ce sceau.
             </Text>
           </View>
         )}

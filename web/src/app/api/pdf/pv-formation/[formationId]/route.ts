@@ -3,6 +3,7 @@ import React from "react";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getFormationData } from "@/lib/pdf/db-helpers";
 import { PvFormationPdf } from "@/lib/pdf/templates/pv-formation";
+import { computeDocSeal } from "@/lib/pdf/seal";
 import { prisma } from "@/lib/prisma";
 import type { EmargementData } from "@/lib/pdf/shared/types";
 
@@ -27,6 +28,10 @@ export async function GET(
   ]);
 
   if (!data) return new Response("Formation introuvable", { status: 404 });
+
+  if (data.formation.pvSigne && data.formation.pvSigneAt) {
+    data.formation.documentSeal = computeDocSeal(formationId, "pv", data.formation.pvSigneAt);
+  }
 
   const emargementsData: EmargementData[] = emargements.map((e) => ({
     participant: {

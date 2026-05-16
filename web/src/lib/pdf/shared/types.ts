@@ -55,8 +55,8 @@ export interface FormationData {
   niveau: string;
   sessionStartedAt?: string | null;
   sessionEndedAt?: string | null;
-  signatureFormateurBase64?: string | null;
   formateurNomComplet?: string | null;
+  documentSeal?: string | null;
   pvSigne?: boolean;
   pvSigneAt?: string | null;
   pvObjectifsAtteints?: string | null;

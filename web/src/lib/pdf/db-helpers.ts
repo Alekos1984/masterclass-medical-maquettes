@@ -63,8 +63,6 @@ export async function getFormationData(formationId: string): Promise<{
       niveau: f.niveau,
       sessionStartedAt: f.sessionStartedAt?.toISOString() ?? null,
       sessionEndedAt: f.sessionEndedAt?.toISOString() ?? null,
-      // Prefer snapshot stored at signing time; fall back to profile signature
-      signatureFormateurBase64: f.signatureFormateurSnap ?? profil.signatureBase64 ?? null,
       formateurNomComplet,
       pvSigne: f.pvSigne,
       pvSigneAt: f.pvSigneAt?.toISOString() ?? null,

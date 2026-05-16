@@ -3,6 +3,7 @@ import React from "react";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getFormationData } from "@/lib/pdf/db-helpers";
 import { CertificatRealisationPdf } from "@/lib/pdf/templates/certificat-realisation";
+import { computeDocSeal } from "@/lib/pdf/seal";
 import { prisma } from "@/lib/prisma";
 import type { EmargementData } from "@/lib/pdf/shared/types";
 
@@ -27,6 +28,10 @@ export async function GET(
   ]);
 
   if (!data) return new Response("Formation introuvable", { status: 404 });
+
+  if (data.formation.certificatSigne && data.formation.certificatSigneAt) {
+    data.formation.documentSeal = computeDocSeal(formationId, "certificat", data.formation.certificatSigneAt);
+  }
 
   const emargementsData: EmargementData[] = emargements.map((e) => ({
     participant: {
