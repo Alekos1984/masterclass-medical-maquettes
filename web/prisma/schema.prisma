@@ -300,6 +300,7 @@ model Formation {
   certificatSigneAt DateTime?
   emargementSigne  Boolean  @default(false)
   emargementSigneAt DateTime?
+  signatureFormateurSnap String? @db.Text  // snapshot de la signature au moment de la signature
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
