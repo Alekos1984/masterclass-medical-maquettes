@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SPECIALITES_OPTIONS } from "@/lib/specialites";
 
 export default function ParticipantProfilPage() {
   const [saved, setSaved] = useState(false);
@@ -90,7 +91,7 @@ export default function ParticipantProfilPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div style={fieldStyle}>
             <label style={labelStyle}>Spécialité</label>
-            <select style={inputStyle}><option>Cardiologie</option><option>Neurologie</option><option>Médecine générale</option><option>Autre</option></select>
+            <select style={inputStyle}>{SPECIALITES_OPTIONS}</select>
           </div>
           <div style={fieldStyle}><label style={labelStyle}>Ville d&apos;exercice</label><input type="text" defaultValue="Paris" style={inputStyle} /></div>
         </div>
