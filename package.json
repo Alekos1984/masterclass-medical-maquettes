@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "24.x",
+    "node": "22.x",
     "npm": "10.x"
   },
   "scripts": {
     "install": "cd web && npm install --include=dev",
-    "build": "cd web && npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
+    "build": "cd web && npm run build && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
     "start": "node web/.next/standalone/server.js"
   }
 }
