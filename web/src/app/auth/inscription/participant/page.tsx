@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SPECIALITES_OPTIONS } from "@/lib/specialites";
 
 export default function InscriptionParticipantPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function InscriptionParticipantPage() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
-  const [specialite, setSpecialite] = useState("Cardiologie");
+  const [specialite, setSpecialite] = useState("");
   const [ville, setVille] = useState("");
   const [etablissement, setEtablissement] = useState("");
   const [rpps, setRpps] = useState("");
@@ -156,12 +157,7 @@ export default function InscriptionParticipantPage() {
               <div>
                 <label className="auth-label" htmlFor="specialite">Spécialité</label>
                 <select id="specialite" className="auth-select" value={specialite} onChange={e => setSpecialite(e.target.value)}>
-                  <option>Cardiologie</option>
-                  <option>Neurologie</option>
-                  <option>Oncologie</option>
-                  <option>Chirurgie</option>
-                  <option>Médecine générale</option>
-                  <option>Autre</option>
+                  {SPECIALITES_OPTIONS}
                 </select>
               </div>
               <div>

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export type FormationData = {
   id: string;
@@ -53,6 +55,44 @@ function getTypeCss(type?: string): string {
 
 export default function FormationDetailClient({ formation }: { formation: FormationData }) {
   const [activeTab, setActiveTab] = useState<Tab>("programme");
+  const [inscriptionLoading, setInscriptionLoading] = useState(false);
+  const [inscriptionError, setInscriptionError] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  async function handleInscrire() {
+    if (!session) {
+      router.push(`/auth/login?callbackUrl=/formations/${formation.slug}`);
+      return;
+    }
+    if (session.user?.role !== "PARTICIPANT") {
+      setInscriptionError("Seuls les participants peuvent s'inscrire à une formation.");
+      return;
+    }
+    setInscriptionLoading(true);
+    setInscriptionError(null);
+    try {
+      const res = await fetch("/api/inscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formationId: formation.id }),
+      });
+      const data = await res.json();
+      if (res.status === 422 && data.error === "PROFIL_MANQUANT") {
+        router.push(`/auth/inscription/participant?formationId=${formation.id}`);
+        return;
+      }
+      if (!res.ok) {
+        setInscriptionError(data.error ?? "Une erreur est survenue.");
+        return;
+      }
+      router.push("/participant/dashboard?inscription=ok");
+    } catch {
+      setInscriptionError("Une erreur réseau est survenue.");
+    } finally {
+      setInscriptionLoading(false);
+    }
+  }
 
   const fillPct = Math.round((formation.placesReserved / formation.placesTotal) * 100);
   const hours = `${formation.heureDebut}–${formation.heureFin}`;
@@ -221,9 +261,18 @@ export default function FormationDetailClient({ formation }: { formation: Format
                 </div>
               )}
             </div>
-            <Link href="/auth/inscription/participant" style={{ display: "block", width: "100%", background: "#C8102E", color: "white", border: "none", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, boxShadow: "0 4px 14px rgba(200,16,46,0.3)", textAlign: "center", textDecoration: "none" }}>
-              S&apos;inscrire maintenant →
-            </Link>
+            <button
+              onClick={handleInscrire}
+              disabled={inscriptionLoading}
+              style={{ display: "block", width: "100%", background: inscriptionLoading ? "#e88" : "#C8102E", color: "white", border: "none", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 800, cursor: inscriptionLoading ? "wait" : "pointer", fontFamily: "inherit", marginBottom: 8, boxShadow: "0 4px 14px rgba(200,16,46,0.3)", textAlign: "center" }}
+            >
+              {inscriptionLoading ? "Inscription en cours…" : session ? "S'inscrire maintenant →" : "Se connecter pour s'inscrire →"}
+            </button>
+            {inscriptionError && (
+              <div style={{ background: "#fff0f0", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#b91c1c", marginBottom: 8 }}>
+                {inscriptionError}
+              </div>
+            )}
             <button style={{ width: "100%", background: "transparent", color: "#6A6A6A", border: "1.5px solid #E0E0E0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Poser une question
             </button>
