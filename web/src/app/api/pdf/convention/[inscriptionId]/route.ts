@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import React from "react";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getInscriptionData, mapParticipant } from "@/lib/pdf/db-helpers";
 import { ConventionPdf } from "@/lib/pdf/templates/convention";
@@ -10,6 +12,23 @@ export async function GET(
   { params }: { params: Promise<{ inscriptionId: string }> }
 ) {
   const { inscriptionId } = await params;
+
+  const session = await auth();
+  if (!session?.user?.id) return new Response("Non authentifié", { status: 401 });
+
+  // Participants can only see convention if it's signed and confirmed
+  if (session.user.role === "PARTICIPANT") {
+    const check = await prisma.inscription.findUnique({
+      where: { id: inscriptionId },
+      select: { statut: true, conventionSignee: true, participant: { select: { userId: true } } },
+    });
+    if (!check || check.participant.userId !== session.user.id) {
+      return new Response("Accès refusé", { status: 403 });
+    }
+    if (!check.conventionSignee || check.statut !== "CONFIRMEE") {
+      return new Response("Convention non disponible — en attente de signature", { status: 403 });
+    }
+  }
 
   const [company, inscription] = await Promise.all([
     getCompanySettings(),

@@ -216,7 +216,7 @@ export default async function ParticipantDashboardPage() {
                     </div>
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
                       {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
-                      {!insc.conventionSignee && <span style={{ fontSize: 11, color: "var(--gray)" }}>⏳ Convention en attente</span>}
+                      {!insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "var(--gray)" }}>Signature convention en attente</span>}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {insc.statut === StatutInscription.EN_ATTENTE_PAIEMENT && (
                           <PayerButton inscriptionId={insc.id} />
@@ -224,9 +224,11 @@ export default async function ParticipantDashboardPage() {
                         <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                           📬 Convocation PDF
                         </a>
-                        <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
-                          📄 Convention PDF
-                        </a>
+                        {insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && (
+                          <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                            📄 Convention PDF
+                          </a>
+                        )}
                         {insc.paiement?.id && (
                           <a href={`/api/pdf/facture/${insc.paiement.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                             🧾 Facture PDF
@@ -340,14 +342,16 @@ export default async function ParticipantDashboardPage() {
                             📊 Télécharger le bilan pédagogique
                           </a>
                         )}
-                        <a
-                          href={`/api/pdf/convention/${insc.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
-                        >
-                          📄 Convention PDF
-                        </a>
+                        {insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && (
+                          <a
+                            href={`/api/pdf/convention/${insc.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
+                          >
+                            📄 Convention PDF
+                          </a>
+                        )}
                         {insc.paiement?.id && (
                           <a
                             href={`/api/pdf/facture/${insc.paiement.id}`}

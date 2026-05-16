@@ -6,13 +6,7 @@ import type { CompanyData, FormateurData, FormationData, ParticipantData, Inscri
 
 const s = StyleSheet.create({
   partiesGrid: { flexDirection: "row", gap: 12, marginBottom: 12 },
-  partieCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: LIGHT_GRAY,
-    borderRadius: 6,
-    padding: 12,
-  },
+  partieCard: { flex: 1, borderWidth: 1, borderColor: LIGHT_GRAY, borderRadius: 6, padding: 12 },
   partieCardTitle: { fontSize: 8, color: RED, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
   articleTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: BLACK, marginTop: 16, marginBottom: 6 },
   articleText: { fontSize: 9, color: BLACK, lineHeight: 1.65 },
@@ -80,33 +74,45 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
         <Text style={base.sectionTitle}>Entre les parties</Text>
         <View style={s.partiesGrid}>
           <View style={s.partieCard}>
-            <Text style={s.partieCardTitle}>Masterclass Médical</Text>
+            <Text style={s.partieCardTitle}>Le formateur</Text>
             <View style={base.infoRow}>
-              <Text style={base.infoLabel}>Raison sociale</Text>
-              <Text style={base.infoValue}>{company.raisonSociale}</Text>
+              <Text style={base.infoLabel}>Nom</Text>
+              <Text style={base.infoValue}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
             </View>
-            {company.siret && (
+            {formateur.specialite && (
+              <View style={base.infoRow}>
+                <Text style={base.infoLabel}>Spécialité</Text>
+                <Text style={base.infoValue}>{formateur.specialite}</Text>
+              </View>
+            )}
+            {formateur.rpps && (
+              <View style={base.infoRow}>
+                <Text style={base.infoLabel}>N° RPPS</Text>
+                <Text style={base.infoValue}>{formateur.rpps}</Text>
+              </View>
+            )}
+            {formateur.raisonSociale && (
+              <View style={base.infoRow}>
+                <Text style={base.infoLabel}>Raison sociale</Text>
+                <Text style={base.infoValue}>{formateur.raisonSociale}</Text>
+              </View>
+            )}
+            {formateur.siret && (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>SIRET</Text>
-                <Text style={base.infoValue}>{company.siret}</Text>
+                <Text style={base.infoValue}>{formateur.siret}</Text>
               </View>
             )}
-            {company.numeroDeclaration && (
+            {formateur.email && (
               <View style={base.infoRow}>
-                <Text style={base.infoLabel}>N° déclaration</Text>
-                <Text style={base.infoValue}>{company.numeroDeclaration}</Text>
+                <Text style={base.infoLabel}>Email</Text>
+                <Text style={base.infoValue}>{formateur.email}</Text>
               </View>
             )}
-            {company.adresse && (
+            {formateur.phone && (
               <View style={base.infoRow}>
-                <Text style={base.infoLabel}>Adresse</Text>
-                <Text style={base.infoValue}>{company.adresse}, {company.codePostal} {company.ville}</Text>
-              </View>
-            )}
-            {company.representantLegal && (
-              <View style={base.infoRow}>
-                <Text style={base.infoLabel}>Représentant légal</Text>
-                <Text style={base.infoValue}>{company.representantLegal}</Text>
+                <Text style={base.infoLabel}>Téléphone</Text>
+                <Text style={base.infoValue}>{formateur.phone}</Text>
               </View>
             )}
           </View>
@@ -145,8 +151,7 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
         <Text style={s.articleTitle}>Article 1 — Objet</Text>
         <Text style={s.articleText}>
           La présente convention a pour objet la participation de {participant.nom} à la formation intitulée «{" "}
-          {formation.titre} », organisée par {company.raisonSociale} et animée par{" "}
-          {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}.
+          {formation.titre} », dispensée par {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}{formateur.specialite ? `, ${formateur.specialite}` : ""}, organisme de formation référencé sur la plateforme Masterclass Médical.
         </Text>
 
         <Text style={s.articleTitle}>Article 2 — Nature et durée de la formation</Text>
@@ -196,22 +201,21 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
         <Text style={s.articleTitle}>Article 6 — Litiges</Text>
         <Text style={s.articleText}>
           En cas de litige, les parties s'engagent à rechercher une solution amiable avant tout recours juridictionnel.
-          À défaut, les tribunaux compétents seront ceux du ressort du siège social de Masterclass Médical.
         </Text>
 
         {/* Signatures */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 6 }}>
-              Masterclass Médical
+              Le formateur
             </Text>
             <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
-              {company.representantLegal ?? company.raisonSociale}
+              {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}
             </Text>
             <View style={s.signatureBoxBig}>
               <Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text>
             </View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Fait à {company.ville ?? "___"}, le {formatDate(new Date().toISOString())}</Text>
+            <Text style={{ fontSize: 7, color: GRAY }}>Fait à _________, le {formatDate(new Date().toISOString())}</Text>
           </View>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 6 }}>
