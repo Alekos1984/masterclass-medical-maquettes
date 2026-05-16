@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import FormationDetailClient from "./FormationDetailClient";
+import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,20 @@ export default async function FormationDetailPage({ params }: { params: Promise<
   });
 
   if (!f || f.statut === "BROUILLON" || f.statut === "ANNULEE") notFound();
+
+  // Check if current user is already registered for this formation
+  let alreadyInscrit = false;
+  const session = await auth();
+  if (session?.user?.id && session.user.role === "PARTICIPANT") {
+    const profil = await prisma.participantProfile.findUnique({ where: { userId: session.user.id } });
+    if (profil) {
+      const existing = await prisma.inscription.findUnique({
+        where: { participantId_formationId: { participantId: profil.id, formationId: f.id } },
+        select: { statut: true },
+      });
+      if (existing) alreadyInscrit = true;
+    }
+  }
 
   const formateurName =
     (f.formateur.titre ? `${f.formateur.titre} ` : "") +
@@ -90,5 +105,5 @@ export default async function FormationDetailPage({ params }: { params: Promise<
     restauration: f.restauration ?? "",
   };
 
-  return <FormationDetailClient formation={formation} />;
+  return <FormationDetailClient formation={formation} alreadyInscrit={alreadyInscrit} />;
 }

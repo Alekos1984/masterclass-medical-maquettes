@@ -94,6 +94,9 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("inscrits");
   const [statut, setStatut] = useState(formation.statut);
+  const [conventionState, setConventionState] = useState<Record<string, boolean>>(
+    Object.fromEntries(formation.inscriptions.map((i) => [i.id, i.conventionSignee]))
+  );
   const [publishing, setPublishing] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<string | null>(formation.sessionStatus);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
@@ -146,6 +149,11 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       setSessionStatus(null);
       setSessionMenuOpen(false);
     }
+  }
+
+  async function signerConvention(inscriptionId: string) {
+    const res = await fetch(`/api/formateur/formations/${formation.id}/inscriptions/${inscriptionId}/signer-convention`, { method: "POST" });
+    if (res.ok) setConventionState((prev) => ({ ...prev, [inscriptionId]: true }));
   }
 
   // View/Sign overlay state
@@ -1311,6 +1319,60 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 ))}
               </div>
             </div>
+
+            {/* Conventions individuelles */}
+            {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length > 0 && (
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Conventions individuelles de formation</span>
+                  <span style={{ fontSize: 11, color: "#6A6A6A" }}>
+                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE" && conventionState[i.id]).length}
+                    /{formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length} signées
+                  </span>
+                </div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #EBEBEB" }}>
+                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Participant</th>
+                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Statut</th>
+                      <th style={{ textAlign: "right", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").map((insc) => (
+                      <tr key={insc.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
+                        <td style={{ padding: "10px 0", fontSize: 13 }}>
+                          <div style={{ fontWeight: 600 }}>{insc.participant.name}</div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.email}</div>
+                        </td>
+                        <td style={{ padding: "10px 0" }}>
+                          {conventionState[insc.id] ? (
+                            <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Signée</span>
+                          ) : (
+                            <span style={{ fontSize: 12, color: "#6A6A6A" }}>En attente</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "10px 0", textAlign: "right" }}>
+                          {!conventionState[insc.id] ? (
+                            <button
+                              type="button"
+                              onClick={() => signerConvention(insc.id)}
+                              style={{ background: "#C8102E", color: "white", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                            >
+                              ✍️ Signer numériquement
+                            </button>
+                          ) : (
+                            <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#C8102E", fontWeight: 600, textDecoration: "none" }}>
+                              PDF ↗
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Signature des documents officiels */}
             <div style={cardStyle}>

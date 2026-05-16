@@ -121,9 +121,7 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
         </Text>
 
         <Text style={{ fontSize: 9, color: BLACK, lineHeight: 1.7, marginBottom: 16 }}>
-          {company.representantLegal ?? company.raisonSociale}, représentant Masterclass Médical ({company.raisonSociale}),
-          a l'honneur de convoquer {participant.titre ? `${participant.titre} ` : ""}{participant.nom}
-          à la formation professionnelle continue dont les modalités sont précisées ci-dessous.
+          {formateur.titre ? formateur.titre + " " : ""}{formateur.nom} a l'honneur de convoquer {participant.titre ? participant.titre + " " : ""}{participant.nom} à la formation professionnelle continue dont les modalités sont précisées ci-dessous.
         </Text>
 
         {/* Détails formation */}
@@ -147,10 +145,10 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
         <View style={s.practicalBox}>
           <Text style={s.practicalTitle}>Informations pratiques</Text>
           {[
-            { icon: "⏰", text: `Veuillez vous présenter à ${formation.heureDebut} afin de permettre un démarrage ponctuel.` },
-            { icon: "📋", text: "Munissez-vous d'une pièce d'identité ou de votre carte professionnelle." },
-            { icon: "🖊️", text: "La signature de la feuille de présence est obligatoire le matin et l'après-midi." },
-            { icon: "📞", text: `En cas d'empêchement de dernière minute, prévenez-nous dès que possible : ${company.email ?? company.phone ?? "contact@masterclassmedical.fr"}.` },
+            { icon: "-", text: `Veuillez vous présenter à ${formation.heureDebut} afin de permettre un démarrage ponctuel.` },
+            { icon: "-", text: "Munissez-vous d'une pièce d'identité ou de votre carte professionnelle." },
+            { icon: "-", text: "La signature de la feuille de présence est obligatoire le matin et l'après-midi." },
+            { icon: "-", text: `En cas d'empêchement de dernière minute, prévenez-nous dès que possible : ${company.email ?? company.phone ?? "contact@masterclassmedical.fr"}.` },
           ].map((item, i) => (
             <View key={i} style={s.practicalItem}>
               <Text style={{ fontSize: 9, width: 14 }}>{item.icon}</Text>
@@ -180,10 +178,10 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
         {/* Signature */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Masterclass Médical</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{company.representantLegal ?? company.raisonSociale}</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>{formateur.titre ? formateur.titre + " " : ""}{formateur.nom}</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{formateur.specialite ?? "Formateur"}</Text>
             <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Fait à {company.ville ?? "___"}, le {formatDate(today)}</Text>
+            <Text style={{ fontSize: 7, color: GRAY }}>Fait à _________, le {formatDate(today)}</Text>
           </View>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le/la participant(e)</Text>

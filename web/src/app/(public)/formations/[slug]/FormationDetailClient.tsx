@@ -40,6 +40,7 @@ export type FormationData = {
   pubmedUrl: string;
   publicCible: string;
   restauration: string;
+  alreadyInscrit?: boolean;
 };
 
 type Tab = "programme" | "formateur" | "lieu" | "infos";
@@ -53,7 +54,7 @@ function getTypeCss(type?: string): string {
   return "type-cours";
 }
 
-export default function FormationDetailClient({ formation }: { formation: FormationData }) {
+export default function FormationDetailClient({ formation, alreadyInscrit }: { formation: FormationData, alreadyInscrit?: boolean }) {
   const [activeTab, setActiveTab] = useState<Tab>("programme");
   const [inscriptionLoading, setInscriptionLoading] = useState(false);
   const [inscriptionError, setInscriptionError] = useState<string | null>(null);
@@ -261,17 +262,25 @@ export default function FormationDetailClient({ formation }: { formation: Format
                 </div>
               )}
             </div>
-            <button
-              onClick={handleInscrire}
-              disabled={inscriptionLoading}
-              style={{ display: "block", width: "100%", background: inscriptionLoading ? "#e88" : "#C8102E", color: "white", border: "none", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 800, cursor: inscriptionLoading ? "wait" : "pointer", fontFamily: "inherit", marginBottom: 8, boxShadow: "0 4px 14px rgba(200,16,46,0.3)", textAlign: "center" }}
-            >
-              {inscriptionLoading ? "Inscription en cours…" : session ? "S'inscrire maintenant →" : "Se connecter pour s'inscrire →"}
-            </button>
-            {inscriptionError && (
-              <div style={{ background: "#fff0f0", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#b91c1c", marginBottom: 8 }}>
-                {inscriptionError}
+            {alreadyInscrit ? (
+              <div style={{ display: "block", width: "100%", background: "#16a34a", color: "white", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 800, textAlign: "center", marginBottom: 8 }}>
+                ✓ Vous êtes inscrit à cette formation
               </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleInscrire}
+                  disabled={inscriptionLoading}
+                  style={{ display: "block", width: "100%", background: inscriptionLoading ? "#e88" : "#C8102E", color: "white", border: "none", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 800, cursor: inscriptionLoading ? "wait" : "pointer", fontFamily: "inherit", marginBottom: 8, boxShadow: "0 4px 14px rgba(200,16,46,0.3)", textAlign: "center" }}
+                >
+                  {inscriptionLoading ? "Inscription en cours..." : session ? "S'inscrire maintenant >" : "Se connecter pour s'inscrire >"}
+                </button>
+                {inscriptionError && (
+                  <div style={{ background: "#fff0f0", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#b91c1c", marginBottom: 8 }}>
+                    {inscriptionError}
+                  </div>
+                )}
+              </>
             )}
             <button style={{ width: "100%", background: "transparent", color: "#6A6A6A", border: "1.5px solid #E0E0E0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Poser une question
