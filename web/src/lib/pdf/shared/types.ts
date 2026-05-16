@@ -59,8 +59,14 @@ export interface FormationData {
   formateurNomComplet?: string | null;
   pvSigne?: boolean;
   pvSigneAt?: string | null;
+  pvObjectifsAtteints?: string | null;
+  pvObservations?: string | null;
+  pvAcquis?: string | null;
   bilanSigne?: boolean;
   bilanSigneAt?: string | null;
+  bilanResume?: string | null;
+  bilanRecommandations?: string | null;
+  bilanPointsForts?: string | null;
   certificatSigne?: boolean;
   certificatSigneAt?: string | null;
 }

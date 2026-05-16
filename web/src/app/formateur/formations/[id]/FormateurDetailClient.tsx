@@ -249,10 +249,14 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
   async function signDocs(docs: "pv" | "bilan" | "certificat" | "emargement" | "all", overrideSig?: string | null) {
     const signatureBase64 = overrideSig !== undefined ? overrideSig : getSigBase64();
+    const body: Record<string, unknown> = { docs };
+    if (signatureBase64) body.signatureBase64 = signatureBase64;
+    if (docs === "pv" || docs === "all") body.pvContent = pvFields;
+    if (docs === "bilan" || docs === "all") body.bilanContent = bilanFields;
     const res = await fetch(`/api/formateur/formations/${formation.id}/sign-docs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ docs, ...(signatureBase64 ? { signatureBase64 } : {}) }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       const data = await res.json();
