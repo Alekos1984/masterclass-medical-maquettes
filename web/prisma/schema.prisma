@@ -301,6 +301,8 @@ model Formation {
   emargementSigne  Boolean  @default(false)
   emargementSigneAt DateTime?
   signatureFormateurSnap String? @db.Text  // snapshot de la signature au moment de la signature
+  pvContent              Json?            // { objectifsAtteints, observations, acquis }
+  bilanContent           Json?            // { resume, recommandations, pointsForts }
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?

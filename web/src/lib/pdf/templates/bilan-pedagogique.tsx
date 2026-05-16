@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { PdfHeader } from "../shared/Header";
 import { base, RED, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData, FormateurData, FormationData, SatisfactionData } from "../shared/types";
@@ -205,24 +205,68 @@ export function BilanPedagogiquePdf({ company, formateur, formation, reponses, t
           </>
         )}
 
+        {/* Contenu rédigé par le formateur */}
+        {(formation.bilanResume || formation.bilanRecommandations || formation.bilanPointsForts) && (
+          <>
+            <Text style={base.sectionTitle}>Synthèse du formateur</Text>
+            {formation.bilanResume && (
+              <View style={s.analysisBox}>
+                <Text style={s.analysisTitle}>Résumé</Text>
+                <Text style={s.analysisText}>{formation.bilanResume}</Text>
+              </View>
+            )}
+            {formation.bilanPointsForts && (
+              <View style={s.analysisBox}>
+                <Text style={s.analysisTitle}>Points forts</Text>
+                <Text style={s.analysisText}>{formation.bilanPointsForts}</Text>
+              </View>
+            )}
+            {formation.bilanRecommandations && (
+              <View style={s.analysisBox}>
+                <Text style={s.analysisTitle}>Recommandations</Text>
+                <Text style={s.analysisText}>{formation.bilanRecommandations}</Text>
+              </View>
+            )}
+          </>
+        )}
+
         {/* Signature */}
         <Text style={base.sectionTitle}>Validation</Text>
         <View style={{ flexDirection: "row", gap: 20, marginTop: 8 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le formateur</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 12 }}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
-            <View style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_GRAY, height: 40, justifyContent: "flex-end" }}>
-              <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
+            <View style={{ borderWidth: 1, borderColor: LIGHT_GRAY, borderRadius: 6, height: 80, padding: 8, justifyContent: "flex-end", marginBottom: 6 }}>
+              {formation.bilanSigne ? (
+                formation.signatureFormateurBase64
+                  ? <Image src={formation.signatureFormateurBase64} style={{ width: "100%", height: 50, objectFit: "contain" }} />
+                  : <View style={{ flex: 1 }} />
+              ) : (
+                <Text style={{ fontSize: 8, color: GRAY }}>Signature à apposer</Text>
+              )}
             </View>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Masterclass Médical</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 12 }}>{company.raisonSociale}</Text>
-            <View style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_GRAY, height: 40, justifyContent: "flex-end" }}>
-              <Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text>
-            </View>
+            {formation.bilanSigne && (
+              <>
+                <Text style={{ fontSize: 10, fontFamily: "Times-BoldItalic", color: BLACK, marginTop: 4 }}>
+                  {formation.formateurNomComplet ?? formateur.nom}
+                </Text>
+                <Text style={{ fontSize: 7, color: "#1565c0", marginTop: 2 }}>
+                  Signé le {formation.bilanSigneAt ? (new Date(formation.bilanSigneAt).toLocaleDateString("fr-FR") + " à " + new Date(formation.bilanSigneAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })) : ""}
+                </Text>
+              </>
+            )}
           </View>
         </View>
+
+        {/* Certification numérique */}
+        {formation.bilanSigne && formation.bilanSigneAt && (
+          <View style={{ marginTop: 12, padding: 8, backgroundColor: "#f8f9ff", borderRadius: 4, borderWidth: 1, borderColor: "#dde3f5" }}>
+            <Text style={{ fontSize: 7, color: "#1565c0", fontFamily: "Helvetica-Bold" }}>◆ Document certifié numériquement</Text>
+            <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>
+              Horodatage : {new Date(formation.bilanSigneAt).toLocaleString("fr-FR")} · Formation ID : {formation.id.slice(0, 12).toUpperCase()} · Ce document est un original numérique non modifiable.
+            </Text>
+          </View>
+        )}
 
         <View style={base.footer} fixed>
           <Text style={base.footerText}>{company.raisonSociale} — Bilan pédagogique confidentiel</Text>

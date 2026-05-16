@@ -37,8 +37,10 @@ export async function POST(
   const body = await req.json() as {
     docs: Array<"pv" | "bilan" | "certificat" | "emargement"> | "all";
     signatureBase64?: string;
+    pvContent?: { objectifsAtteints: string; observations: string; acquis: string };
+    bilanContent?: { resume: string; recommandations: string; pointsForts: string };
   };
-  const { docs, signatureBase64: signatureFromBody } = body;
+  const { docs, signatureBase64: signatureFromBody, pvContent, bilanContent } = body;
 
   // Resolve signature: from request > from profile > existing snap
   const resolvedSignature =
@@ -50,8 +52,16 @@ export async function POST(
   const list = docs === "all" ? ["pv", "bilan", "certificat"] : docs;
   const now = new Date();
   const data: Record<string, unknown> = {};
-  if (list.includes("pv")) { data.pvSigne = true; data.pvSigneAt = now; }
-  if (list.includes("bilan")) { data.bilanSigne = true; data.bilanSigneAt = now; }
+  if (list.includes("pv")) {
+    data.pvSigne = true;
+    data.pvSigneAt = now;
+    if (pvContent) data.pvContent = pvContent;
+  }
+  if (list.includes("bilan")) {
+    data.bilanSigne = true;
+    data.bilanSigneAt = now;
+    if (bilanContent) data.bilanContent = bilanContent;
+  }
   if (list.includes("certificat")) { data.certificatSigne = true; data.certificatSigneAt = now; }
   if (list.includes("emargement")) { data.emargementSigne = true; data.emargementSigneAt = now; }
 

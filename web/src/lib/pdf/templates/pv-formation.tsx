@@ -98,29 +98,42 @@ export function PvFormationPdf({ company, formateur, formation, emargements, par
         </View>
 
         {/* Article 3 */}
-        <Text style={s.articleTitle}>3. Déroulement et objectifs</Text>
-        <Text style={s.articleText}>
-          La formation s'est déroulée conformément au programme prévu.
-          Les objectifs pédagogiques suivants ont été abordés :
-        </Text>
-        {formation.objectifs.map((obj, i) => (
-          <View key={i} style={{ flexDirection: "row", marginTop: 4, gap: 8 }}>
-            <Text style={{ fontSize: 9, color: GRAY }}>•</Text>
-            <Text style={{ fontSize: 9, color: BLACK, flex: 1 }}>{obj}</Text>
-          </View>
-        ))}
+        <Text style={s.articleTitle}>3. Objectifs atteints</Text>
+        {formation.pvObjectifsAtteints ? (
+          <Text style={s.articleText}>{formation.pvObjectifsAtteints}</Text>
+        ) : (
+          <>
+            <Text style={[s.articleText, { marginBottom: 4 }]}>
+              La formation s'est déroulée conformément au programme prévu. Les objectifs pédagogiques suivants ont été abordés :
+            </Text>
+            {formation.objectifs.map((obj, i) => (
+              <View key={i} style={{ flexDirection: "row", marginTop: 4, gap: 8 }}>
+                <Text style={{ fontSize: 9, color: GRAY }}>•</Text>
+                <Text style={{ fontSize: 9, color: BLACK, flex: 1 }}>{obj}</Text>
+              </View>
+            ))}
+          </>
+        )}
 
         {/* Article 4 */}
-        <Text style={s.articleTitle}>4. Évaluation des acquis</Text>
-        <Text style={s.articleText}>
-          Une évaluation des acquis a été réalisée en cours et en fin de formation (quiz, mises en situation cliniques, échanges interactifs).
-          Les participants ont eu l'opportunité d'exprimer leur niveau de satisfaction via un questionnaire anonyme.
-        </Text>
+        <Text style={s.articleTitle}>4. Acquis de la formation</Text>
+        {formation.pvAcquis ? (
+          <Text style={s.articleText}>{formation.pvAcquis}</Text>
+        ) : (
+          <Text style={s.articleText}>
+            Une évaluation des acquis a été réalisée en cours et en fin de formation (quiz, mises en situation cliniques, échanges interactifs).
+            Les participants ont eu l'opportunité d'exprimer leur niveau de satisfaction via un questionnaire anonyme.
+          </Text>
+        )}
 
         {/* Article 5 - Observations */}
         <Text style={s.articleTitle}>5. Observations</Text>
         <View style={s.obsBox}>
-          <Text style={{ fontSize: 8, color: LIGHT_GRAY }}>Observations du formateur...</Text>
+          {formation.pvObservations ? (
+            <Text style={{ fontSize: 9, color: BLACK, lineHeight: 1.65 }}>{formation.pvObservations}</Text>
+          ) : (
+            <Text style={{ fontSize: 8, color: LIGHT_GRAY }}>Observations du formateur...</Text>
+          )}
         </View>
 
         {/* Signatures */}
