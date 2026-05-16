@@ -59,8 +59,10 @@ function computeEncKey(userPwd: Buffer, O: Buffer, P: number, fileId: Buffer): B
   return h.subarray(0, 16);
 }
 
-function computeU(encKey: Buffer): Buffer {
-  let u = rc4(encKey, Buffer.from(STD_PAD));
+// R=3: U = RC4×20(MD5(STD_PAD + fileId)) padded to 32 bytes
+function computeU(encKey: Buffer, fileId: Buffer): Buffer {
+  const h = md5(Buffer.concat([Buffer.from(STD_PAD), fileId]));
+  let u = rc4(encKey, h);
   for (let i = 1; i <= 19; i++) {
     const k = Buffer.from(encKey);
     for (let x = 0; x < 16; x++) k[x] ^= i;
@@ -209,7 +211,7 @@ export async function lockPdf(pdfBytes: Buffer): Promise<Buffer> {
 
   const O = computeO(ownerPwd, userPwd);
   const encKey = computeEncKey(userPwd, O, P, fileId);
-  const U = computeU(encKey);
+  const U = computeU(encKey, fileId);
 
   const text = pdfBytes.toString("binary");
   const xrefOffsets = parseXref(text);
