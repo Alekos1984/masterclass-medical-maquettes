@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 const navItems = [
   { href: "/formateur/dashboard", icon: "📊", label: "Dashboard" },
@@ -69,6 +69,19 @@ export default function FormateurLayout({ children }: { children: React.ReactNod
               <div className="sidebar-user-role">Formateur</div>
             </div>
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            style={{
+              width: "100%", background: "rgba(255,255,255,0.06)", border: "none",
+              borderRadius: 7, padding: "8px 12px", color: "rgba(255,255,255,0.5)",
+              fontSize: 12, fontWeight: 500, cursor: "pointer", textAlign: "left",
+              fontFamily: "inherit", transition: "background 0.15s", marginTop: 8,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+          >
+            🚪 Se déconnecter
+          </button>
         </div>
       </aside>
       <div className="main">{children}</div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 function getInitials(name: string | null | undefined): string {
   if (!name) return "?";
@@ -27,6 +27,18 @@ export default function ParticipantLayout({ children }: { children: React.ReactN
           <Link href="/participant/dashboard" className="participant-nav-link">Mes inscriptions</Link>
           <Link href="/participant/profil" className="participant-nav-link">Mon profil</Link>
           <div className="participant-nav-avatar">{initials}</div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            style={{
+              background: "none", border: "1px solid #E0E0E0", borderRadius: 7,
+              padding: "6px 12px", fontSize: 12, fontWeight: 500, cursor: "pointer",
+              color: "#6A6A6A", fontFamily: "inherit", transition: "border-color 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.color = "#C8102E"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.color = "#6A6A6A"; }}
+          >
+            🚪 Déconnexion
+          </button>
         </div>
       </nav>
       {children}
