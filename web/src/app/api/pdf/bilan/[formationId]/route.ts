@@ -3,6 +3,7 @@ import React from "react";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getFormationData } from "@/lib/pdf/db-helpers";
 import { BilanPedagogiquePdf } from "@/lib/pdf/templates/bilan-pedagogique";
+import { computeDocSeal } from "@/lib/pdf/seal";
 import { genererBilan } from "@/lib/ai/bilan";
 import { prisma } from "@/lib/prisma";
 import type { SatisfactionData } from "@/lib/pdf/shared/types";
@@ -21,6 +22,10 @@ export async function GET(
   ]);
 
   if (!data) return new Response("Formation introuvable", { status: 404 });
+
+  if (data.formation.bilanSigne && data.formation.bilanSigneAt) {
+    data.formation.documentSeal = computeDocSeal(formationId, "bilan", data.formation.bilanSigneAt);
+  }
 
   const reponsesData: SatisfactionData[] = satisfactions.map((s) => ({
     noteContenu: s.noteContenu,

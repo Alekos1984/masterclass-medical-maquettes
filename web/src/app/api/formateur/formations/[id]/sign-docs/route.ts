@@ -16,19 +16,13 @@ export async function POST(
 
   const profil = await prisma.formateurProfile.findUnique({
     where: { userId: session.user.id },
-    select: { id: true, signatureBase64: true },
+    select: { id: true },
   });
   if (!profil) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
 
   const formation = await prisma.formation.findUnique({
     where: { id },
-    select: {
-      formateurId: true,
-      signatureFormateurSnap: true,
-      titre: true,
-      date: true,
-      pvSigne: true,
-    },
+    select: { formateurId: true, titre: true, date: true, pvSigne: true },
   });
   if (!formation || formation.formateurId !== profil.id) {
     return NextResponse.json({ error: "Formation introuvable" }, { status: 404 });
@@ -36,18 +30,10 @@ export async function POST(
 
   const body = await req.json() as {
     docs: Array<"pv" | "bilan" | "certificat" | "emargement"> | "all";
-    signatureBase64?: string;
     pvContent?: { objectifsAtteints: string; observations: string; acquis: string };
     bilanContent?: { resume: string; recommandations: string; pointsForts: string };
   };
-  const { docs, signatureBase64: signatureFromBody, pvContent, bilanContent } = body;
-
-  // Resolve signature: from request > from profile > existing snap
-  const resolvedSignature =
-    signatureFromBody ||
-    profil.signatureBase64 ||
-    formation.signatureFormateurSnap ||
-    null;
+  const { docs, pvContent, bilanContent } = body;
 
   const list = docs === "all" ? ["pv", "bilan", "certificat"] : docs;
   const now = new Date();
@@ -65,18 +51,6 @@ export async function POST(
   if (list.includes("certificat")) { data.certificatSigne = true; data.certificatSigneAt = now; }
   if (list.includes("emargement")) { data.emargementSigne = true; data.emargementSigneAt = now; }
 
-  // Always save signature snapshot if we have one
-  if (resolvedSignature) {
-    data.signatureFormateurSnap = resolvedSignature;
-    // Also save back to profile for future use
-    if (!profil.signatureBase64 && resolvedSignature) {
-      await prisma.formateurProfile.update({
-        where: { id: profil.id },
-        data: { signatureBase64: resolvedSignature },
-      });
-    }
-  }
-
   const updated = await prisma.formation.update({
     where: { id },
     data,
@@ -89,11 +63,10 @@ export async function POST(
       certificatSigneAt: true,
       emargementSigne: true,
       emargementSigneAt: true,
-      signatureFormateurSnap: true,
     },
   });
 
-  // If PV was just signed, email participants with emargement to co-sign
+  // If PV just signed, notify participants to co-sign
   if (list.includes("pv") && !formation.pvSigne) {
     const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr";
     const dateFormatted = formation.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });

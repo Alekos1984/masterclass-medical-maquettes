@@ -164,48 +164,6 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   });
   const [acquisLoading, setAcquisLoading] = useState(false);
 
-  // Inline signature canvas for signing
-  const sigCanvasRef = useRef<HTMLCanvasElement>(null);
-  const sigDrawing = useRef(false);
-
-  function initCanvas(canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#0F0F0F";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-  }
-
-  function clearSigCanvas() {
-    const canvas = sigCanvasRef.current;
-    if (canvas) initCanvas(canvas);
-  }
-
-  // After overlay opens, initialize the canvas with white background
-  useEffect(() => {
-    if (viewDoc && viewDoc !== "pv-suivi") {
-      const canvas = sigCanvasRef.current;
-      if (canvas) initCanvas(canvas);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewDoc]);
-
-  function getSigBase64(): string | null {
-    const canvas = sigCanvasRef.current;
-    if (!canvas) return null;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    // Check alpha channel: any non-transparent pixel means the user drew something
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    // A fresh white canvas has all alpha=255 and all RGB=255
-    // A drawn canvas has drawn pixels with RGB < 255
-    const hasDrawing = Array.from(imgData).some((v, i) => i % 4 !== 3 && v < 200);
-    if (!hasDrawing) return null;
-    return canvas.toDataURL("image/png");
-  }
-
   // Sign state for official documents
   const [signState, setSignState] = useState({
     pvSigne: formation.pvSigne ?? false,
@@ -223,34 +181,9 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     [id: string]: { open: boolean; presentMatin: boolean; presentApresMidi: boolean; justification: string };
   }>({});
 
-  const [showSignAllModal, setShowSignAllModal] = useState(false);
-  const signAllCanvasRef = useRef<HTMLCanvasElement>(null);
-  const signAllDrawing = useRef(false);
 
-  function initSignAllCanvas() {
-    const c = signAllCanvasRef.current;
-    if (!c) return;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, c.width, c.height);
-  }
-
-  function getSignAllBase64(): string | null {
-    const c = signAllCanvasRef.current;
-    if (!c) return null;
-    const ctx = c.getContext("2d");
-    if (!ctx) return null;
-    const imgData = ctx.getImageData(0, 0, c.width, c.height).data;
-    const hasDrawing = Array.from(imgData).some((v, i) => i % 4 !== 3 && v < 200);
-    if (!hasDrawing) return null;
-    return c.toDataURL("image/png");
-  }
-
-  async function signDocs(docs: "pv" | "bilan" | "certificat" | "emargement" | "all", overrideSig?: string | null) {
-    const signatureBase64 = overrideSig !== undefined ? overrideSig : getSigBase64();
+  async function signDocs(docs: "pv" | "bilan" | "certificat" | "emargement" | "all") {
     const body: Record<string, unknown> = { docs };
-    if (signatureBase64) body.signatureBase64 = signatureBase64;
     if (docs === "pv" || docs === "all") body.pvContent = pvFields;
     if (docs === "bilan" || docs === "all") body.bilanContent = bilanFields;
     const res = await fetch(`/api/formateur/formations/${formation.id}/sign-docs`, {
@@ -526,67 +459,6 @@ export default function FormateurDetailClient({ formation }: { formation: Format
 
   return (
     <>
-      {/* Tout signer — modal signature */}
-      {showSignAllModal && (
-        <>
-          <div onClick={() => setShowSignAllModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 200 }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 201, background: "white", borderRadius: 16, padding: 28, width: 460, boxShadow: "0 24px 64px rgba(0,0,0,.25)" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>Signer tous les documents</div>
-            <p style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 16 }}>
-              Dessinez votre signature ci-dessous. Elle sera apposée sur le PV, le bilan et le certificat de réalisation.
-            </p>
-            <div style={{ position: "relative", marginBottom: 8 }}>
-              <canvas
-                ref={signAllCanvasRef}
-                width={400}
-                height={120}
-                style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, cursor: "crosshair", display: "block", width: "100%", touchAction: "none", background: "white" }}
-                onPointerDown={(e) => {
-                  signAllDrawing.current = true;
-                  const c = signAllCanvasRef.current!;
-                  const rect = c.getBoundingClientRect();
-                  const ctx = c.getContext("2d")!;
-                  ctx.beginPath();
-                  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-                  c.setPointerCapture(e.pointerId);
-                }}
-                onPointerMove={(e) => {
-                  if (!signAllDrawing.current) return;
-                  const c = signAllCanvasRef.current!;
-                  const rect = c.getBoundingClientRect();
-                  const ctx = c.getContext("2d")!;
-                  ctx.strokeStyle = "#0F0F0F";
-                  ctx.lineWidth = 2;
-                  ctx.lineCap = "round";
-                  ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-                  ctx.stroke();
-                }}
-                onPointerUp={() => { signAllDrawing.current = false; }}
-              />
-              <button type="button" onClick={() => { const c = signAllCanvasRef.current; if (c) { const ctx = c.getContext("2d"); if (ctx) { ctx.fillStyle = "white"; ctx.fillRect(0,0,c.width,c.height); } } }} style={{ position: "absolute", top: 6, right: 6, background: "#F5F5F5", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", color: "#6A6A6A", fontFamily: "inherit" }}>Effacer</button>
-            </div>
-            <p style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 20 }}>
-              Dessinez votre signature dans le cadre ci-dessus.
-            </p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => setShowSignAllModal(false)} style={{ background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Annuler</button>
-              <button
-                type="button"
-                onClick={async () => {
-                  const sig = getSignAllBase64();
-                  if (!sig) { alert("Veuillez dessiner votre signature avant de valider."); return; }
-                  await signDocs("all", sig);
-                  setShowSignAllModal(false);
-                }}
-                style={{ background: "#2e7d32", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                ✅ Signer tous les documents
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* Document view/sign overlay */}
       {viewDoc !== null && (
         <>
@@ -1092,61 +964,19 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   );
                 }
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#0F0F0F" }}>Votre signature</div>
-                    <div style={{ position: "relative", display: "inline-block" }}>
-                      <canvas
-                        ref={sigCanvasRef}
-                        width={380}
-                        height={110}
-                        style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, cursor: "crosshair", display: "block", touchAction: "none" }}
-                        onPointerDown={(e) => {
-                          sigDrawing.current = true;
-                          const canvas = sigCanvasRef.current!;
-                          const rect = canvas.getBoundingClientRect();
-                          const ctx = canvas.getContext("2d")!;
-                          ctx.beginPath();
-                          ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-                          canvas.setPointerCapture(e.pointerId);
-                        }}
-                        onPointerMove={(e) => {
-                          if (!sigDrawing.current) return;
-                          const canvas = sigCanvasRef.current!;
-                          const rect = canvas.getBoundingClientRect();
-                          const ctx = canvas.getContext("2d")!;
-                          ctx.strokeStyle = "#0F0F0F";
-                          ctx.lineWidth = 2;
-                          ctx.lineCap = "round";
-                          ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-                          ctx.stroke();
-                        }}
-                        onPointerUp={() => { sigDrawing.current = false; }}
-                      />
-                      <button
-                        type="button"
-                        onClick={clearSigCanvas}
-                        style={{ position: "absolute", top: 6, right: 6, background: "#F5F5F5", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", color: "#6A6A6A", fontFamily: "inherit" }}
-                      >
-                        Effacer
-                      </button>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#6A6A6A" }}>
-                      Dessinez votre signature ci-dessus, puis cliquez sur Signer. Elle sera apposée dans le PDF.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (viewDoc) await signDocs(viewDoc as "pv" | "bilan" | "certificat" | "emargement");
-                        setViewDoc(null);
-                      }}
-                      style={{
-                        background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
-                        padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start",
-                      }}
-                    >
-                      ✍️ Signer ce document
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (viewDoc) await signDocs(viewDoc as "pv" | "bilan" | "certificat" | "emargement");
+                      setViewDoc(null);
+                    }}
+                    style={{
+                      background: "#0F0F0F", color: "white", border: "none", borderRadius: 8,
+                      padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    ✍️ Signer numériquement ce document
+                  </button>
                 );
               })()}
             </div>
@@ -1501,7 +1331,10 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   )}
                   <button
                     type="button"
-                    onClick={() => { setShowSignAllModal(true); setTimeout(initSignAllCanvas, 50); }}
+                    onClick={async () => {
+                      if (!confirm("Signer numériquement le PV, le bilan et le certificat de réalisation ?")) return;
+                      await signDocs("all");
+                    }}
                     style={{
                       background: "#2e7d32", color: "white", border: "none", borderRadius: 8,
                       padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
