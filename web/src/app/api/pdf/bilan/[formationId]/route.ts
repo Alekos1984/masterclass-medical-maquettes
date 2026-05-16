@@ -60,8 +60,8 @@ export async function GET(
     })
   );
 
-  if (data.formation.bilanSigne && data.formation.documentSeal) {
-    buffer = await lockPdf(buffer, data.formation.documentSeal);
+  if (data.formation.bilanSigne) {
+    buffer = await lockPdf(buffer);
   }
 
   return pdfResponse(buffer, `bilan-${formationId}.pdf`);

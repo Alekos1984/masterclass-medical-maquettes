@@ -1399,52 +1399,75 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 {[
-                  { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}`, sub: "Certifiée demi-journée" },
-                  { icon: "📜", label: "Certificat de réalisation", href: `/api/pdf/certificat-realisation/${formation.id}`, sub: "Art. L6353-1 Code du travail" },
-                  { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "Envoyé aux participants J+1" },
-                  { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses · Analyse IA` : "Disponible J+3" },
+                  { icon: "✅", label: "Feuille de présence", href: `/api/pdf/feuille-presence/${formation.id}`, sub: "Certifiée demi-journée", signed: false },
+                  { icon: "📜", label: "Certificat de réalisation", href: `/api/pdf/certificat-realisation/${formation.id}`, sub: "Art. L6353-1 Code du travail", signed: signState.certificatSigne },
+                  { icon: "📝", label: "Questionnaire satisfaction", href: `/api/pdf/questionnaire/${formation.id}`, sub: "Envoyé aux participants J+1", signed: false },
+                  { icon: "📊", label: "Bilan pédagogique", href: `/api/pdf/bilan/${formation.id}?ai=true`, sub: formation.satisfactionsCount > 0 ? `${formation.satisfactionsCount} réponses · Analyse IA` : "Disponible J+3", signed: signState.bilanSigne },
                 ].map((doc) => (
-                  <a
-                    key={doc.href}
-                    href={doc.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                      border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
-                      color: "#0F0F0F", transition: "border-color 0.15s, background 0.15s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
-                  >
-                    <span style={{ fontSize: 20 }}>{doc.icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600 }}>{doc.label}</div>
-                      {doc.sub && <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>{doc.sub}</div>}
-                    </div>
-                    <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
-                  </a>
+                  <div key={doc.href} style={{ position: "relative" }}>
+                    {doc.signed && (
+                      <span style={{
+                        position: "absolute", top: -7, right: 8, zIndex: 1,
+                        background: "#16a34a", color: "#fff", fontSize: 9, fontWeight: 700,
+                        padding: "2px 6px", borderRadius: 10, letterSpacing: 0.3,
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+                      }}>✓ Signé</span>
+                    )}
+                    <a
+                      href={doc.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                        border: doc.signed ? "1.5px solid #16a34a" : "1.5px solid #E0E0E0",
+                        borderRadius: 10, textDecoration: "none",
+                        color: "#0F0F0F", transition: "border-color 0.15s, background 0.15s",
+                        background: doc.signed ? "#f0fdf4" : "white",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = doc.signed ? "#16a34a" : "#E0E0E0"; e.currentTarget.style.background = doc.signed ? "#f0fdf4" : "white"; }}
+                    >
+                      <span style={{ fontSize: 20 }}>{doc.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600 }}>{doc.label}</div>
+                        {doc.sub && <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>{doc.sub}</div>}
+                      </div>
+                      <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
+                    </a>
+                  </div>
                 ))}
                 {/* PV — opens overlay instead of direct PDF */}
-                <button
-                  type="button"
-                  onClick={() => setViewDoc("pv-suivi")}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                    border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
-                    color: "#0F0F0F", background: "white", cursor: "pointer", fontFamily: "inherit",
-                    transition: "border-color 0.15s, background 0.15s", textAlign: "left" as const,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
-                >
-                  <span style={{ fontSize: 20 }}>📋</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>Suivi des PV</div>
-                    <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>Signatures participants</div>
-                  </div>
-                  <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>→</span>
-                </button>
+                <div style={{ position: "relative" }}>
+                  {signState.pvSigne && (
+                    <span style={{
+                      position: "absolute", top: -7, right: 8, zIndex: 1,
+                      background: "#16a34a", color: "#fff", fontSize: 9, fontWeight: 700,
+                      padding: "2px 6px", borderRadius: 10, letterSpacing: 0.3,
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+                    }}>✓ Signé</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setViewDoc("pv-suivi")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", width: "100%",
+                      border: signState.pvSigne ? "1.5px solid #16a34a" : "1.5px solid #E0E0E0",
+                      borderRadius: 10, textDecoration: "none",
+                      color: "#0F0F0F", background: signState.pvSigne ? "#f0fdf4" : "white",
+                      cursor: "pointer", fontFamily: "inherit",
+                      transition: "border-color 0.15s, background 0.15s", textAlign: "left" as const,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = signState.pvSigne ? "#16a34a" : "#E0E0E0"; e.currentTarget.style.background = signState.pvSigne ? "#f0fdf4" : "white"; }}
+                  >
+                    <span style={{ fontSize: 20 }}>📋</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>Suivi des PV</div>
+                      <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>Signatures participants</div>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>→</span>
+                  </button>
+                </div>
               </div>
             </div>
 

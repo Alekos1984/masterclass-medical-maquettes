@@ -57,8 +57,8 @@ export async function GET(
     })
   );
 
-  if (data.formation.certificatSigne && data.formation.documentSeal) {
-    buffer = await lockPdf(buffer, data.formation.documentSeal);
+  if (data.formation.certificatSigne) {
+    buffer = await lockPdf(buffer);
   }
 
   return pdfResponse(buffer, `certificat-realisation-${formationId}.pdf`);
