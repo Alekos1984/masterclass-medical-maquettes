@@ -13,8 +13,8 @@ type ParticipantRow = {
   bg: string;
   presentMatin: boolean;
   presentApresMidi: boolean;
-  signatureMatinTime: string | null;
-  signatureApresMidiTime: string | null;
+  signatureMatinISO: string | null;
+  signatureApresMidiISO: string | null;
   isManualCorrection: boolean;
   emargementId: string | null;
   emargementToken: string | null;
@@ -443,12 +443,11 @@ export default function EmargementClient({
 
               {presentParticipants.map((p) => {
                 const isManual = !!manualPresent[p.inscriptionId] || p.isManualCorrection;
-                const timeStr =
-                  manualPresent[p.inscriptionId]?.time ??
-                  (activeTab === "matin"
-                    ? p.signatureMatinTime
-                    : p.signatureApresMidiTime) ??
-                  "—";
+                const isoStr = activeTab === "matin" ? p.signatureMatinISO : p.signatureApresMidiISO;
+                const dbTime = isoStr
+                  ? new Date(isoStr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", hour12: false })
+                  : null;
+                const timeStr = manualPresent[p.inscriptionId]?.time ?? dbTime ?? "—";
                 const emargementId = manualPresent[p.inscriptionId]?.emargementId ?? p.emargementId;
                 return (
                   <div

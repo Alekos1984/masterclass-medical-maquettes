@@ -70,8 +70,8 @@ export default async function FormateurEmargementPage({
     bg: string;
     presentMatin: boolean;
     presentApresMidi: boolean;
-    signatureMatinTime: string | null;
-    signatureApresMidiTime: string | null;
+    signatureMatinISO: string | null;
+    signatureApresMidiISO: string | null;
     isManualCorrection: boolean;
     emargementId: string | null;
     emargementToken: string | null;
@@ -84,14 +84,6 @@ export default async function FormateurEmargementPage({
       const name = user.name ?? user.email ?? "—";
       const emargement = insc.emargements[0] ?? null;
 
-      function fmtTime(d: Date | null): string | null {
-        if (!d) return null;
-        return `${d.getHours().toString().padStart(2, "0")}h${d
-          .getMinutes()
-          .toString()
-          .padStart(2, "0")}`;
-      }
-
       return {
         inscriptionId: insc.id,
         name,
@@ -101,10 +93,9 @@ export default async function FormateurEmargementPage({
         bg: AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length],
         presentMatin: emargement?.presentMatin ?? false,
         presentApresMidi: emargement?.presentApresMidi ?? false,
-        signatureMatinTime: emargement ? fmtTime(emargement.signatureMatin) : null,
-        signatureApresMidiTime: emargement
-          ? fmtTime(emargement.signatureApresMidi)
-          : null,
+        // Pass raw ISO strings — client formats in browser local timezone
+        signatureMatinISO: emargement?.signatureMatin?.toISOString() ?? null,
+        signatureApresMidiISO: emargement?.signatureApresMidi?.toISOString() ?? null,
         isManualCorrection: !!emargement?.correctionPresence,
         emargementId: emargement?.id ?? null,
         emargementToken: emargement?.token ?? null,
