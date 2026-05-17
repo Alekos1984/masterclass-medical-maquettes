@@ -19,10 +19,15 @@ interface Props {
   defaultTitre: string;
   defaultDescription: string;
   defaultInfoPratiques?: string;
+  visible: boolean;
   onClose: () => void;
+  onGenerated: (url: string) => void;
 }
 
-export default function AfficheOverlay({ formationId, defaultTitre, defaultDescription, defaultInfoPratiques, onClose }: Props) {
+export default function AfficheOverlay({
+  formationId, defaultTitre, defaultDescription, defaultInfoPratiques,
+  visible, onClose, onGenerated,
+}: Props) {
   const [titre, setTitre] = useState(defaultTitre);
   const [description, setDescription] = useState(defaultDescription.slice(0, 300));
   const [infoPratiques, setInfoPratiques] = useState(defaultInfoPratiques ?? "");
@@ -91,6 +96,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+      onGenerated(url);
     } catch (err) {
       setGenerateError("Erreur réseau : " + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -109,8 +115,8 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
     <div
       style={{
         position: "fixed", inset: 0, zIndex: 999,
-        background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px",
+        background: "rgba(0,0,0,0.6)", display: visible ? "flex" : "none",
+        alignItems: "center", justifyContent: "center", padding: "20px",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -169,7 +175,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
           {/* Couleur du bloc titre (si pas d'image) */}
           {!imageDataUrl && (
             <div>
-              <label style={labelStyle}>Couleur du bloc titre <span style={{ fontWeight: 400, color: "#6A6A6A" }}>(si pas d'image)</span></label>
+              <label style={labelStyle}>Couleur du bloc titre <span style={{ fontWeight: 400, color: "#6A6A6A" }}>(si pas d&apos;image)</span></label>
               <div style={{ display: "flex", gap: 8 }}>
                 {COULEURS.map((c) => (
                   <button
@@ -210,7 +216,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
                 </div>
               ) : (
                 <div style={{ fontSize: 13, color: "#6A6A6A" }}>
-                  🖼️ Cliquez ou glissez une image ici
+                  Cliquez ou glissez une image ici
                   <div style={{ fontSize: 11, marginTop: 4 }}>JPG · PNG · WEBP — max {MAX_MB} Mo</div>
                 </div>
               )}
@@ -224,7 +230,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
             />
             {imageError && (
               <div style={{ background: "#fff0f0", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#b91c1c", marginTop: 8 }}>
-                ⚠️ {imageError}
+                {imageError}
               </div>
             )}
             {imageDataUrl && (
@@ -240,7 +246,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
 
           {/* QR code info */}
           <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#1e40af" }}>
-            🔗 Un QR code pointant vers la page d&apos;inscription sera automatiquement ajouté à l&apos;affiche.
+            Un QR code pointant vers la page d&apos;inscription sera automatiquement ajouté à l&apos;affiche.
           </div>
         </div>
 
@@ -257,7 +263,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
             onClick={onClose}
             style={{ flex: 1, padding: "10px 0", background: "white", border: "1.5px solid #E0E0E0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "#444" }}
           >
-            Annuler
+            Fermer
           </button>
           <button
             onClick={handleGenerate}
@@ -268,7 +274,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
               cursor: generating ? "wait" : "pointer", fontFamily: "inherit",
             }}
           >
-            {generating ? "Génération en cours…" : "🖼️ Générer l'affiche PDF"}
+            {generating ? "Génération en cours…" : downloadUrl ? "Regénérer" : "Générer l'affiche PDF"}
           </button>
           {downloadUrl && (
             <a
@@ -281,7 +287,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
                 textAlign: "center",
               }}
             >
-              ⬇️ Télécharger le PDF
+              Télécharger le PDF
             </a>
           )}
         </div>

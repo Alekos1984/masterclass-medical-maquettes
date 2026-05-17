@@ -103,6 +103,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     Object.fromEntries(formation.inscriptions.map((i) => [i.id, i.conventionSignee]))
   );
   const [afficheOverlayOpen, setAfficheOverlayOpen] = useState(false);
+  const [afficheDownloadUrl, setAfficheDownloadUrl] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<string | null>(formation.sessionStatus);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
@@ -1318,20 +1319,32 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                   </div>
                   <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
                 </a>
-                <button
-                  type="button"
-                  onClick={() => setAfficheOverlayOpen(true)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: "1.5px solid #E0E0E0", borderRadius: 10, background: "white", cursor: "pointer", fontFamily: "inherit", color: "#0F0F0F", textAlign: "left" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
-                >
-                  <span style={{ fontSize: 20 }}>🖼️</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>Affiche A4</div>
-                    <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>Personnaliser et télécharger</div>
-                  </div>
-                  <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>⚙️</span>
-                </button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => setAfficheOverlayOpen(true)}
+                    style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: "1.5px solid #E0E0E0", borderRadius: 10, background: "white", cursor: "pointer", fontFamily: "inherit", color: "#0F0F0F", textAlign: "left" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>Affiche A4</div>
+                      <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>
+                        {afficheDownloadUrl ? "Modifier l'affiche" : "Personnaliser et générer"}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>⚙️</span>
+                  </button>
+                  {afficheDownloadUrl && (
+                    <a
+                      href={afficheDownloadUrl}
+                      download={`affiche-${formation.id}.pdf`}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "12px 14px", border: "1.5px solid #16a34a", borderRadius: 10, background: "#f0fdf4", color: "#16a34a", fontWeight: 700, fontSize: 12, textDecoration: "none", whiteSpace: "nowrap" }}
+                    >
+                      Télécharger PDF
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -2103,29 +2116,29 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         )}
       </div>
 
-      {afficheOverlayOpen && (
-        <AfficheOverlay
-          formationId={formation.id}
-          defaultTitre={formation.titre}
-          defaultDescription={formation.description}
-          defaultInfoPratiques={[
-            formation.lieuNom
-              ? `Lieu : ${formation.lieuNom}${formation.lieuVille ? `, ${formation.lieuVille}` : ""}`
-              : formation.lieuVille
-              ? `Lieu : ${formation.lieuVille}`
-              : null,
-            formation.restauration ? `Restauration : ${formation.restauration}` : null,
-            formation.publicCible ? `Public cible : ${formation.publicCible}` : null,
-            formation.formatFormation ? `Format : ${formation.formatFormation}` : null,
-            formation.equipements?.length
-              ? `Equipements : ${formation.equipements.join(", ")}`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-          onClose={() => setAfficheOverlayOpen(false)}
-        />
-      )}
+      <AfficheOverlay
+        formationId={formation.id}
+        defaultTitre={formation.titre}
+        defaultDescription={formation.description}
+        defaultInfoPratiques={[
+          formation.lieuNom
+            ? `Lieu : ${formation.lieuNom}${formation.lieuVille ? `, ${formation.lieuVille}` : ""}`
+            : formation.lieuVille
+            ? `Lieu : ${formation.lieuVille}`
+            : null,
+          formation.restauration ? `Restauration : ${formation.restauration}` : null,
+          formation.publicCible ? `Public cible : ${formation.publicCible}` : null,
+          formation.formatFormation ? `Format : ${formation.formatFormation}` : null,
+          formation.equipements?.length
+            ? `Equipements : ${formation.equipements.join(", ")}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        visible={afficheOverlayOpen}
+        onClose={() => setAfficheOverlayOpen(false)}
+        onGenerated={(url) => setAfficheDownloadUrl(url)}
+      />
     </>
   );
 }
