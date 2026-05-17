@@ -62,10 +62,16 @@ export async function GET(
   { params }: { params: Promise<{ formationId: string }> }
 ) {
   const { formationId } = await params;
-  const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
-  if (!data) return new Response("Formation introuvable", { status: 404 });
-  const buffer = await buildAffiche(data, company, {});
-  return pdfResponse(buffer, `affiche-${formationId}.pdf`);
+  try {
+    const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
+    if (!data) return new Response("Formation introuvable", { status: 404 });
+    const buffer = await buildAffiche(data, company, {});
+    return pdfResponse(buffer, `affiche-${formationId}.pdf`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[affiche GET]", msg);
+    return new Response(`Erreur génération PDF : ${msg}`, { status: 500 });
+  }
 }
 
 export async function POST(
@@ -93,9 +99,15 @@ export async function POST(
     }
   }
 
-  const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
-  if (!data) return new Response("Formation introuvable", { status: 404 });
+  try {
+    const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
+    if (!data) return new Response("Formation introuvable", { status: 404 });
 
-  const buffer = await buildAffiche(data, company, { titre, description, infoPratiques, imageBase64, couleur });
-  return pdfResponse(buffer, `affiche-${formationId}.pdf`);
+    const buffer = await buildAffiche(data, company, { titre, description, infoPratiques, imageBase64, couleur });
+    return pdfResponse(buffer, `affiche-${formationId}.pdf`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[affiche POST]", msg);
+    return new Response(`Erreur génération PDF : ${msg}`, { status: 500 });
+  }
 }
