@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function PayerButton({ inscriptionId }: { inscriptionId: string }) {
+export default function PayerButton({ inscriptionId, label }: { inscriptionId: string; label?: string }) {
   const [loading, setLoading] = useState(false);
 
   async function handlePay() {
@@ -28,7 +28,7 @@ export default function PayerButton({ inscriptionId }: { inscriptionId: string }
         fontFamily: "inherit", opacity: loading ? 0.7 : 1,
       }}
     >
-      {loading ? "Redirection…" : "💳 Payer maintenant"}
+      {loading ? "Redirection…" : (label ?? "💳 Payer maintenant")}
     </button>
   );
 }

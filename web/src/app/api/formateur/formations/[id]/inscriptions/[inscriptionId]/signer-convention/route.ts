@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { computeInscriptionSeal } from "@/lib/pdf/seal";
 
 export async function POST(
   _req: NextRequest,
@@ -18,7 +19,12 @@ export async function POST(
 
   const inscription = await prisma.inscription.findUnique({
     where: { id: inscriptionId },
-    select: { id: true, formationId: true, formation: { select: { formateurId: true } } },
+    select: {
+      id: true,
+      formationId: true,
+      conventionParticipantSigneeAt: true,
+      formation: { select: { formateurId: true } },
+    },
   });
   if (
     !inscription ||
@@ -28,10 +34,21 @@ export async function POST(
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
+  const now = new Date();
+  const participantAt = inscription.conventionParticipantSigneeAt?.toISOString();
+
+  const seal = participantAt
+    ? computeInscriptionSeal(inscriptionId, "convention", now.toISOString(), participantAt)
+    : null;
+
   await prisma.inscription.update({
     where: { id: inscriptionId },
-    data: { conventionSignee: true },
+    data: {
+      conventionSignee: true,
+      conventionSigneeAt: now,
+      ...(seal ? { conventionSeal: seal } : {}),
+    },
   });
 
-  return NextResponse.json({ conventionSignee: true });
+  return NextResponse.json({ conventionSignee: true, conventionSigneeAt: now.toISOString() });
 }

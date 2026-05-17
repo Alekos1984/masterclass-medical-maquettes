@@ -88,7 +88,12 @@ export default async function FormateurDetailFormationPage({
       createdAt: i.createdAt.toISOString(),
       statut: i.statut,
       convocationSignee: i.convocationSignee,
+      convocationSigneeAt: i.convocationSigneeAt?.toISOString() ?? null,
+      convocationAccuseAt: i.convocationAccuseAt?.toISOString() ?? null,
       conventionSignee: i.conventionSignee,
+      conventionSigneeAt: i.conventionSigneeAt?.toISOString() ?? null,
+      conventionParticipantSigneeAt: i.conventionParticipantSigneeAt?.toISOString() ?? null,
+      conventionSeal: i.conventionSeal ?? null,
       paiementId: i.paiement?.id ?? null,
       participant: {
         name: i.participant.user.name ?? "Anonyme",

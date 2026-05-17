@@ -28,10 +28,11 @@ export async function POST(
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
+  const now = new Date();
   await prisma.inscription.update({
     where: { id: inscriptionId },
-    data: { convocationSignee: true },
+    data: { convocationSignee: true, convocationSigneeAt: now },
   });
 
-  return NextResponse.json({ convocationSignee: true });
+  return NextResponse.json({ convocationSignee: true, convocationSigneeAt: now.toISOString() });
 }

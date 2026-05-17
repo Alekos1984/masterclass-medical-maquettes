@@ -171,7 +171,7 @@ export function AffichePdf({
                   {objectifs.map((obj, i) => (
                     <View key={i} style={{ width: "50%", flexDirection: "row", marginBottom: 4, paddingRight: 10 }}>
                       <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: col.main, marginTop: 3, marginRight: 5, flexShrink: 0 }} />
-                      <Text style={{ fontSize: 7.5, color: BLACK, flex: 1, lineHeight: 1.5 }}>{truncate(obj, 80)}</Text>
+                      <Text style={{ fontSize: 7.5, color: BLACK, flex: 1, lineHeight: 1.5 }}>{obj}</Text>
                     </View>
                   ))}
                 </View>

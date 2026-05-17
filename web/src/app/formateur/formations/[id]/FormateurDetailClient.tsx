@@ -16,7 +16,12 @@ type Inscription = {
   createdAt: string;
   statut: string;
   convocationSignee: boolean;
+  convocationSigneeAt: string | null;
+  convocationAccuseAt: string | null;
   conventionSignee: boolean;
+  conventionSigneeAt: string | null;
+  conventionParticipantSigneeAt: string | null;
+  conventionSeal: string | null;
   paiementId: string | null;
   participant: {
     name: string;
@@ -1353,62 +1358,97 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             </div>
 
             {/* Convocations individuelles */}
-            {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length > 0 && (
+            {formation.inscriptions.length > 0 && (
               <div style={cardStyle}>
                 <div className="card-header">
                   <span className="card-title">Convocations individuelles</span>
-                  <span style={{ fontSize: 11, color: "#6A6A6A" }}>
-                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE" && convocationState[i.id]).length}
-                    /{formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length} envoyées
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: "#6A6A6A" }}>
+                      {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE" && convocationState[i.id]).length}
+                      /{formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length} signées
+                    </span>
+                    {formation.inscriptions.some((i) => i.statut === "CONFIRMEE" && !convocationState[i.id]) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm("Signer toutes les convocations en attente ?")) return;
+                          const pending = formation.inscriptions.filter((i) => i.statut === "CONFIRMEE" && !convocationState[i.id]);
+                          for (const insc of pending) await signerConvocation(insc.id);
+                        }}
+                        style={{ background: "#1565c0", color: "white", border: "none", borderRadius: 7, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        ✍️ Tout signer
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid #EBEBEB" }}>
                       <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Participant</th>
-                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Statut</th>
+                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Signature</th>
+                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Accusé de réception</th>
                       <th style={{ textAlign: "right", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").map((insc) => (
-                      <tr key={insc.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
-                        <td style={{ padding: "10px 0", fontSize: 13 }}>
-                          <div style={{ fontWeight: 600 }}>{insc.participant.name}</div>
-                          <div style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.email}</div>
-                        </td>
-                        <td style={{ padding: "10px 0" }}>
-                          {convocationState[insc.id] ? (
-                            <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Envoyée</span>
-                          ) : (
-                            <span style={{ fontSize: 12, color: "#6A6A6A" }}>En attente</span>
-                          )}
-                        </td>
-                        <td style={{ padding: "10px 0", textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", color: "#0F0F0F" }}>
-                            PDF ↗
-                          </a>
-                          {!convocationState[insc.id] ? (
-                            <button
-                              type="button"
-                              onClick={() => signerConvocation(insc.id)}
-                              style={{ background: "#1565c0", color: "white", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                            >
-                              ✍️ Marquer comme envoyée
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: 12, color: "#2e7d32", padding: "5px 10px" }}>✓</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {formation.inscriptions.map((insc) => {
+                      const confirmed = insc.statut === "CONFIRMEE";
+                      const rowStyle: React.CSSProperties = confirmed ? { borderBottom: "1px solid #F5F5F5" } : { borderBottom: "1px solid #F5F5F5", opacity: 0.45 };
+                      return (
+                        <tr key={insc.id} style={rowStyle}>
+                          <td style={{ padding: "10px 0", fontSize: 13 }}>
+                            <div style={{ fontWeight: 600 }}>{insc.participant.name}</div>
+                            <div style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.email}</div>
+                            {!confirmed && <div style={{ fontSize: 10, color: "#b45309", fontWeight: 600, marginTop: 2 }}>En attente de confirmation</div>}
+                          </td>
+                          <td style={{ padding: "10px 0" }}>
+                            {convocationState[insc.id] ? (
+                              <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Signée</span>
+                            ) : (
+                              <span style={{ fontSize: 12, color: "#6A6A6A" }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 0" }}>
+                            {insc.convocationAccuseAt ? (
+                              <span style={{ fontSize: 11, color: "#2e7d32", fontWeight: 600 }}>✓ Reçu le {new Date(insc.convocationAccuseAt).toLocaleDateString("fr-FR")}</span>
+                            ) : (
+                              <span style={{ fontSize: 11, color: "#9E9E9E" }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 0", textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                              {confirmed ? (
+                                <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", color: "#0F0F0F" }}>
+                                  PDF ↗
+                                </a>
+                              ) : (
+                                <span style={{ fontSize: 12, color: "#BDBDBD", padding: "5px 10px", border: "1.5px solid #E0E0E0", borderRadius: 7 }}>PDF</span>
+                              )}
+                              {confirmed && !convocationState[insc.id] && (
+                                <button
+                                  type="button"
+                                  onClick={() => signerConvocation(insc.id)}
+                                  style={{ background: "#1565c0", color: "white", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                  ✍️ Signer
+                                </button>
+                              )}
+                              {confirmed && convocationState[insc.id] && (
+                                <span style={{ fontSize: 12, color: "#2e7d32", padding: "5px 10px" }}>✓</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
 
             {/* Conventions individuelles */}
-            {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length > 0 && (
+            {formation.inscriptions.length > 0 && (
               <div style={cardStyle}>
                 <div className="card-header">
                   <span className="card-title">Conventions individuelles de formation</span>
@@ -1426,36 +1466,53 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                     </tr>
                   </thead>
                   <tbody>
-                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").map((insc) => (
-                      <tr key={insc.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
-                        <td style={{ padding: "10px 0", fontSize: 13 }}>
-                          <div style={{ fontWeight: 600 }}>{insc.participant.name}</div>
-                          <div style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.email}</div>
-                        </td>
-                        <td style={{ padding: "10px 0" }}>
-                          {conventionState[insc.id] ? (
-                            <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Signée</span>
-                          ) : (
-                            <span style={{ fontSize: 12, color: "#6A6A6A" }}>En attente</span>
-                          )}
-                        </td>
-                        <td style={{ padding: "10px 0", textAlign: "right" }}>
-                          {!conventionState[insc.id] ? (
-                            <button
-                              type="button"
-                              onClick={() => signerConvention(insc.id)}
-                              style={{ background: "#C8102E", color: "white", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                            >
-                              ✍️ Signer numériquement
-                            </button>
-                          ) : (
-                            <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#C8102E", fontWeight: 600, textDecoration: "none" }}>
-                              PDF ↗
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {formation.inscriptions.map((insc) => {
+                      const confirmed = insc.statut === "CONFIRMEE";
+                      const rowStyle: React.CSSProperties = confirmed ? { borderBottom: "1px solid #F5F5F5" } : { borderBottom: "1px solid #F5F5F5", opacity: 0.45 };
+                      const participantSigned = !!insc.conventionParticipantSigneeAt;
+                      const bothSigned = conventionState[insc.id] && participantSigned;
+                      return (
+                        <tr key={insc.id} style={rowStyle}>
+                          <td style={{ padding: "10px 0", fontSize: 13 }}>
+                            <div style={{ fontWeight: 600 }}>{insc.participant.name}</div>
+                            <div style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.email}</div>
+                            {!confirmed && <div style={{ fontSize: 10, color: "#b45309", fontWeight: 600, marginTop: 2 }}>En attente de confirmation</div>}
+                          </td>
+                          <td style={{ padding: "10px 0" }}>
+                            {bothSigned ? (
+                              <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Co-signée</span>
+                            ) : conventionState[insc.id] ? (
+                              <span style={{ fontSize: 12, color: "#1565c0", fontWeight: 600 }}>⏳ En attente participant</span>
+                            ) : participantSigned ? (
+                              <span style={{ fontSize: 12, color: "#b45309", fontWeight: 600 }}>⏳ En attente formateur</span>
+                            ) : (
+                              <span style={{ fontSize: 12, color: "#6A6A6A" }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 0", textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                              {confirmed && (
+                                <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", color: "#0F0F0F" }}>
+                                  PDF ↗
+                                </a>
+                              )}
+                              {!confirmed && (
+                                <span style={{ fontSize: 12, color: "#BDBDBD", padding: "5px 10px", border: "1.5px solid #E0E0E0", borderRadius: 7 }}>PDF</span>
+                              )}
+                              {confirmed && !conventionState[insc.id] && (
+                                <button
+                                  type="button"
+                                  onClick={() => signerConvention(insc.id)}
+                                  style={{ background: "#C8102E", color: "white", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                  ✍️ Signer
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
