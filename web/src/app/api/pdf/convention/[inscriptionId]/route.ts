@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getInscriptionData, mapParticipant } from "@/lib/pdf/db-helpers";
 import { ConventionPdf } from "@/lib/pdf/templates/convention";
+import { lockPdf } from "@/lib/pdf/encrypt";
 import type { FormationData, ProgrammeItem } from "@/lib/pdf/shared/types";
 
 export async function GET(
@@ -66,7 +67,7 @@ export async function GET(
     niveau: f.niveau,
   };
 
-  const buffer = await renderPdf(
+  let buffer = await renderPdf(
     React.createElement(ConventionPdf, {
       company,
       formateur: {
@@ -95,6 +96,9 @@ export async function GET(
       },
     })
   );
+
+  const bothSigned = !!(inscription.conventionSignee && inscription.conventionParticipantSigneeAt);
+  if (bothSigned) buffer = await lockPdf(buffer);
 
   return pdfResponse(buffer, `convention-${inscriptionId}.pdf`);
 }

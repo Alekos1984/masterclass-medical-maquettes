@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getInscriptionData, mapParticipant } from "@/lib/pdf/db-helpers";
 import { ConvocationPdf } from "@/lib/pdf/templates/convocation";
+import { lockPdf } from "@/lib/pdf/encrypt";
 import type { FormationData, ProgrammeItem } from "@/lib/pdf/shared/types";
 
 export async function GET(
@@ -77,7 +78,7 @@ export async function GET(
     niveau: f.niveau,
   };
 
-  const buffer = await renderPdf(
+  let buffer = await renderPdf(
     React.createElement(ConvocationPdf, {
       company,
       formateur: {
@@ -101,6 +102,8 @@ export async function GET(
         : undefined,
     })
   );
+
+  if (inscription.convocationSignee) buffer = await lockPdf(buffer);
 
   return pdfResponse(buffer, `convocation-${inscriptionId}.pdf`);
 }
