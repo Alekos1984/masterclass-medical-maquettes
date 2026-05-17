@@ -222,29 +222,19 @@ export default async function ParticipantDashboardPage() {
                     {(f.sessionStatus === "EN_COURS" || f.sessionStatus === "EN_PAUSE") && (() => {
                       const emg = insc.emargements[0];
                       const alreadyEmarked = emg && (emg.presentMatin || emg.presentApresMidi);
-                      if (alreadyEmarked) {
-                        return (
-                          <div style={{ padding: "10px 16px", background: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
-                              ✅ Émargement enregistré
-                            </span>
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>Votre présence est confirmée</span>
-                          </div>
-                        );
-                      }
                       return (
-                        <div style={{ padding: "10px 16px", background: "#C8102E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                        <div style={{ padding: "10px 16px", background: alreadyEmarked ? "#1b4332" : "#C8102E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                           <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
-                            🔴 Session démarrée{f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}
+                            {alreadyEmarked ? "✅ Présence confirmée" : `🔴 Session démarrée${f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}`}
                           </span>
                           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                             <a
                               href={`/participant/session/${f.id}`}
-                              style={{ background: "white", color: "#C8102E", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
+                              style={{ background: "white", color: alreadyEmarked ? "#2e7d32" : "#C8102E", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
                             >
                               🖥️ Rejoindre la session
                             </a>
-                            {emg?.token && (
+                            {!alreadyEmarked && emg?.token && (
                               <a
                                 href={`/emarger/${emg.token}`}
                                 style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" as const }}
