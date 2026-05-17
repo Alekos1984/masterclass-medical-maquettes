@@ -61,6 +61,7 @@ export default async function ParticipantDashboardPage() {
           paiement: { select: { id: true } },
           satisfaction: { select: { id: true } },
           emargements: { select: { id: true, presentMatin: true, presentApresMidi: true, pvParticipantSignedAt: true } },
+          _count: { select: { emargements: true } },
         },
         orderBy: { formation: { date: "asc" } },
       })
@@ -221,13 +222,13 @@ export default async function ParticipantDashboardPage() {
                         {insc.statut === StatutInscription.EN_ATTENTE_PAIEMENT && (
                           <PayerButton inscriptionId={insc.id} />
                         )}
-                        {/* Convocation — dispo seulement si inscription confirmée */}
-                        {insc.statut === StatutInscription.CONFIRMEE ? (
+                        {/* Convocation — dispo après envoi par le formateur */}
+                        {insc.convocationSignee ? (
                           <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                             📬 Convocation PDF
                           </a>
                         ) : (
-                          <span title="Disponible après confirmation de votre inscription" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                          <span title="En attente d'envoi par le formateur" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
                             📬 Convocation PDF
                           </span>
                         )}
