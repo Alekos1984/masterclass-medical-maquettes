@@ -20,13 +20,12 @@ interface Props {
   description: string;
 }
 
-type Tab = "notes" | "ressources" | "questions" | "ia";
-
+type Tab = "notes" | "ressources" | "questions";
 type AiMessage = { role: "user" | "assistant"; content: string };
 
 export default function SessionClient({
   formationId, titre, specialite, heureDebut, heureFin,
-  modaliteSession, hasSlides, initialPage, ressources: initialRessources, description,
+  modaliteSession, hasSlides, initialPage, ressources: initialRessources,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("notes");
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -63,11 +62,13 @@ export default function SessionClient({
   const [questionSending, setQuestionSending] = useState(false);
   const [myQuestions, setMyQuestions] = useState<{ id: string; texte: string; createdAt: string }[]>([]);
 
-  // AI
+  // AI panel
+  const [aiOpen, setAiOpen] = useState(false);
   const [aiHistory, setAiHistory] = useState<AiMessage[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const aiEndRef = useRef<HTMLDivElement>(null);
+  const aiInputRef = useRef<HTMLInputElement>(null);
 
   // Latest drawing data ref so onPdfRender closure always has current value
   const drawingDataRef = useRef<DrawingData | null>(null);
@@ -93,7 +94,6 @@ export default function SessionClient({
     }
   }
 
-  // Called by PdfPageCanvas after each page render
   const onPdfRender = useCallback((pdfCanvas: HTMLCanvasElement) => {
     const drawCanvas = drawingCanvasRef.current;
     const container = pdfContainerRef.current;
@@ -109,7 +109,6 @@ export default function SessionClient({
     paintStrokes(drawCanvas, drawingDataRef.current, currentPage);
   }, [currentPage]);
 
-  // Re-paint when drawing data updates (without waiting for PDF re-render)
   useEffect(() => {
     const canvas = drawingCanvasRef.current;
     if (canvas && canvas.width > 0) paintStrokes(canvas, drawingData, currentPage);
@@ -147,6 +146,11 @@ export default function SessionClient({
   useEffect(() => {
     aiEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [aiHistory]);
+
+  // Focus input when panel opens
+  useEffect(() => {
+    if (aiOpen) setTimeout(() => aiInputRef.current?.focus(), 100);
+  }, [aiOpen]);
 
   async function sendQuestion() {
     if (!questionText.trim()) return;
@@ -211,69 +215,175 @@ export default function SessionClient({
   return (
     <div style={{ minHeight: "100vh", background: "#0d1117", color: "white", display: "flex", flexDirection: "column" }}>
       {/* TOP BAR */}
-      <div style={{ background: "#161b22", borderBottom: "1px solid #30363d", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: "#161b22", borderBottom: "1px solid #30363d", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3fb950", boxShadow: "0 0 6px #3fb950" }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f6fc" }}>{titre}</span>
           <span style={{ fontSize: 11, color: "#8b949e", background: "#21262d", padding: "2px 8px", borderRadius: 4 }}>{specialite}</span>
         </div>
-        <div style={{ fontSize: 12, color: "#8b949e" }}>{heureDebut} – {heureFin}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 12, color: "#8b949e" }}>{heureDebut} – {heureFin}</div>
+          {/* AI toggle button in topbar */}
+          <button
+            onClick={() => setAiOpen((v) => !v)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: aiOpen ? "rgba(110,64,201,0.25)" : "rgba(110,64,201,0.12)",
+              color: "#a78bfa", border: `1px solid ${aiOpen ? "rgba(110,64,201,0.6)" : "rgba(110,64,201,0.25)"}`,
+              borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            🤖 IA contextuelle
+          </button>
+        </div>
       </div>
 
-      {/* MAIN AREA */}
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: hasSlides && showVideo ? "1fr 380px" : hasSlides || showVideo ? "1fr 380px" : "1fr", gridTemplateRows: "1fr auto", gap: 0 }}>
-        {/* SLIDES */}
-        {hasSlides && (
-          <div ref={pdfContainerRef} style={{ position: "relative", background: "#0d1117", borderRight: showVideo ? "1px solid #30363d" : "none", overflow: "hidden" }}>
-            <PdfPageCanvas
-              pdfUrl={`/api/formateur/formations/${formationId}/slides`}
-              page={currentPage}
-              onRender={onPdfRender}
-              style={{ width: "100%", height: "100%", minHeight: 480 }}
-            />
-            {/* Drawing overlay (read-only, positioned via onPdfRender) */}
-            <canvas
-              ref={drawingCanvasRef}
-              style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
-            />
-            <div style={{
-              position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
-              background: "rgba(0,0,0,0.75)", borderRadius: 20, padding: "4px 14px",
-              fontSize: 12, color: "white", backdropFilter: "blur(4px)",
-            }}>
-              Page <strong>{currentPage}</strong> · sync automatique
+      {/* MAIN AREA — flex row so AI panel sits beside slides */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+        {/* SLIDES + JITSI column */}
+        <div style={{
+          flex: 1, display: "grid", minWidth: 0,
+          gridTemplateColumns: hasSlides && showVideo ? "1fr 360px" : "1fr",
+          gridTemplateRows: "1fr",
+        }}>
+          {/* SLIDES */}
+          {hasSlides && (
+            <div ref={pdfContainerRef} style={{ position: "relative", background: "#0d1117", borderRight: showVideo ? "1px solid #30363d" : "none", overflow: "hidden" }}>
+              <PdfPageCanvas
+                pdfUrl={`/api/formateur/formations/${formationId}/slides`}
+                page={currentPage}
+                onRender={onPdfRender}
+                style={{ width: "100%", height: "100%", minHeight: 480 }}
+              />
+              <canvas ref={drawingCanvasRef} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }} />
+              <div style={{
+                position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
+                background: "rgba(0,0,0,0.75)", borderRadius: 20, padding: "4px 14px",
+                fontSize: 12, color: "white", backdropFilter: "blur(4px)",
+              }}>
+                Page <strong>{currentPage}</strong> · sync automatique
+              </div>
+            </div>
+          )}
+
+          {/* No slides + no video placeholder */}
+          {!hasSlides && !showVideo && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 13 }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
+                <div>Aucun diaporama partagé par le formateur</div>
+              </div>
+            </div>
+          )}
+
+          {/* JITSI VIDEO */}
+          {showVideo && (
+            <div style={{ background: "#000", borderLeft: "1px solid #30363d" }}>
+              <iframe
+                src={`https://meet.jit.si/${jitsiRoom}`}
+                allow="camera; microphone; fullscreen; display-capture"
+                style={{ width: "100%", height: "100%", minHeight: 480, border: "none" }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* AI CHAT PANEL — inline on large screens */}
+        {aiOpen && (
+          <div style={{
+            width: 360, flexShrink: 0,
+            background: "#161b22", borderLeft: "1px solid #30363d",
+            display: "flex", flexDirection: "column",
+            // On small screens: fixed overlay covering right side
+          }}>
+            {/* AI Panel header */}
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #30363d", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#a78bfa" }}>🤖 IA contextuelle</div>
+                <div style={{ fontSize: 10, color: "#3fb950", marginTop: 2 }}>🔬 Références PubMed en temps réel</div>
+              </div>
+              <button
+                onClick={() => setAiOpen(false)}
+                style={{ background: "none", border: "none", color: "#8b949e", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: 4 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {aiHistory.length === 0 && (
+                <div style={{ color: "#8b949e", fontSize: 12, lineHeight: 1.6, marginTop: 8 }}>
+                  Posez une question sur le contenu du cours — l&apos;IA répond en contexte et recherche les références sur PubMed (NIH) en temps réel.
+                </div>
+              )}
+              {aiHistory.map((m, i) => (
+                <div key={i} style={{
+                  padding: "8px 11px", borderRadius: 10,
+                  background: m.role === "user" ? "#1f3d5c" : "#21262d",
+                  fontSize: 12, color: "#f0f6fc", whiteSpace: "pre-wrap", lineHeight: 1.55,
+                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "92%",
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: m.role === "user" ? "#58a6ff" : "#3fb950" }}>
+                    {m.role === "user" ? "Vous" : "IA"}
+                  </div>
+                  {m.content}
+                </div>
+              ))}
+              {aiLoading && (
+                <div style={{ alignSelf: "flex-start", background: "#21262d", borderRadius: 10, padding: "8px 12px" }}>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} style={{
+                        width: 6, height: 6, borderRadius: "50%", background: "#3fb950",
+                        animation: "bounce 1.2s infinite",
+                        animationDelay: `${i * 0.2}s`,
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div ref={aiEndRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: "10px 12px", borderTop: "1px solid #30363d", display: "flex", gap: 8, flexShrink: 0 }}>
+              <input
+                ref={aiInputRef}
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendAiMessage()}
+                placeholder="Question sur le cours…"
+                disabled={aiLoading}
+                style={{
+                  flex: 1, background: "#0d1117", color: "#f0f6fc", border: "1px solid #30363d",
+                  borderRadius: 8, padding: "8px 11px", fontSize: 12, fontFamily: "inherit",
+                  outline: "none", opacity: aiLoading ? 0.6 : 1,
+                }}
+              />
+              <button
+                onClick={sendAiMessage}
+                disabled={aiLoading || !aiInput.trim()}
+                style={{
+                  background: "#6e40c9", color: "white", border: "none", borderRadius: 8,
+                  padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit", opacity: aiLoading || !aiInput.trim() ? 0.4 : 1,
+                }}
+              >
+                →
+              </button>
             </div>
           </div>
         )}
-
-        {/* No slides placeholder */}
-        {!hasSlides && !showVideo && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 13 }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
-              <div>Aucun diaporama partagé par le formateur</div>
-              <div style={{ fontSize: 11, marginTop: 4 }}>Utilisez les outils ci-dessous</div>
-            </div>
-          </div>
-        )}
-
-        {/* JITSI VIDEO */}
-        {showVideo && (
-          <div style={{ background: "#000", borderLeft: "1px solid #30363d" }}>
-            <iframe
-              src={`https://meet.jit.si/${jitsiRoom}`}
-              allow="camera; microphone; fullscreen; display-capture"
-              style={{ width: "100%", height: "100%", minHeight: 480, border: "none" }}
-            />
-          </div>
-        )}
       </div>
 
-      {/* BOTTOM PANEL */}
-      <div style={{ background: "#161b22", borderTop: "1px solid #30363d", minHeight: 220 }}>
-        {/* Tabs */}
+      {/* BOTTOM PANEL — Notes, Ressources, Questions only */}
+      <div style={{ background: "#161b22", borderTop: "1px solid #30363d", minHeight: 220, flexShrink: 0 }}>
         <div style={{ display: "flex", borderBottom: "1px solid #30363d" }}>
-          {([ ["notes", "📝 Notes"], ["ressources", "📎 Ressources"], ["questions", "❓ Questions"], ["ia", "🤖 IA contextuelle"] ] as [Tab, string][]).map(([tab, label]) => (
+          {([ ["notes", "📝 Notes"], ["ressources", "📎 Ressources"], ["questions", "❓ Questions"] ] as [Tab, string][]).map(([tab, label]) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -288,7 +398,6 @@ export default function SessionClient({
           ))}
         </div>
 
-        {/* Panel content */}
         <div style={{ padding: "14px 20px", maxHeight: 220, overflowY: "auto" }}>
 
           {/* NOTES */}
@@ -296,7 +405,7 @@ export default function SessionClient({
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 11, color: notesSaved ? "#3fb950" : "#8b949e" }}>
-                  {notesSaved ? "✓ Sauvegardé" : "Sauvegarde automatique à chaque frappe"}
+                  {notesSaved ? "✓ Sauvegardé" : "Sauvegarde automatique"}
                 </span>
                 <button
                   onClick={exportNotes}
@@ -304,8 +413,8 @@ export default function SessionClient({
                   style={{
                     background: "transparent", color: notes.trim() ? "#58a6ff" : "#484f58",
                     border: `1px solid ${notes.trim() ? "#58a6ff" : "#30363d"}`, borderRadius: 6,
-                    padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: notes.trim() ? "pointer" : "default",
-                    fontFamily: "inherit",
+                    padding: "3px 10px", fontSize: 11, fontWeight: 600,
+                    cursor: notes.trim() ? "pointer" : "default", fontFamily: "inherit",
                   }}
                 >
                   ↓ Exporter .txt
@@ -390,61 +499,15 @@ export default function SessionClient({
               ))}
             </div>
           )}
-
-          {/* IA CONTEXTUELLE */}
-          {activeTab === "ia" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ flex: 1, maxHeight: 130, overflowY: "auto" }}>
-                {aiHistory.length === 0 && (
-                  <div style={{ color: "#8b949e", fontSize: 12, marginBottom: 8 }}>
-                    Posez une question sur le contenu du cours ou demandez des références scientifiques.
-                    <br /><span style={{ color: "#3fb950" }}>🔬 Les références sont recherchées en temps réel sur PubMed (NIH).</span>
-                  </div>
-                )}
-                {aiHistory.map((m, i) => (
-                  <div key={i} style={{
-                    marginBottom: 8, padding: "6px 10px", borderRadius: 8,
-                    background: m.role === "user" ? "#1f3d5c" : "#21262d",
-                    fontSize: 12, color: "#f0f6fc", whiteSpace: "pre-wrap",
-                  }}>
-                    <span style={{ color: m.role === "user" ? "#58a6ff" : "#3fb950", fontWeight: 700, marginRight: 6 }}>
-                      {m.role === "user" ? "Vous" : "IA"}
-                    </span>
-                    {m.content}
-                  </div>
-                ))}
-                {aiLoading && (
-                  <div style={{ fontSize: 12, color: "#8b949e" }}>…</div>
-                )}
-                <div ref={aiEndRef} />
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendAiMessage()}
-                  placeholder="Question sur le contenu du cours…"
-                  style={{
-                    flex: 1, background: "#0d1117", color: "#f0f6fc", border: "1px solid #30363d",
-                    borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", outline: "none",
-                  }}
-                />
-                <button
-                  onClick={sendAiMessage}
-                  disabled={aiLoading || !aiInput.trim()}
-                  style={{
-                    background: "#6e40c9", color: "white", border: "none", borderRadius: 8,
-                    padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                    opacity: aiLoading || !aiInput.trim() ? 0.5 : 1,
-                  }}
-                >
-                  {aiLoading ? "…" : "→"}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-5px); }
+        }
+      `}</style>
     </div>
   );
 }
