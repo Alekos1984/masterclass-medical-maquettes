@@ -115,6 +115,7 @@ export default async function FormateurDetailFormationPage({
     bilanSigneAt: formation.bilanSigneAt?.toISOString() ?? null,
     certificatSigne: formation.certificatSigne ?? false,
     certificatSigneAt: formation.certificatSigneAt?.toISOString() ?? null,
+    afficheParams: (formation.afficheParams ?? null) as Record<string, string> | null,
   };
 
   return <FormateurDetailClient formation={data} />;

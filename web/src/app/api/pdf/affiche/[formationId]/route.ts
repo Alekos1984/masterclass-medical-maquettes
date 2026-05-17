@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import React from "react";
 import QRCode from "qrcode";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings, getFormationData } from "@/lib/pdf/db-helpers";
 import { AffichePdf } from "@/lib/pdf/templates/affiche";
@@ -24,10 +25,18 @@ function validateImageBase64(dataUrl: string): boolean {
   return false;
 }
 
+interface AfficheParams {
+  titre?: string;
+  description?: string;
+  infoPratiques?: string;
+  couleur?: string;
+  imageBase64?: string | null;
+}
+
 async function buildAffiche(
   data: NonNullable<Awaited<ReturnType<typeof getFormationData>>>,
   company: Awaited<ReturnType<typeof getCompanySettings>>,
-  opts: { titre?: string; description?: string; infoPratiques?: string; imageBase64?: string | null; couleur?: string | null }
+  opts: AfficheParams
 ) {
   const registrationUrl = `${process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr"}/formations/${data.formation.slug ?? data.formation.id}`;
 
@@ -57,6 +66,7 @@ async function buildAffiche(
   );
 }
 
+// GET : régénère avec les paramètres sauvegardés (ou defaults)
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ formationId: string }> }
@@ -65,7 +75,15 @@ export async function GET(
   try {
     const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
     if (!data) return new Response("Formation introuvable", { status: 404 });
-    const buffer = await buildAffiche(data, company, {});
+
+    // Utilise les paramètres sauvegardés si existants
+    const saved = await prisma.formation.findUnique({
+      where: { id: formationId },
+      select: { afficheParams: true },
+    });
+    const savedParams = (saved?.afficheParams ?? {}) as AfficheParams;
+
+    const buffer = await buildAffiche(data, company, savedParams);
     return pdfResponse(buffer, `affiche-${formationId}.pdf`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -74,6 +92,7 @@ export async function GET(
   }
 }
 
+// POST : génère avec paramètres custom et les sauvegarde en DB
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ formationId: string }> }
@@ -85,13 +104,7 @@ export async function POST(
   const body = await req.json().catch(() => null);
   if (!body) return new Response("Corps invalide", { status: 400 });
 
-  const { titre, description, infoPratiques, imageBase64, couleur } = body as {
-    titre?: string;
-    description?: string;
-    infoPratiques?: string;
-    imageBase64?: string;
-    couleur?: string;
-  };
+  const { titre, description, infoPratiques, imageBase64, couleur } = body as AfficheParams;
 
   if (imageBase64) {
     if (!validateImageBase64(imageBase64)) {
@@ -102,6 +115,18 @@ export async function POST(
   try {
     const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
     if (!data) return new Response("Formation introuvable", { status: 404 });
+
+    // Sauvegarde les paramètres texte en DB (sans l'image — trop volumineuse)
+    const paramsToSave: AfficheParams = {
+      ...(titre ? { titre } : {}),
+      ...(description ? { description } : {}),
+      ...(infoPratiques ? { infoPratiques } : {}),
+      ...(couleur ? { couleur } : {}),
+    };
+    await prisma.formation.update({
+      where: { id: formationId },
+      data: { afficheParams: paramsToSave as Record<string, string> },
+    });
 
     const buffer = await buildAffiche(data, company, { titre, description, infoPratiques, imageBase64, couleur });
     return pdfResponse(buffer, `affiche-${formationId}.pdf`);
