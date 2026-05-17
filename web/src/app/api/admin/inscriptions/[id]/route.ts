@@ -49,7 +49,7 @@ export async function PATCH(
   const f = inscription.formation;
   const dateFormatted = f.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
   const lieu = f.lieuNom ? `${f.lieuVille ?? ""} · ${f.lieuNom}` : f.lieuVille ?? "Lieu à confirmer";
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr";
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
 
   if (statutEnum === StatutInscription.CONFIRMEE) {
     const montant = inscription.paiement

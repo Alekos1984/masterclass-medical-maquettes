@@ -156,7 +156,7 @@ export function ConvocationPdf({ company, formateur, formation, participant, for
             { icon: "-", text: `Veuillez vous présenter à ${formation.heureDebut} afin de permettre un démarrage ponctuel.` },
             { icon: "-", text: "Munissez-vous d'une pièce d'identité ou de votre carte professionnelle." },
             { icon: "-", text: "La signature de la feuille de présence est obligatoire le matin et l'après-midi." },
-            { icon: "-", text: `En cas d'empêchement de dernière minute, prévenez-nous dès que possible : ${company.email ?? company.phone ?? "contact@masterclassmedical.fr"}.` },
+            { icon: "-", text: `En cas d'empêchement de dernière minute, prévenez-nous dès que possible : ${company.email ?? company.phone ?? "contact@masterclassmedicale.com"}.` },
           ].map((item, i) => (
             <View key={i} style={s.practicalItem}>
               <Text style={{ fontSize: 9, width: 14 }}>{item.icon}</Text>

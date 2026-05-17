@@ -612,7 +612,7 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
             <Link href="/formations" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Catalogue des formations</Link>
             <Link href="/auth/inscription/formateur" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Devenir formateur</Link>
             <Link href="/legal/cgu-participant" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>CGU</Link>
-            <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Contact</a>
+            <a href="mailto:contact@masterclassmedicale.com" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Contact</a>
           </div>
         </div>
       </footer>

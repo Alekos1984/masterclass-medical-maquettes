@@ -38,7 +38,7 @@ async function buildAffiche(
   company: Awaited<ReturnType<typeof getCompanySettings>>,
   opts: AfficheParams
 ) {
-  const registrationUrl = `${process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr"}/formations/${data.formation.slug ?? data.formation.id}`;
+  const registrationUrl = `${process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com"}/formations/${data.formation.slug ?? data.formation.id}`;
 
   const qrCodeDataUrl = await QRCode.toDataURL(registrationUrl, {
     width: 200,
