@@ -15,6 +15,7 @@ type ParticipantRow = {
   presentApresMidi: boolean;
   signatureMatinTime: string | null;
   signatureApresMidiTime: string | null;
+  isManualCorrection: boolean;
   emargementId: string | null;
   emargementToken: string | null;
   pvSigned: boolean;
@@ -88,13 +89,11 @@ export default function EmargementClient({
         alert(d.error ?? "Erreur lors du marquage");
         return;
       }
-      // Optimistic UI update while router.refresh() re-fetches server data
-      const data = await res.json() as { id: string };
-      const now = new Date();
-      const time = `Manuel · ${now.getHours().toString().padStart(2, "0")}h${now
-        .getMinutes()
-        .toString()
-        .padStart(2, "0")}`;
+      // Optimistic UI: store just the HH:MM time (prefix "Manuel ·" is added in render)
+      const data = await res.json() as { id: string; signatureMatin?: string; signatureApresMidi?: string };
+      const ts = activeTab === "matin" ? data.signatureMatin : data.signatureApresMidi;
+      const d = ts ? new Date(ts) : new Date();
+      const time = `${d.getHours().toString().padStart(2, "0")}h${d.getMinutes().toString().padStart(2, "0")}`;
       setManualPresent((prev: Record<string, { time: string; emargementId: string | null }>) => ({
         ...prev,
         [inscriptionId]: { time, emargementId: data.id },
@@ -443,7 +442,7 @@ export default function EmargementClient({
               )}
 
               {presentParticipants.map((p) => {
-                const isManual = !!manualPresent[p.inscriptionId];
+                const isManual = !!manualPresent[p.inscriptionId] || p.isManualCorrection;
                 const timeStr =
                   manualPresent[p.inscriptionId]?.time ??
                   (activeTab === "matin"
@@ -493,7 +492,7 @@ export default function EmargementClient({
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: "#2e7d32", fontWeight: 600 }}>
-                      {isManual ? "Manuel · " : "Émargé à "}{timeStr}
+                      {isManual ? "Manuel" : "Émargé"} · {timeStr}
                     </div>
                     {/* Cancel button — only for manual or non-PV-signed */}
                     {!p.pvSigned && emargementId && (
