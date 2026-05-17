@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/brevo";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) {
+    return NextResponse.json(
+      { error: "Service email non configuré — ajoutez BREVO_API_KEY et BREVO_SENDER_EMAIL dans vos variables d'environnement." },
+      { status: 503 }
+    );
+  }
+
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
@@ -80,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
       sent++;
     } catch (e) {
-      errors.push(participantEmail);
+      errors.push(`${participantEmail} (${e instanceof Error ? e.message : String(e)})`);
     }
   }
 
