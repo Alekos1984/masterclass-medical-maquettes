@@ -636,7 +636,7 @@ export default function EmargementClient({
                   marginBottom: 8,
                 }}
               >
-                masterclassmedical.fr/emarger/[token]
+                masterclassmedicale.com/emarger/[token]
               </div>
               <button
                 onClick={() => alert("Lien copié dans le presse-papiers")}

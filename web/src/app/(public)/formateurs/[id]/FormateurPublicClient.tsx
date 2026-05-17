@@ -690,7 +690,7 @@ export default function FormateurPublicClient({ profil }: Props) {
             <a href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
               CGU
             </a>
-            <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
+            <a href="mailto:contact@masterclassmedicale.com" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
               Contact
             </a>
           </div>

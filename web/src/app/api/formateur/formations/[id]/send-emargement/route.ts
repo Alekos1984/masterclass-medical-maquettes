@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const body = await req.json() as { baseUrl?: string };
-  const baseUrl = body.baseUrl ?? process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr";
+  const baseUrl = body.baseUrl ?? process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
 
   const profil = await prisma.formateurProfile.findUnique({ where: { userId: session.user.id } });
   if (!profil) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });

@@ -167,7 +167,7 @@ export default function AdminDemandeSallePage() {
               </div>
               <div style={{ padding: "14px 0", borderBottom: "1px solid #E0E0E0", display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  ["De", "devis@masterclassmedical.fr (équipe Masterclass Médical)"],
+                  ["De", "devis@masterclassmedicale.com (équipe Masterclass Médical)"],
                   ["À", "m.lefranc@lutetia-paris.com"],
                   ["Cc", "pierre.dumont@chu-lyon.fr"],
                   ["Objet", "Demande de devis — Location salle séminaire médical — 3-4 décembre 2026 [REF:DR-2026-0041]"],

@@ -419,7 +419,7 @@ export default async function ParticipantDashboardPage() {
             <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 10, lineHeight: 1.5 }}>
               Pour toute question sur votre inscription, annulation ou vos documents.
             </div>
-            <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>
+            <a href="mailto:contact@masterclassmedicale.com" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>
               ✉️ Contacter le support →
             </a>
           </div>

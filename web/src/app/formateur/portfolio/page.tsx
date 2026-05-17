@@ -224,7 +224,7 @@ export default async function FormateurPortfolioPage() {
                 marginBottom: 10,
               }}
             >
-              masterclassmedical.fr/formateurs/…
+              masterclassmedicale.com/formateurs/…
             </div>
             <Link
               href={`/formateurs/${profil.id}`}
