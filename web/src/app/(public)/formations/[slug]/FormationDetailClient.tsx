@@ -43,7 +43,7 @@ export type FormationData = {
   alreadyInscrit?: boolean;
 };
 
-type Tab = "programme" | "formateur" | "lieu" | "infos";
+type Tab = "presentation" | "programme" | "formateur" | "lieu" | "infos";
 
 function getTypeCss(type?: string): string {
   if (!type) return "type-cours";
@@ -55,7 +55,7 @@ function getTypeCss(type?: string): string {
 }
 
 export default function FormationDetailClient({ formation, alreadyInscrit }: { formation: FormationData, alreadyInscrit?: boolean }) {
-  const [activeTab, setActiveTab] = useState<Tab>("programme");
+  const [activeTab, setActiveTab] = useState<Tab>("presentation");
   const [inscriptionLoading, setInscriptionLoading] = useState(false);
   const [inscriptionError, setInscriptionError] = useState<string | null>(null);
   const { data: session } = useSession();
@@ -158,9 +158,27 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
           <div style={{ width: 30, height: 30, borderRadius: 7, background: "#C8102E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white" }}>M</div>
           <span style={{ fontSize: "1rem", fontWeight: 800, color: "white" }}>Masterclass Médical</span>
         </Link>
-        <Link href="/formations" style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>
-          ← Catalogue des formations
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <Link href="/formations" style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>
+            ← Catalogue des formations
+          </Link>
+          {session && (
+            <Link
+              href={session.user?.role === "FORMATEUR" ? "/formateur/dashboard" : "/participant/dashboard"}
+              style={{ fontSize: 13, fontWeight: 700, color: "white", background: "#C8102E", border: "none", borderRadius: 8, padding: "6px 14px", textDecoration: "none" }}
+            >
+              Mon tableau de bord
+            </Link>
+          )}
+          {!session && (
+            <Link
+              href="/auth/login"
+              style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, padding: "6px 14px", textDecoration: "none" }}
+            >
+              Se connecter
+            </Link>
+          )}
+        </div>
       </nav>
 
       {/* HERO */}
@@ -311,12 +329,18 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
       {/* TABS BAR */}
       <div style={{ background: "white", borderBottom: "1px solid #E0E0E0", position: "sticky", top: 64, zIndex: 90 }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px", display: "flex" }}>
-          {(["programme", "formateur", "lieu", "infos"] as Tab[]).map((tab) => (
+          {([
+            ["presentation", "Présentation"],
+            ["programme", "Programme"],
+            ["formateur", "Formateur"],
+            ["lieu", "Lieu"],
+            ["infos", "Infos pratiques"],
+          ] as [Tab, string][]).map(([tab, label]) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               style={{
-                padding: "16px 20px",
+                padding: "16px 18px",
                 fontSize: 14,
                 fontWeight: 600,
                 color: activeTab === tab ? "#0F0F0F" : "#6A6A6A",
@@ -329,7 +353,7 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
                 userSelect: "none",
               } as React.CSSProperties}
             >
-              {tab === "programme" ? "Programme" : tab === "formateur" ? "Formateur" : tab === "lieu" ? "Lieu" : "Infos pratiques"}
+              {label}
             </button>
           ))}
         </div>
@@ -339,15 +363,17 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 40, paddingTop: 40, paddingBottom: 60 }}>
           <div>
-            {/* PROGRAMME TAB */}
-            {activeTab === "programme" && (
+            {/* PRÉSENTATION TAB */}
+            {activeTab === "presentation" && (
               <div>
-                <div className="section-eyebrow">Contenu</div>
+                <div className="section-eyebrow">À propos</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0F0F", letterSpacing: -0.3, marginBottom: 16 }}>Présentation &amp; objectifs</div>
-                <p style={{ fontSize: 14, color: "#6A6A6A", lineHeight: 1.75, marginBottom: 16 }}>
+                <p style={{ fontSize: 14, color: "#6A6A6A", lineHeight: 1.75, marginBottom: 24 }}>
                   {descriptionText}
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
+                <div className="section-eyebrow">Objectifs pédagogiques</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0F0F", marginBottom: 14, marginTop: 4 }}>À l&apos;issue de cette formation, vous serez capable de :</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {formation.objectifs.length > 0 ? (
                     formation.objectifs.map((obj, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 16px", background: "#F9F7F4", borderRadius: 12, borderLeft: "3px solid #C8102E" }}>
@@ -363,10 +389,14 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
                     </div>
                   )}
                 </div>
+              </div>
+            )}
 
-                <div style={{ height: 1, background: "#EBEBEB", margin: "28px 0" }} />
+            {/* PROGRAMME TAB */}
+            {activeTab === "programme" && (
+              <div>
                 <div className="section-eyebrow">Déroulé</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0F0F", letterSpacing: -0.3, marginBottom: 16 }}>Programme de la journée</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0F0F", letterSpacing: -0.3, marginBottom: 20 }}>Programme de la journée</div>
                 <div>
                   {formation.programme.length > 0 ? (
                     formation.programme.map((slot, i) => {
@@ -581,7 +611,7 @@ export default function FormationDetailClient({ formation, alreadyInscrit }: { f
           <div style={{ display: "flex", gap: 20 }}>
             <Link href="/formations" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Catalogue des formations</Link>
             <Link href="/auth/inscription/formateur" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Devenir formateur</Link>
-            <a href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>CGU</a>
+            <Link href="/legal/cgu-participant" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>CGU</Link>
             <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>Contact</a>
           </div>
         </div>

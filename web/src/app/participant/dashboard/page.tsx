@@ -216,23 +216,40 @@ export default async function ParticipantDashboardPage() {
                     </div>
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
                       {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
-                      {!insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "var(--gray)" }}>Signature convention en attente</span>}
+                      {!insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "var(--gray)" }}>Convention en attente de signature</span>}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {insc.statut === StatutInscription.EN_ATTENTE_PAIEMENT && (
                           <PayerButton inscriptionId={insc.id} />
                         )}
-                        <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
-                          📬 Convocation PDF
-                        </a>
-                        {insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && (
+                        {/* Convocation — dispo seulement si inscription confirmée */}
+                        {insc.statut === StatutInscription.CONFIRMEE ? (
+                          <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                            📬 Convocation PDF
+                          </a>
+                        ) : (
+                          <span title="Disponible après confirmation de votre inscription" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            📬 Convocation PDF
+                          </span>
+                        )}
+                        {/* Convention — dispo seulement si signée par le formateur */}
+                        {insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE ? (
                           <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                             📄 Convention PDF
                           </a>
+                        ) : (
+                          <span title={insc.statut !== StatutInscription.CONFIRMEE ? "Disponible après confirmation de votre inscription" : "En attente de signature par le formateur"} style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            📄 Convention PDF
+                          </span>
                         )}
-                        {insc.paiement?.id && (
+                        {/* Facture */}
+                        {insc.paiement?.id ? (
                           <a href={`/api/pdf/facture/${insc.paiement.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                             🧾 Facture PDF
                           </a>
+                        ) : (
+                          <span title="Disponible après paiement" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            🧾 Facture PDF
+                          </span>
                         )}
                         <Link href={`/formations/${f.slug}`} style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                           Voir la formation
@@ -300,67 +317,64 @@ export default async function ParticipantDashboardPage() {
                         </Link>
                       )}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                        {insc.statut === "CONFIRMEE" && (
-                          <a
-                            href={`/api/pdf/attestation/${insc.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
-                          >
+                        {/* Convention PDF */}
+                        {insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE ? (
+                          <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                            📄 Convention PDF
+                          </a>
+                        ) : (
+                          <span title="Non disponible" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            📄 Convention PDF
+                          </span>
+                        )}
+                        {/* Attestation PDF */}
+                        {insc.statut === "CONFIRMEE" ? (
+                          <a href={`/api/pdf/attestation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                             🎓 Attestation PDF
                           </a>
+                        ) : (
+                          <span title="Non disponible" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            🎓 Attestation PDF
+                          </span>
                         )}
-                        {f.pvSigne && (() => {
+                        {/* PV de formation */}
+                        {f.pvSigne ? (() => {
                           const myEmg = insc.emargements.find((e) => e.presentMatin || e.presentApresMidi);
                           if (!myEmg) return null;
                           const pvParticipantSigne = !!myEmg.pvParticipantSignedAt;
                           return pvParticipantSigne ? (
-                            <a
-                              href={`/api/pdf/pv-formation/${f.id}/participant/${myEmg.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ border: "1.5px solid #c8e6c9", background: "#e8f5e9", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "#2e7d32" }}
-                            >
+                            <a href={`/api/pdf/pv-formation/${f.id}/participant/${myEmg.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #c8e6c9", background: "#e8f5e9", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "#2e7d32" }}>
                               📄 PV co-signé
                             </a>
                           ) : (
-                            <Link
-                              href={`/participant/pv/${myEmg.id}`}
-                              style={{ border: "1.5px solid #ffc5cc", background: "#fff5f6", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "#C8102E" }}
-                            >
+                            <Link href={`/participant/pv/${myEmg.id}`} style={{ border: "1.5px solid #ffc5cc", background: "#fff5f6", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "#C8102E" }}>
                               ✍️ Signer le PV
                             </Link>
                           );
-                        })()}
-                        {f.bilanSigne && (
-                          <a
-                            href={`/api/pdf/bilan/${f.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
-                          >
-                            📊 Télécharger le bilan pédagogique
-                          </a>
+                        })() : (
+                          <span title="En attente de signature par le formateur" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            📄 PV de formation
+                          </span>
                         )}
-                        {insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && (
-                          <a
-                            href={`/api/pdf/convention/${insc.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
-                          >
-                            📄 Convention PDF
+                        {/* Bilan pédagogique */}
+                        {f.bilanSigne ? (
+                          <a href={`/api/pdf/bilan/${f.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
+                            📊 Bilan pédagogique
                           </a>
+                        ) : (
+                          <span title="En attente de publication par le formateur" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            📊 Bilan pédagogique
+                          </span>
                         )}
-                        {insc.paiement?.id && (
-                          <a
-                            href={`/api/pdf/facture/${insc.paiement.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}
-                          >
+                        {/* Facture */}
+                        {insc.paiement?.id ? (
+                          <a href={`/api/pdf/facture/${insc.paiement.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", color: "var(--black)" }}>
                             🧾 Facture PDF
                           </a>
+                        ) : (
+                          <span title="Aucun paiement enregistré" style={{ border: "1.5px solid #E0E0E0", background: "#f5f5f5", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", color: "#bbb", userSelect: "none" }}>
+                            🧾 Facture PDF
+                          </span>
                         )}
                       </div>
                     </div>

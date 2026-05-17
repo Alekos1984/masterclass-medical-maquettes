@@ -145,20 +145,16 @@ export function AttestationPdf({ company, formateur, formation, participant }: P
         {/* Signatures */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Masterclass Médical</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
-              {company.representantLegal ?? company.raisonSociale}
-            </Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 2 }}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>Le formateur{formateur.specialite ? ` · ${formateur.specialite}` : ""}</Text>
             <View style={s.signatureBox}>
               <Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text>
             </View>
             <Text style={{ fontSize: 7, color: GRAY }}>Le {formatDate(new Date().toISOString())}</Text>
           </View>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le formateur</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
-              {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}
-            </Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 2 }}>{participant.titre ? `${participant.titre} ` : ""}{participant.nom}</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>Le/la stagiaire</Text>
             <View style={s.signatureBox}>
               <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
             </View>

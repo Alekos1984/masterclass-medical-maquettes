@@ -178,8 +178,8 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
         {/* Signature */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>{formateur.titre ? formateur.titre + " " : ""}{formateur.nom}</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>{formateur.specialite ?? "Formateur"}</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 2 }}>{formateur.titre ? formateur.titre + " " : ""}{formateur.nom}</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>Le formateur{formateur.specialite ? ` · ${formateur.specialite}` : ""}</Text>
             <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
             <Text style={{ fontSize: 7, color: GRAY }}>Fait à _________, le {formatDate(today)}</Text>
           </View>
