@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EmargementClient from "./EmargementClient";
 
+export const dynamic = "force-dynamic";
+
 function getInitials(name: string | null | undefined): string {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
@@ -70,7 +72,9 @@ export default async function FormateurEmargementPage({
     presentApresMidi: boolean;
     signatureMatinTime: string | null;
     signatureApresMidiTime: string | null;
+    emargementId: string | null;
     emargementToken: string | null;
+    pvSigned: boolean;
   };
 
   const participants: ParticipantRow[] = formation.inscriptions.map(
@@ -100,7 +104,9 @@ export default async function FormateurEmargementPage({
         signatureApresMidiTime: emargement
           ? fmtTime(emargement.signatureApresMidi)
           : null,
+        emargementId: emargement?.id ?? null,
         emargementToken: emargement?.token ?? null,
+        pvSigned: !!emargement?.pvParticipantSignedAt,
       };
     }
   );
