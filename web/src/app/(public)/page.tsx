@@ -332,9 +332,9 @@ export default function LandingPage() {
               <div className="tcard-stars">★★★★★</div>
               <p className="tcard-text">&ldquo;J&apos;ai organisé ma première masterclass en cardiologie sans aucune aide administrative. Programme, affiches, inscriptions — tout était prêt en moins d&apos;une heure.&rdquo;</p>
               <div className="tcard-author">
-                <div className="tcard-avatar">PD</div>
+                <div className="tcard-avatar">P.</div>
                 <div>
-                  <div className="tcard-name">Dr. Pierre Dumont</div>
+                  <div className="tcard-name">Dr. Pierre</div>
                   <div className="tcard-role">Cardiologue · Lyon</div>
                 </div>
               </div>
@@ -343,9 +343,9 @@ export default function LandingPage() {
               <div className="tcard-stars">★★★★★</div>
               <p className="tcard-text">&ldquo;L&apos;émargement numérique et les attestations automatiques m&apos;ont convaincue. C&apos;est réglementairement irréprochable et ça m&apos;économise des heures de travail.&rdquo;</p>
               <div className="tcard-author">
-                <div className="tcard-avatar">SB</div>
+                <div className="tcard-avatar">S.</div>
                 <div>
-                  <div className="tcard-name">Dr. Sophie Bernard</div>
+                  <div className="tcard-name">Dr. Sophie</div>
                   <div className="tcard-role">Neurologue · Paris</div>
                 </div>
               </div>
@@ -354,9 +354,9 @@ export default function LandingPage() {
               <div className="tcard-stars">★★★★★</div>
               <p className="tcard-text">&ldquo;Organiser une formation à Bordeaux depuis Lille, avec la plateforme qui gère tout — c&apos;est exactement ce dont la formation médicale indépendante avait besoin.&rdquo;</p>
               <div className="tcard-author">
-                <div className="tcard-avatar">ML</div>
+                <div className="tcard-avatar">M.</div>
                 <div>
-                  <div className="tcard-name">Dr. Marc Lefebvre</div>
+                  <div className="tcard-name">Dr. Marc</div>
                   <div className="tcard-role">Rhumatologue · Lille</div>
                 </div>
               </div>
