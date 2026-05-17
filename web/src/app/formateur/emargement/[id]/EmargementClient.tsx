@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type ParticipantRow = {
@@ -40,6 +41,7 @@ export default function EmargementClient({
   placesTotal,
   participants,
 }: Props) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"matin" | "aprem">("matin");
   // emargementId may be null initially if no emargement record exists yet; gets filled after API call
   const [manualPresent, setManualPresent] = useState<
@@ -86,13 +88,19 @@ export default function EmargementClient({
         alert(d.error ?? "Erreur lors du marquage");
         return;
       }
+      // Optimistic UI update while router.refresh() re-fetches server data
       const data = await res.json() as { id: string };
       const now = new Date();
       const time = `Manuel · ${now.getHours().toString().padStart(2, "0")}h${now
         .getMinutes()
         .toString()
         .padStart(2, "0")}`;
-      setManualPresent((prev: Record<string, { time: string; emargementId: string | null }>) => ({ ...prev, [inscriptionId]: { time, emargementId: data.id } }));
+      setManualPresent((prev: Record<string, { time: string; emargementId: string | null }>) => ({
+        ...prev,
+        [inscriptionId]: { time, emargementId: data.id },
+      }));
+      // Force server component to re-render with fresh DB data
+      router.refresh();
     } catch {
       alert("Erreur réseau");
     } finally {
@@ -119,14 +127,13 @@ export default function EmargementClient({
         alert(d.error ?? "Erreur lors de l'annulation");
         return;
       }
-      // Remove from manual state; page data will refresh on next navigation
       setManualPresent((prev: Record<string, { time: string; emargementId: string | null }>) => {
         const next = { ...prev };
         delete next[inscriptionId];
         return next;
       });
-      // Force a hard refresh so the server-side data reflects the change
-      window.location.reload();
+      // Re-fetch server component data (no full page reload needed)
+      router.refresh();
     } catch {
       alert("Erreur réseau");
     } finally {
