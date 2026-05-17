@@ -334,6 +334,7 @@ model Formation {
   modaliteSession      String?   // "PRESENTIEL" | "VIRTUEL" | "MIXTE"
   sessionCurrentPage   Int?      @default(1)
   sessionSlidesBase64  String?   @db.Text // PDF base64, max ~15MB
+  sessionDrawingData   String?   @db.Text // JSON: { page, strokes }
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?

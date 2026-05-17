@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import PdfPageCanvas from "@/components/PdfPageCanvas";
 
 type Ressource = { id: string; nom: string; url: string | null; taille: number | null };
+type Stroke = { color: string; width: number; points: [number, number][] };
+type DrawingData = { page: number; strokes: Stroke[] };
 
 interface Props {
   formationId: string;
@@ -29,6 +32,9 @@ export default function SessionClient({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [ressources, setRessources] = useState(initialRessources);
+  const [drawingData, setDrawingData] = useState<DrawingData | null>(null);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
 
   // Notes (localStorage)
   const [notes, setNotes] = useState("");
@@ -63,6 +69,39 @@ export default function SessionClient({
   const [aiLoading, setAiLoading] = useState(false);
   const aiEndRef = useRef<HTMLDivElement>(null);
 
+  // Render drawing overlay whenever drawingData or currentPage changes
+  const renderDrawing = useCallback((data: DrawingData | null) => {
+    const canvas = drawingCanvasRef.current;
+    const container = pdfContainerRef.current;
+    if (!canvas || !container) return;
+    const pdfCanvas = container.querySelector("canvas");
+    if (pdfCanvas) {
+      canvas.width = pdfCanvas.width;
+      canvas.height = pdfCanvas.height;
+      canvas.style.width = pdfCanvas.style.width || `${pdfCanvas.width}px`;
+      canvas.style.height = pdfCanvas.style.height || `${pdfCanvas.height}px`;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!data || data.page !== currentPage || !data.strokes?.length) return;
+    for (const stroke of data.strokes) {
+      if (stroke.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.width * (canvas.width / 1000);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.moveTo(stroke.points[0][0] * canvas.width, stroke.points[0][1] * canvas.height);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i][0] * canvas.width, stroke.points[i][1] * canvas.height);
+      }
+      ctx.stroke();
+    }
+  }, [currentPage]);
+
+  useEffect(() => { renderDrawing(drawingData); }, [drawingData, currentPage, renderDrawing]);
+
   // Polling for slide sync + session state (every 3s)
   useEffect(() => {
     const poll = async () => {
@@ -73,11 +112,17 @@ export default function SessionClient({
           sessionStatus: string;
           currentPage: number;
           hasSlides: boolean;
+          drawingData: string | null;
           ressources: Ressource[];
         };
         if (data.sessionStatus === "TERMINEE") setSessionEnded(true);
         if (data.currentPage !== currentPage) setCurrentPage(data.currentPage);
         if (data.ressources) setRessources(data.ressources);
+        if (data.drawingData !== undefined) {
+          try {
+            setDrawingData(data.drawingData ? JSON.parse(data.drawingData) as DrawingData : null);
+          } catch { /* ignore */ }
+        }
       } catch { /* ignore */ }
     };
     poll();
@@ -166,18 +211,27 @@ export default function SessionClient({
       <div style={{ flex: 1, display: "grid", gridTemplateColumns: hasSlides && showVideo ? "1fr 380px" : hasSlides || showVideo ? "1fr 380px" : "1fr", gridTemplateRows: "1fr auto", gap: 0 }}>
         {/* SLIDES */}
         {hasSlides && (
-          <div style={{ position: "relative", background: "#0d1117", borderRight: showVideo ? "1px solid #30363d" : "none" }}>
-            <iframe
-              key={currentPage}
-              src={`/api/formateur/formations/${formationId}/slides#page=${currentPage}`}
-              style={{ width: "100%", height: "100%", minHeight: 480, border: "none" }}
+          <div ref={pdfContainerRef} style={{ position: "relative", background: "#0d1117", borderRight: showVideo ? "1px solid #30363d" : "none", overflow: "hidden" }}>
+            <PdfPageCanvas
+              pdfUrl={`/api/formateur/formations/${formationId}/slides`}
+              page={currentPage}
+              style={{ width: "100%", height: "100%", minHeight: 480 }}
+            />
+            {/* Drawing overlay (read-only) */}
+            <canvas
+              ref={drawingCanvasRef}
+              style={{
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                pointerEvents: "none",
+              }}
             />
             <div style={{
               position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
               background: "rgba(0,0,0,0.75)", borderRadius: 20, padding: "4px 14px",
               fontSize: 12, color: "white", backdropFilter: "blur(4px)",
             }}>
-              Page <strong>{currentPage}</strong> (sync automatique avec le formateur)
+              Page <strong>{currentPage}</strong> · sync automatique
             </div>
           </div>
         )}

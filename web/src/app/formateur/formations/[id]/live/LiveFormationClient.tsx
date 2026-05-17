@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import PdfPageCanvas from "@/components/PdfPageCanvas";
 
 type Participant = {
   id: string;
@@ -53,6 +54,7 @@ function formatTime(iso: string | null) {
 }
 
 type Question = { id: string; texte: string; lue: boolean; createdAt: string; participantName: string };
+type Stroke = { color: string; width: number; points: [number, number][] };
 
 export default function LiveFormationClient({ formation }: { formation: Formation }) {
   const now = useCurrentTime();
@@ -77,7 +79,19 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   const [hasSlides, setHasSlides] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [slidesUploading, setSlidesUploading] = useState(false);
-  const [slidesKey, setSlidesKey] = useState(0); // forces iframe refresh
+  const [slidesKey, setSlidesKey] = useState(0); // forces PdfPageCanvas reload
+  const [pageCount, setPageCount] = useState(0);
+
+  // Drawing
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [drawColor, setDrawColor] = useState("#ff3b30");
+  const [drawWidth, setDrawWidth] = useState(4);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawEnabled, setDrawEnabled] = useState(false);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const currentStrokeRef = useRef<[number, number][]>([]);
+  const savingDrawRef = useRef(false);
 
   // Questions
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -108,6 +122,126 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
       .catch(() => {});
   }, [formation.id]);
 
+  // Redraw all strokes on the drawing canvas
+  const redrawCanvas = useCallback(() => {
+    const canvas = drawingCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const stroke of strokes) {
+      if (stroke.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.width * (canvas.width / 1000);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.moveTo(stroke.points[0][0] * canvas.width, stroke.points[0][1] * canvas.height);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i][0] * canvas.width, stroke.points[i][1] * canvas.height);
+      }
+      ctx.stroke();
+    }
+  }, [strokes]);
+
+  useEffect(() => { redrawCanvas(); }, [strokes, redrawCanvas]);
+
+  // Sync canvas size to PDF canvas size
+  function syncCanvasSize() {
+    const container = pdfContainerRef.current;
+    const drawCanvas = drawingCanvasRef.current;
+    if (!container || !drawCanvas) return;
+    const pdfCanvas = container.querySelector("canvas:not([data-drawing])");
+    if (!pdfCanvas) return;
+    const rect = pdfCanvas.getBoundingClientRect();
+    drawCanvas.width = (pdfCanvas as HTMLCanvasElement).width;
+    drawCanvas.height = (pdfCanvas as HTMLCanvasElement).height;
+    drawCanvas.style.width = `${rect.width}px`;
+    drawCanvas.style.height = `${rect.height}px`;
+  }
+
+  function getRelPos(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): [number, number] {
+    const canvas = drawingCanvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    return [
+      (clientX - rect.left) / rect.width,
+      (clientY - rect.top) / rect.height,
+    ];
+  }
+
+  function onDrawStart(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!drawEnabled) return;
+    e.preventDefault();
+    syncCanvasSize();
+    setIsDrawing(true);
+    currentStrokeRef.current = [getRelPos(e)];
+  }
+
+  function onDrawMove(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!drawEnabled || !isDrawing) return;
+    e.preventDefault();
+    const point = getRelPos(e);
+    currentStrokeRef.current.push(point);
+    // Live draw on canvas
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+    const pts = currentStrokeRef.current;
+    if (pts.length < 2) return;
+    ctx.beginPath();
+    ctx.strokeStyle = drawColor;
+    ctx.lineWidth = drawWidth * (canvas.width / 1000);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    const prev = pts[pts.length - 2];
+    ctx.moveTo(prev[0] * canvas.width, prev[1] * canvas.height);
+    ctx.lineTo(point[0] * canvas.width, point[1] * canvas.height);
+    ctx.stroke();
+  }
+
+  async function onDrawEnd(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!drawEnabled || !isDrawing) return;
+    e.preventDefault();
+    setIsDrawing(false);
+    const pts = [...currentStrokeRef.current];
+    currentStrokeRef.current = [];
+    if (pts.length < 2) return;
+    const newStroke: Stroke = { color: drawColor, width: drawWidth, points: pts };
+    const newStrokes = [...strokes, newStroke];
+    setStrokes(newStrokes);
+    await saveDrawing(newStrokes);
+  }
+
+  async function saveDrawing(strokesToSave: Stroke[]) {
+    if (savingDrawRef.current) return;
+    savingDrawRef.current = true;
+    try {
+      await fetch(`/api/formateur/formations/${formation.id}/drawing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          drawingData: JSON.stringify({ page: currentPage, strokes: strokesToSave }),
+        }),
+      });
+    } catch { /* ignore */ } finally {
+      savingDrawRef.current = false;
+    }
+  }
+
+  async function clearDrawing() {
+    setStrokes([]);
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    await fetch(`/api/formateur/formations/${formation.id}/drawing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ drawingData: null }),
+    }).catch(() => {});
+  }
+
   async function uploadSlides(file: File) {
     setSlidesUploading(true);
     const reader = new FileReader();
@@ -132,14 +266,26 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   }
 
   async function changePage(delta: number) {
-    const next = Math.max(1, currentPage + delta);
+    const next = pageCount > 0 ? Math.min(pageCount, Math.max(1, currentPage + delta)) : Math.max(1, currentPage + delta);
     setCurrentPage(next);
     setSlidesKey((k) => k + 1);
-    await fetch(`/api/formateur/formations/${formation.id}/session-page`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page: next }),
-    });
+    // Clear drawing for new page
+    setStrokes([]);
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    await Promise.all([
+      fetch(`/api/formateur/formations/${formation.id}/session-page`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page: next }),
+      }),
+      fetch(`/api/formateur/formations/${formation.id}/drawing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drawingData: null }),
+      }),
+    ]);
   }
 
   async function markQuestionRead(questionId: string) {
@@ -748,16 +894,87 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
             <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
               {hasSlides ? (
                 <>
-                  <iframe
-                    key={slidesKey}
-                    src={`/api/formateur/formations/${formation.id}/slides#page=${currentPage}`}
-                    style={{ width: "100%", height: 500, border: "none" }}
-                    title="Diaporama"
-                  />
+                  {/* Drawing toolbar */}
+                  <div style={{ padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 10 }}>
+                    <button
+                      onClick={() => setDrawEnabled((v) => !v)}
+                      style={{
+                        background: drawEnabled ? "rgba(255,59,48,0.2)" : "rgba(255,255,255,0.07)",
+                        color: drawEnabled ? "#ff3b30" : "rgba(255,255,255,0.6)",
+                        border: `1px solid ${drawEnabled ? "rgba(255,59,48,0.5)" : "rgba(255,255,255,0.12)"}`,
+                        borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      ✏️ {drawEnabled ? "Dessin activé" : "Dessiner"}
+                    </button>
+                    {drawEnabled && (
+                      <>
+                        {["#ff3b30", "#ff9500", "#34c759", "#007aff", "#ffffff"].map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => setDrawColor(c)}
+                            style={{
+                              width: 22, height: 22, borderRadius: "50%", background: c,
+                              border: drawColor === c ? "3px solid white" : "2px solid rgba(255,255,255,0.2)",
+                              cursor: "pointer", flexShrink: 0,
+                            }}
+                          />
+                        ))}
+                        <select
+                          value={drawWidth}
+                          onChange={(e) => setDrawWidth(Number(e.target.value))}
+                          style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 6px", fontSize: 11, fontFamily: "inherit" }}
+                        >
+                          <option value={2}>Fin</option>
+                          <option value={4}>Normal</option>
+                          <option value={8}>Épais</option>
+                        </select>
+                        <button
+                          onClick={clearDrawing}
+                          style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          ✕ Effacer
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* PDF canvas + drawing overlay */}
+                  <div ref={pdfContainerRef} style={{ position: "relative", height: 460 }}>
+                    <PdfPageCanvas
+                      key={slidesKey}
+                      pdfUrl={`/api/formateur/formations/${formation.id}/slides`}
+                      page={currentPage}
+                      onPageCount={setPageCount}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                    <canvas
+                      ref={drawingCanvasRef}
+                      data-drawing="true"
+                      onMouseDown={onDrawStart}
+                      onMouseMove={onDrawMove}
+                      onMouseUp={onDrawEnd}
+                      onMouseLeave={onDrawEnd}
+                      onTouchStart={onDrawStart}
+                      onTouchMove={onDrawMove}
+                      onTouchEnd={onDrawEnd}
+                      style={{
+                        position: "absolute", top: "50%", left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        cursor: drawEnabled ? "crosshair" : "default",
+                        pointerEvents: drawEnabled ? "all" : "none",
+                      }}
+                    />
+                  </div>
+
                   <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
                     <button onClick={() => changePage(-1)} disabled={currentPage <= 1} style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 18, cursor: "pointer", fontFamily: "inherit", opacity: currentPage <= 1 ? 0.3 : 1 }}>‹</button>
-                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>Page <strong style={{ color: "white" }}>{currentPage}</strong></span>
-                    <button onClick={() => changePage(1)} style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 18, cursor: "pointer", fontFamily: "inherit" }}>›</button>
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
+                      Page <strong style={{ color: "white" }}>{currentPage}</strong>
+                      {pageCount > 0 && <span style={{ color: "rgba(255,255,255,0.35)" }}> / {pageCount}</span>}
+                    </span>
+                    <button onClick={() => changePage(1)} disabled={pageCount > 0 && currentPage >= pageCount} style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 18, cursor: "pointer", fontFamily: "inherit", opacity: pageCount > 0 && currentPage >= pageCount ? 0.3 : 1 }}>›</button>
                   </div>
                 </>
               ) : (
@@ -800,7 +1017,8 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
               )}
               <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "16px" }}>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.6 }}>
-                  Les flèches ‹ › font avancer/reculer les slides pour <strong style={{ color: "rgba(255,255,255,0.6)" }}>tous les participants</strong> connectés simultanément.
+                  Les flèches ‹ › font avancer/reculer les slides pour <strong style={{ color: "rgba(255,255,255,0.6)" }}>tous les participants</strong> connectés simultanément.<br /><br />
+                  Le dessin est visible en temps réel par tous les participants.
                 </div>
               </div>
             </div>
