@@ -116,12 +116,12 @@ export async function POST(
     const [company, data] = await Promise.all([getCompanySettings(), getFormationData(formationId)]);
     if (!data) return new Response("Formation introuvable", { status: 404 });
 
-    // Sauvegarde les paramètres texte en DB (sans l'image — trop volumineuse)
     const paramsToSave: AfficheParams = {
       ...(titre ? { titre } : {}),
       ...(description ? { description } : {}),
       ...(infoPratiques ? { infoPratiques } : {}),
       ...(couleur ? { couleur } : {}),
+      ...(imageBase64 ? { imageBase64 } : {}),
     };
     await prisma.formation.update({
       where: { id: formationId },

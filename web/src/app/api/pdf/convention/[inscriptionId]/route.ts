@@ -88,7 +88,8 @@ export async function GET(
         statut: inscription.statut,
       },
       signatures: {
-        formateurSignedAt: inscription.conventionSigneeAt?.toISOString() ?? null,
+        formateurSignedAt: inscription.conventionSigneeAt?.toISOString()
+          ?? (inscription.conventionSignee ? "date non disponible" : null),
         participantSignedAt: inscription.conventionParticipantSigneeAt?.toISOString() ?? null,
         seal: inscription.conventionSeal ?? null,
       },

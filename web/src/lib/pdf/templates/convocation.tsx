@@ -68,6 +68,12 @@ interface Props {
   accuseReception?: { at: string; participantName: string } | null;
 }
 
+function safeDateTime(d: string): string {
+  const parsed = new Date(d);
+  if (isNaN(parsed.getTime())) return d;
+  return parsed.toLocaleString("fr-FR");
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 }
@@ -185,7 +191,7 @@ export function ConvocationPdf({ company, formateur, formation, participant, for
             {formateurSignedAt ? (
               <View style={{ borderWidth: 1, borderColor: "#2e7d32", borderRadius: 6, padding: 8, backgroundColor: "#f0fdf4" }}>
                 <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: "#2e7d32" }}>Signe numeriquement</Text>
-                <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>{new Date(formateurSignedAt).toLocaleString("fr-FR")}</Text>
+                <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>{safeDateTime(formateurSignedAt)}</Text>
               </View>
             ) : (
               <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
