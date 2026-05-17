@@ -219,23 +219,37 @@ export default async function ParticipantDashboardPage() {
                         </div>
                       </div>
                     </div>
-                    {(f.sessionStatus === "EN_COURS" || f.sessionStatus === "EN_PAUSE") && (
-                      <div style={{ padding: "10px 16px", background: "#C8102E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
-                          🔴 Session démarrée{f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}
-                        </span>
-                        {insc.emargements[0]?.token ? (
-                          <a
-                            href={`/emarger/${insc.emargements[0].token}`}
-                            style={{ background: "white", color: "#C8102E", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
-                          >
-                            ✍️ Émarger maintenant
-                          </a>
-                        ) : (
-                          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Lien d&apos;émargement en cours d&apos;envoi…</span>
-                        )}
-                      </div>
-                    )}
+                    {(f.sessionStatus === "EN_COURS" || f.sessionStatus === "EN_PAUSE") && (() => {
+                      const emg = insc.emargements[0];
+                      const alreadyEmarked = emg && (emg.presentMatin || emg.presentApresMidi);
+                      if (alreadyEmarked) {
+                        return (
+                          <div style={{ padding: "10px 16px", background: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
+                              ✅ Émargement enregistré
+                            </span>
+                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>Votre présence est confirmée</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ padding: "10px 16px", background: "#C8102E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
+                            🔴 Session démarrée{f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}
+                          </span>
+                          {emg?.token ? (
+                            <a
+                              href={`/emarger/${emg.token}`}
+                              style={{ background: "white", color: "#C8102E", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
+                            >
+                              ✍️ Émarger maintenant
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Lien d&apos;émargement en cours d&apos;envoi…</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
                       {insc.conventionSignee && (insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention co-signée</span>}
                       {insc.conventionSignee && !(insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "#f57f17" }}>Convention en attente de votre signature</span>}
