@@ -61,7 +61,6 @@ export default async function ParticipantDashboardPage() {
           paiement: { select: { id: true } },
           satisfaction: { select: { id: true } },
           emargements: { select: { id: true, presentMatin: true, presentApresMidi: true, pvParticipantSignedAt: true } },
-          _count: { select: { emargements: true } },
         },
         orderBy: { formation: { date: "asc" } },
       })
