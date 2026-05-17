@@ -14,7 +14,9 @@ type ParticipantRow = {
   presentApresMidi: boolean;
   signatureMatinTime: string | null;
   signatureApresMidiTime: string | null;
+  emargementId: string | null;
   emargementToken: string | null;
+  pvSigned: boolean;
 };
 
 interface Props {
@@ -39,9 +41,12 @@ export default function EmargementClient({
   participants,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"matin" | "aprem">("matin");
+  // emargementId may be null initially if no emargement record exists yet; gets filled after API call
   const [manualPresent, setManualPresent] = useState<
-    Record<string, { time: string }>
+    Record<string, { time: string; emargementId: string | null }>
   >({});
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCloture, setShowCloture] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [reminderSent, setReminderSent] = useState(false);
@@ -60,14 +65,73 @@ export default function EmargementClient({
   const totalPresent = presentIds.size;
   const totalWaiting = placesTotal - totalPresent;
 
-  function markPresent(inscriptionId: string) {
-    if (manualPresent[inscriptionId]) return;
-    const now = new Date();
-    const time = `Manuel · ${now.getHours().toString().padStart(2, "0")}h${now
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-    setManualPresent((prev) => ({ ...prev, [inscriptionId]: { time } }));
+  async function markPresent(inscriptionId: string) {
+    if (manualPresent[inscriptionId] || markingId === inscriptionId) return;
+    setMarkingId(inscriptionId);
+    try {
+      const res = await fetch(
+        `/api/formateur/formations/${formationId}/mark-present`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inscriptionId,
+            presentMatin: activeTab === "matin",
+            presentApresMidi: activeTab === "aprem",
+          }),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        alert(d.error ?? "Erreur lors du marquage");
+        return;
+      }
+      const data = await res.json() as { id: string };
+      const now = new Date();
+      const time = `Manuel · ${now.getHours().toString().padStart(2, "0")}h${now
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`;
+      setManualPresent((prev: Record<string, { time: string; emargementId: string | null }>) => ({ ...prev, [inscriptionId]: { time, emargementId: data.id } }));
+    } catch {
+      alert("Erreur réseau");
+    } finally {
+      setMarkingId(null);
+    }
+  }
+
+  async function cancelPresent(inscriptionId: string, emargementId: string | null) {
+    const eid = emargementId ?? manualPresent[inscriptionId]?.emargementId;
+    if (!eid) return;
+    if (!confirm("Annuler la présence de ce participant ?")) return;
+    setCancellingId(inscriptionId);
+    try {
+      const res = await fetch(
+        `/api/formateur/formations/${formationId}/emargement-reset`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ emargementId: eid }),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        alert(d.error ?? "Erreur lors de l'annulation");
+        return;
+      }
+      // Remove from manual state; page data will refresh on next navigation
+      setManualPresent((prev: Record<string, { time: string; emargementId: string | null }>) => {
+        const next = { ...prev };
+        delete next[inscriptionId];
+        return next;
+      });
+      // Force a hard refresh so the server-side data reflects the change
+      window.location.reload();
+    } catch {
+      alert("Erreur réseau");
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   async function sendReminder() {
@@ -372,12 +436,14 @@ export default function EmargementClient({
               )}
 
               {presentParticipants.map((p) => {
+                const isManual = !!manualPresent[p.inscriptionId];
                 const timeStr =
                   manualPresent[p.inscriptionId]?.time ??
                   (activeTab === "matin"
                     ? p.signatureMatinTime
                     : p.signatureApresMidiTime) ??
                   "—";
+                const emargementId = manualPresent[p.inscriptionId]?.emargementId ?? p.emargementId;
                 return (
                   <div
                     key={p.inscriptionId}
@@ -419,15 +485,31 @@ export default function EmargementClient({
                         </div>
                       )}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#2e7d32",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Émargé à {timeStr}
+                    <div style={{ fontSize: 11, color: "#2e7d32", fontWeight: 600 }}>
+                      {isManual ? "Manuel · " : "Émargé à "}{timeStr}
                     </div>
+                    {/* Cancel button — only for manual or non-PV-signed */}
+                    {!p.pvSigned && emargementId && (
+                      <button
+                        onClick={() => cancelPresent(p.inscriptionId, emargementId)}
+                        disabled={cancellingId === p.inscriptionId}
+                        title="Annuler la présence"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "3px 8px",
+                          border: "1.5px solid #ffcdd2",
+                          borderRadius: 6,
+                          background: "#fff5f6",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          color: "#c62828",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cancellingId === p.inscriptionId ? "…" : "✕"}
+                      </button>
+                    )}
                     <div
                       style={{
                         width: 28,
@@ -511,6 +593,7 @@ export default function EmargementClient({
                       </span>
                       <button
                         onClick={() => markPresent(p.inscriptionId)}
+                        disabled={markingId === p.inscriptionId}
                         style={{
                           fontSize: 11,
                           fontWeight: 600,
@@ -518,12 +601,13 @@ export default function EmargementClient({
                           border: "1.5px solid #E0E0E0",
                           borderRadius: 6,
                           background: "white",
-                          cursor: "pointer",
+                          cursor: markingId === p.inscriptionId ? "wait" : "pointer",
                           fontFamily: "inherit",
                           color: "var(--gray)",
+                          opacity: markingId === p.inscriptionId ? 0.6 : 1,
                         }}
                       >
-                        Marquer présent
+                        {markingId === p.inscriptionId ? "…" : "Marquer présent"}
                       </button>
                     </div>
                   ))}
