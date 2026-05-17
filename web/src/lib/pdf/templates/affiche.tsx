@@ -1,290 +1,235 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet, Image } from "@react-pdf/renderer";
-import { RED, BLACK, GRAY, OFF_WHITE, WHITE, LIGHT_GRAY } from "../shared/styles";
+import {
+  Document, Page, View, Text, Image, StyleSheet, Svg, Defs, LinearGradient, Stop, Rect,
+} from "@react-pdf/renderer";
 import type { CompanyData, FormateurData, FormationData } from "../shared/types";
 
-const s = StyleSheet.create({
-  page: {
-    fontFamily: "Helvetica",
-    fontSize: 10,
-    color: BLACK,
-    backgroundColor: WHITE,
-  },
-  // Top red band
-  topBand: {
-    backgroundColor: RED,
-    paddingTop: 48,
-    paddingBottom: 40,
-    paddingHorizontal: 48,
-  },
-  specialty: {
-    fontSize: 9,
-    color: "rgba(255,255,255,0.65)",
-    textTransform: "uppercase",
-    letterSpacing: 2.5,
-    marginBottom: 12,
-    fontFamily: "Helvetica-Bold",
-  },
-  mainTitle: {
-    fontSize: 32,
-    fontFamily: "Helvetica-Bold",
-    color: WHITE,
-    lineHeight: 1.15,
-    letterSpacing: -1,
-    marginBottom: 12,
-  },
-  tagline: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 1.5,
-  },
-  // Content area
-  content: {
-    padding: 48,
-    flex: 1,
-  },
-  // Info grid
-  infoGrid: {
-    flexDirection: "row",
-    gap: 0,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: LIGHT_GRAY,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  infoItem: {
-    flex: 1,
-    padding: 20,
-    borderRightWidth: 1,
-    borderRightColor: LIGHT_GRAY,
-    alignItems: "center",
-  },
-  infoItemLast: {
-    flex: 1,
-    padding: 20,
-    alignItems: "center",
-  },
-  infoIcon: { fontSize: 20, marginBottom: 6 },
-  infoLabel: { fontSize: 8, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  infoValue: { fontSize: 12, fontFamily: "Helvetica-Bold", color: BLACK, textAlign: "center" },
-  infoSub: { fontSize: 9, color: GRAY, textAlign: "center", marginTop: 2 },
-  // Formateur card
-  formateurCard: {
-    backgroundColor: OFF_WHITE,
-    borderRadius: 10,
-    padding: 24,
-    flexDirection: "row",
-    gap: 20,
-    alignItems: "center",
-    marginBottom: 28,
-  },
-  formateurAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 100,
-    backgroundColor: RED,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  formateurInitials: { fontSize: 18, fontFamily: "Helvetica-Bold", color: WHITE },
-  formateurName: { fontSize: 15, fontFamily: "Helvetica-Bold", color: BLACK },
-  formateurRole: { fontSize: 10, color: GRAY, marginTop: 2 },
-  // Objectifs
-  objectifRow: { flexDirection: "row", gap: 10, marginBottom: 8, alignItems: "flex-start" },
-  objectifDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 100,
-    backgroundColor: RED,
-    marginTop: 3,
-    flexShrink: 0,
-  },
-  objectifText: { fontSize: 10, color: BLACK, flex: 1, lineHeight: 1.5 },
-  // CTA bottom
-  ctaRow: {
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "center",
-    marginTop: 24,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: LIGHT_GRAY,
-  },
-  priceTag: {
-    backgroundColor: RED,
-    borderRadius: 8,
-    padding: "14 24",
-    alignItems: "center",
-  },
-  priceValue: { fontSize: 20, fontFamily: "Helvetica-Bold", color: WHITE },
-  priceLabel: { fontSize: 8, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: 1 },
-  registrationBox: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: BLACK,
-    borderRadius: 8,
-    padding: "14 20",
-  },
-  registrationTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: BLACK, marginBottom: 2 },
-  registrationUrl: { fontSize: 9, color: GRAY },
-  // Footer
-  pageFooter: {
-    backgroundColor: BLACK,
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  footerOrg: { fontSize: 9, color: "rgba(255,255,255,0.6)" },
-  footerDecl: { fontSize: 8, color: "rgba(255,255,255,0.35)" },
-});
+const WHITE = "#FFFFFF";
+const BLACK = "#0F0F0F";
+const GRAY  = "#6A6A6A";
 
-interface Props {
-  company: CompanyData;
-  formateur: FormateurData;
-  formation: FormationData;
-  marketingText?: { headline?: string; accroche?: string };
-  registrationUrl?: string;
-  imageBase64?: string | null;
-  infoPratiques?: string | null;
-}
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-const NIVEAU_LABELS: Record<string, string> = {
-  debutant: "Débutant",
-  intermediaire: "Intermédiaire",
-  expert: "Expert",
+const COLORS: Record<string, { main: string; dark: string }> = {
+  red:    { main: "#C8102E", dark: "#8b0000" },
+  blue:   { main: "#1565c0", dark: "#0d3a7a" },
+  green:  { main: "#2e7d32", dark: "#1b4f1e" },
+  yellow: { main: "#f57f17", dark: "#bf5000" },
+  purple: { main: "#6a1b9a", dark: "#3f0066" },
 };
 
-export function AffichePdf({ company, formateur, formation, marketingText, registrationUrl, imageBase64, infoPratiques }: Props) {
-  const headline = marketingText?.headline ?? formation.titre;
-  const accroche = marketingText?.accroche ?? formation.description.slice(0, 200) + (formation.description.length > 200 ? "..." : "");
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+}
+function formatDateLong(d: string) {
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+function initials(name: string) {
+  return name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
+function truncate(s: string, max: number) {
+  return s.length <= max ? s : s.slice(0, max - 1) + "…";
+}
+
+interface Props {
+  company:       CompanyData;
+  formateur:     FormateurData;
+  formation:     FormationData;
+  registrationUrl: string;
+  imageBase64?:  string | null;
+  infoPratiques?: string | null;
+  couleur?:      string | null;
+  qrCodeDataUrl?: string | null;
+}
+
+export function AffichePdf({
+  company, formateur, formation, registrationUrl,
+  imageBase64, infoPratiques, couleur, qrCodeDataUrl,
+}: Props) {
+  const col = COLORS[couleur ?? "red"] ?? COLORS.red;
+  const prog = (formation.programme ?? []).slice(0, 7);
+  const desc = truncate(formation.description ?? "", 320);
+  const bio  = (formateur as FormateurData & { bio?: string }).bio
+    ? truncate((formateur as FormateurData & { bio?: string }).bio!, 200)
+    : null;
+  const infos = infoPratiques ?? null;
 
   return (
     <Document title={`Affiche — ${formation.titre}`} author={company.raisonSociale}>
-      <Page size="A4" style={s.page}>
-        {/* Top red band */}
-        <View style={s.topBand}>
-          <Text style={s.specialty}>{formation.specialite} · {NIVEAU_LABELS[formation.niveau] ?? formation.niveau}</Text>
-          <Text style={s.mainTitle}>{headline}</Text>
-          <Text style={s.tagline}>{accroche}</Text>
+      <Page size="A4" style={{ fontFamily: "Helvetica", fontSize: 9, color: BLACK, backgroundColor: WHITE, flexDirection: "column" }}>
+
+        {/* ── HERO ────────────────────────────────────────────── */}
+        <View style={{ height: 168, width: "100%", overflow: "hidden", position: "relative" }}>
+          {imageBase64 ? (
+            <>
+              {/* Background image */}
+              <Image
+                src={imageBase64}
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 168 }}
+              />
+              {/* Dark overlay (separate View, own opacity so text stays fully visible) */}
+              <View style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 168, backgroundColor: "#000000", opacity: 0.5 }} />
+            </>
+          ) : (
+            /* Gradient background via SVG */
+            <Svg width="595" height="168" style={{ position: "absolute", top: 0, left: 0 }}>
+              <Defs>
+                <LinearGradient id="hgrad" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0%" stopColor={col.dark} stopOpacity="1" />
+                  <Stop offset="100%" stopColor={col.main} stopOpacity="1" />
+                </LinearGradient>
+              </Defs>
+              <Rect width="595" height="168" fill="url(#hgrad)" />
+            </Svg>
+          )}
+          {/* Title text superimposed */}
+          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 28 18 28" }}>
+            <Text style={{ fontSize: 7, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 6, fontFamily: "Helvetica-Bold" }}>
+              {formation.specialite}
+            </Text>
+            <Text style={{ fontSize: 26, fontFamily: "Helvetica-Bold", color: WHITE, lineHeight: 1.1, letterSpacing: -0.5 }}>
+              {truncate(formation.titre, 80)}
+            </Text>
+          </View>
         </View>
 
-        <View style={s.content}>
-          {/* Optional photo */}
-          {imageBase64 && (
-            <Image src={imageBase64} style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 8, marginBottom: 16 }} />
-          )}
-
-          {/* Key info grid */}
-          <View style={s.infoGrid}>
-            <View style={s.infoItem}>
-              <View style={{ width: 16, height: 16, backgroundColor: RED, borderRadius: 4, marginBottom: 6 }} />
-              <Text style={s.infoLabel}>Date</Text>
-              <Text style={s.infoValue}>
-                {new Date(formation.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+        {/* ── INFO GRID ─────────────────────────────────────── */}
+        <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#E0E0E0", borderTopWidth: 1, borderTopColor: "#E0E0E0", height: 56 }}>
+          {[
+            { label: "Date",     val: new Date(formation.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }),
+                                  sub: String(new Date(formation.date).getFullYear()), color: col.main },
+            { label: "Horaires", val: formation.heureDebut, sub: `a ${formation.heureFin} (${formation.dureeHeures}h)`, color: BLACK },
+            { label: "Lieu",     val: truncate(formation.lieuNom ?? (formation.lieuVille ?? "A definir"), 22),
+                                  sub: formation.lieuNom ? (formation.lieuVille ?? "") : "", color: "#1565c0" },
+            { label: "Places",   val: String(formation.placesRestantes), sub: `sur ${formation.placesTotal}`, color: "#2e7d32" },
+          ].map((item, i, arr) => (
+            <View key={i} style={{
+              flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8,
+              borderRightWidth: i < arr.length - 1 ? 1 : 0, borderRightColor: "#E0E0E0",
+            }}>
+              <View style={{ width: 12, height: 3, backgroundColor: item.color, borderRadius: 2, marginBottom: 5 }} />
+              <Text style={{ fontSize: 7, color: GRAY, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3, fontFamily: "Helvetica-Bold" }}>
+                {item.label}
               </Text>
-              <Text style={s.infoSub}>{new Date(formation.date).getFullYear()}</Text>
-            </View>
-            <View style={s.infoItem}>
-              <View style={{ width: 16, height: 16, backgroundColor: BLACK, borderRadius: 4, marginBottom: 6 }} />
-              <Text style={s.infoLabel}>Horaires</Text>
-              <Text style={s.infoValue}>{formation.heureDebut}</Text>
-              <Text style={s.infoSub}>a {formation.heureFin} ({formation.dureeHeures}h)</Text>
-            </View>
-            <View style={s.infoItem}>
-              <View style={{ width: 16, height: 16, backgroundColor: "#1565c0", borderRadius: 4, marginBottom: 6 }} />
-              <Text style={s.infoLabel}>Lieu</Text>
-              <Text style={s.infoValue}>{formation.lieuNom ?? "A definir"}</Text>
-              <Text style={s.infoSub}>{formation.lieuVille ?? ""}</Text>
-            </View>
-            <View style={s.infoItemLast}>
-              <View style={{ width: 16, height: 16, backgroundColor: "#2e7d32", borderRadius: 4, marginBottom: 6 }} />
-              <Text style={s.infoLabel}>Places</Text>
-              <Text style={s.infoValue}>{formation.placesRestantes}</Text>
-              <Text style={s.infoSub}>disponibles sur {formation.placesTotal}</Text>
-            </View>
-          </View>
-
-          {/* Infos pratiques */}
-          {infoPratiques && (
-            <View style={{ backgroundColor: OFF_WHITE, borderRadius: 8, padding: 14, marginBottom: 16 }}>
-              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-                Informations pratiques
-              </Text>
-              <Text style={{ fontSize: 9, color: BLACK, lineHeight: 1.5 }}>{infoPratiques}</Text>
-            </View>
-          )}
-
-          {/* Formateur */}
-          <View style={s.formateurCard}>
-            <View style={s.formateurAvatar}>
-              <Text style={s.formateurInitials}>{initials(formateur.nom)}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 8, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-                Intervenant
-              </Text>
-              <Text style={s.formateurName}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
-              <Text style={s.formateurRole}>{formateur.specialite ?? ""}{formateur.rpps ? ` — RPPS ${formateur.rpps}` : ""}</Text>
-            </View>
-          </View>
-
-          {/* Objectifs */}
-          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>
-            Ce que vous allez apprendre
-          </Text>
-          {formation.objectifs.slice(0, 4).map((obj, i) => (
-            <View key={i} style={s.objectifRow}>
-              <View style={s.objectifDot} />
-              <Text style={s.objectifText}>{obj}</Text>
+              <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: BLACK }}>{item.val}</Text>
+              {item.sub ? <Text style={{ fontSize: 8, color: GRAY, marginTop: 1 }}>{item.sub}</Text> : null}
             </View>
           ))}
+        </View>
 
-          {/* CTA */}
-          <View style={s.ctaRow}>
-            <View style={s.priceTag}>
-              <Text style={s.priceValue}>{formation.prixHT.toFixed(0)} €</Text>
-              <Text style={s.priceLabel}>HT par personne</Text>
-              {formation.exonerationTVA && (
-                <Text style={{ fontSize: 7, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>TVA exonérée</Text>
-              )}
-            </View>
-            <View style={s.registrationBox}>
-              <Text style={s.registrationTitle}>Inscription en ligne</Text>
-              <Text style={s.registrationUrl}>
-                {registrationUrl ?? `masterclassmedical.fr/formations/${formation.id}`}
-              </Text>
-              <Text style={{ fontSize: 8, color: GRAY, marginTop: 4 }}>
-                Paiement sécurisé · Places limitées
-              </Text>
-            </View>
+        {/* ── FORMATEUR ─────────────────────────────────────── */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 28, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "#E0E0E0", backgroundColor: "#FAFAFA" }}>
+          <View style={{ width: 38, height: 38, borderRadius: 100, backgroundColor: col.main, alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Text style={{ fontSize: 13, fontFamily: "Helvetica-Bold", color: WHITE }}>{initials(formateur.nom)}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 7, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Intervenant</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: BLACK }}>
+              {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}
+              {formateur.specialite ? ` — ${formateur.specialite}` : ""}
+            </Text>
+            {bio && <Text style={{ fontSize: 8, color: GRAY, marginTop: 2, lineHeight: 1.4 }}>{bio}</Text>}
+          </View>
+          {formateur.rpps && (
+            <Text style={{ fontSize: 7, color: GRAY }}>RPPS {formateur.rpps}</Text>
+          )}
+        </View>
+
+        {/* ── CONTENT (flex: 1 fills page) ──────────────────── */}
+        <View style={{ flex: 1, flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#E0E0E0" }}>
+
+          {/* LEFT — Programme */}
+          <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: "#EBEBEB", paddingHorizontal: 20, paddingVertical: 12 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+              Programme
+            </Text>
+            {prog.length > 0 ? prog.map((slot, i) => (
+              <View key={i} style={{ flexDirection: "row", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottomWidth: i < prog.length - 1 ? 1 : 0, borderBottomColor: "#F0F0F0" }}>
+                <Text style={{ fontSize: 8, color: col.main, fontFamily: "Helvetica-Bold", width: 36, flexShrink: 0 }}>{slot.heure}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: BLACK }}>{truncate(slot.titre, 60)}</Text>
+                  {slot.description ? <Text style={{ fontSize: 7, color: GRAY, marginTop: 1, lineHeight: 1.4 }}>{truncate(slot.description, 80)}</Text> : null}
+                </View>
+              </View>
+            )) : (
+              <Text style={{ fontSize: 8, color: GRAY }}>Programme en cours de finalisation.</Text>
+            )}
+          </View>
+
+          {/* RIGHT — Description + infos pratiques */}
+          <View style={{ flex: 1, paddingHorizontal: 20, paddingVertical: 12 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
+              A propos
+            </Text>
+            <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.6, marginBottom: 10 }}>
+              {desc}
+            </Text>
+            {formation.objectifs && formation.objectifs.length > 0 && (
+              <>
+                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>
+                  Objectifs
+                </Text>
+                {formation.objectifs.slice(0, 4).map((obj, i) => (
+                  <View key={i} style={{ flexDirection: "row", gap: 5, marginBottom: 3 }}>
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: col.main, marginTop: 3, flexShrink: 0 }} />
+                    <Text style={{ fontSize: 7.5, color: BLACK, flex: 1, lineHeight: 1.5 }}>{truncate(obj, 90)}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+            {infos && (
+              <View style={{ marginTop: 10, backgroundColor: "#F5F5F5", borderRadius: 4, padding: 8 }}>
+                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>
+                  Infos pratiques
+                </Text>
+                <Text style={{ fontSize: 7.5, color: BLACK, lineHeight: 1.5 }}>{infos}</Text>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={s.pageFooter}>
-          <Text style={s.footerOrg}>{company.raisonSociale}</Text>
-          {company.numeroDeclaration && (
-            <Text style={s.footerDecl}>N° déclaration activité : {company.numeroDeclaration}</Text>
+        {/* ── PRICE + QR ────────────────────────────────────── */}
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 28, paddingVertical: 10, gap: 16, borderBottomWidth: 1, borderBottomColor: "#E0E0E0" }}>
+          {/* Price block */}
+          <View style={{ backgroundColor: col.main, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10, alignItems: "center", minWidth: 100 }}>
+            <Text style={{ fontSize: 20, fontFamily: "Helvetica-Bold", color: WHITE }}>
+              {Number(formation.prixHT) === 0 ? "Gratuit" : `${Number(formation.prixHT).toFixed(0)} €`}
+            </Text>
+            {Number(formation.prixHT) > 0 && (
+              <Text style={{ fontSize: 7, color: "rgba(255,255,255,0.75)", marginTop: 2, textTransform: "uppercase", letterSpacing: 0.8 }}>HT par participant</Text>
+            )}
+            {formation.exonerationTVA && (
+              <Text style={{ fontSize: 6.5, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>TVA exoneree</Text>
+            )}
+          </View>
+
+          {/* Inscription info */}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: BLACK, marginBottom: 3 }}>Inscription en ligne</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 4 }}>{registrationUrl}</Text>
+            <Text style={{ fontSize: 7.5, color: GRAY }}>Paiement securise · Places limitees · Attestation remise sous 24h</Text>
+          </View>
+
+          {/* QR code */}
+          {qrCodeDataUrl ? (
+            <View style={{ alignItems: "center" }}>
+              <Image src={qrCodeDataUrl} style={{ width: 68, height: 68 }} />
+              <Text style={{ fontSize: 6.5, color: GRAY, marginTop: 3, textAlign: "center" }}>Scanner pour s'inscrire</Text>
+            </View>
+          ) : (
+            <View style={{ width: 68, height: 68, borderWidth: 1, borderColor: "#E0E0E0", borderRadius: 4, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 7, color: GRAY, textAlign: "center" }}>QR{"\n"}Code</Text>
+            </View>
           )}
-          {company.siteWeb && <Text style={s.footerDecl}>{company.siteWeb}</Text>}
         </View>
+
+        {/* ── FOOTER ────────────────────────────────────────── */}
+        <View style={{ backgroundColor: BLACK, paddingHorizontal: 28, paddingVertical: 7, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={{ fontSize: 7.5, color: "rgba(255,255,255,0.6)" }}>{company.raisonSociale}</Text>
+          <Text style={{ fontSize: 7, color: "rgba(255,255,255,0.35)" }}>
+            {company.numeroDeclaration ? `N° declaration : ${company.numeroDeclaration}` : ""}
+            {company.siteWeb ? `  ·  ${company.siteWeb}` : ""}
+          </Text>
+        </View>
+
       </Page>
     </Document>
   );

@@ -6,17 +6,27 @@ const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const ALLOWED_EXTS = [".jpg", ".jpeg", ".png", ".webp"];
 const MAX_MB = 6;
 
+const COULEURS = [
+  { key: "red",    label: "Rouge",   hex: "#C8102E" },
+  { key: "blue",   label: "Bleu",    hex: "#1565c0" },
+  { key: "green",  label: "Vert",    hex: "#2e7d32" },
+  { key: "yellow", label: "Ambre",   hex: "#f57f17" },
+  { key: "purple", label: "Violet",  hex: "#6a1b9a" },
+];
+
 interface Props {
   formationId: string;
   defaultTitre: string;
   defaultDescription: string;
+  defaultInfoPratiques?: string;
   onClose: () => void;
 }
 
-export default function AfficheOverlay({ formationId, defaultTitre, defaultDescription, onClose }: Props) {
+export default function AfficheOverlay({ formationId, defaultTitre, defaultDescription, defaultInfoPratiques, onClose }: Props) {
   const [titre, setTitre] = useState(defaultTitre);
   const [description, setDescription] = useState(defaultDescription.slice(0, 300));
-  const [infoPratiques, setInfoPratiques] = useState("");
+  const [infoPratiques, setInfoPratiques] = useState(defaultInfoPratiques ?? "");
+  const [couleur, setCouleur] = useState("red");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -68,6 +78,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
           description: description.trim() || undefined,
           infoPratiques: infoPratiques.trim() || undefined,
           imageBase64: imageDataUrl || undefined,
+          couleur: imageDataUrl ? undefined : couleur,
         }),
       });
       if (!res.ok) {
@@ -153,9 +164,33 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
             />
           </div>
 
+          {/* Couleur du bloc titre (si pas d'image) */}
+          {!imageDataUrl && (
+            <div>
+              <label style={labelStyle}>Couleur du bloc titre <span style={{ fontWeight: 400, color: "#6A6A6A" }}>(si pas d'image)</span></label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {COULEURS.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => { setCouleur(c.key); setDownloadUrl(null); }}
+                    style={{
+                      flex: 1, padding: "10px 4px", borderRadius: 8, border: couleur === c.key ? `3px solid ${c.hex}` : "2px solid #E0E0E0",
+                      background: couleur === c.key ? `${c.hex}18` : "white",
+                      cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                    }}
+                  >
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: c.hex }} />
+                    <span style={{ fontSize: 11, fontWeight: couleur === c.key ? 700 : 400, color: couleur === c.key ? c.hex : "#6A6A6A" }}>{c.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Image upload */}
           <div>
-            <label style={labelStyle}>Image de couverture <span style={{ fontWeight: 400, color: "#6A6A6A" }}>(optionnelle — JPG, PNG, WEBP, max {MAX_MB} Mo)</span></label>
+            <label style={labelStyle}>Image de couverture <span style={{ fontWeight: 400, color: "#6A6A6A" }}>(remplace la couleur — JPG, PNG, WEBP, max {MAX_MB} Mo)</span></label>
             <div
               onClick={() => fileRef.current?.click()}
               style={{

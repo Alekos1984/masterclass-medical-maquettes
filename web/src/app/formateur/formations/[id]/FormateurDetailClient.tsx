@@ -2108,6 +2108,21 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           formationId={formation.id}
           defaultTitre={formation.titre}
           defaultDescription={formation.description}
+          defaultInfoPratiques={[
+            formation.lieuNom
+              ? `Lieu : ${formation.lieuNom}${formation.lieuVille ? `, ${formation.lieuVille}` : ""}`
+              : formation.lieuVille
+              ? `Lieu : ${formation.lieuVille}`
+              : null,
+            formation.restauration ? `Restauration : ${formation.restauration}` : null,
+            formation.publicCible ? `Public cible : ${formation.publicCible}` : null,
+            formation.formatFormation ? `Format : ${formation.formatFormation}` : null,
+            formation.equipements?.length
+              ? `Equipements : ${formation.equipements.join(", ")}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           onClose={() => setAfficheOverlayOpen(false)}
         />
       )}
