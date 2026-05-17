@@ -64,6 +64,8 @@ interface Props {
   formateur: FormateurData;
   formation: FormationData;
   participant: ParticipantData;
+  formateurSignedAt?: string | null;
+  accuseReception?: { at: string; participantName: string } | null;
 }
 
 function formatDate(d: string) {
@@ -73,7 +75,7 @@ function formatDateLong(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
-export function ConvocationPdf({ company, formateur, formation, participant }: Props) {
+export function ConvocationPdf({ company, formateur, formation, participant, formateurSignedAt, accuseReception }: Props) {
   const refNum = `CONV-${formation.id.slice(0, 6).toUpperCase()}-${participant.nom.slice(0, 3).toUpperCase()}`;
   const today = new Date().toISOString();
 
@@ -175,21 +177,33 @@ export function ConvocationPdf({ company, formateur, formation, participant }: P
           </Text>
         </View>
 
-        {/* Signature */}
+        {/* Signature formateur */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 2 }}>{formateur.titre ? formateur.titre + " " : ""}{formateur.nom}</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>Le formateur{formateur.specialite ? ` · ${formateur.specialite}` : ""}</Text>
-            <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Fait à _________, le {formatDate(today)}</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 6 }}>Le formateur{formateur.specialite ? ` · ${formateur.specialite}` : ""}</Text>
+            {formateurSignedAt ? (
+              <View style={{ borderWidth: 1, borderColor: "#2e7d32", borderRadius: 6, padding: 8, backgroundColor: "#f0fdf4" }}>
+                <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: "#2e7d32" }}>Signe numeriquement</Text>
+                <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>{new Date(formateurSignedAt).toLocaleString("fr-FR")}</Text>
+              </View>
+            ) : (
+              <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text></View>
+            )}
           </View>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le/la participant(e)</Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
-              {participant.titre ? `${participant.titre} ` : ""}{participant.nom}{"\n"}Accusé de réception
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Accusé de réception</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 6 }}>
+              {participant.titre ? `${participant.titre} ` : ""}{participant.nom}
             </Text>
-            <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Signature</Text></View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Le ____/____/________</Text>
+            {accuseReception ? (
+              <View style={{ borderWidth: 1, borderColor: "#2e7d32", borderRadius: 6, padding: 8, backgroundColor: "#f0fdf4" }}>
+                <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: "#2e7d32" }}>Recu et telechargé</Text>
+                <Text style={{ fontSize: 7, color: GRAY, marginTop: 2 }}>{new Date(accuseReception.at).toLocaleString("fr-FR")}</Text>
+              </View>
+            ) : (
+              <View style={s.signatureBox}><Text style={{ fontSize: 8, color: GRAY }}>Accusé de reception au telechargement</Text></View>
+            )}
           </View>
         </View>
 

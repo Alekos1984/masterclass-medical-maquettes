@@ -16,7 +16,7 @@ export async function GET(
   const session = await auth();
   if (!session?.user?.id) return new Response("Non authentifié", { status: 401 });
 
-  // Participants can only see convention if it's signed and confirmed
+  // Participants : disponible uniquement si le formateur a signé et inscription confirmée
   if (session.user.role === "PARTICIPANT") {
     const check = await prisma.inscription.findUnique({
       where: { id: inscriptionId },
@@ -26,13 +26,19 @@ export async function GET(
       return new Response("Accès refusé", { status: 403 });
     }
     if (!check.conventionSignee || check.statut !== "CONFIRMEE") {
-      return new Response("Convention non disponible — en attente de signature", { status: 403 });
+      return new Response("Convention non disponible — en attente de signature du formateur", { status: 403 });
     }
   }
 
   const [company, inscription] = await Promise.all([
     getCompanySettings(),
-    getInscriptionData(inscriptionId),
+    prisma.inscription.findUnique({
+      where: { id: inscriptionId },
+      include: {
+        formation: { include: { formateur: { include: { user: true } } } },
+        participant: { include: { user: true } },
+      },
+    }),
   ]);
 
   if (!inscription) return new Response("Inscription introuvable", { status: 404 });
@@ -80,6 +86,11 @@ export async function GET(
         montantHT: Number(inscription.montantHT),
         createdAt: inscription.createdAt.toISOString(),
         statut: inscription.statut,
+      },
+      signatures: {
+        formateurSignedAt: inscription.conventionSigneeAt?.toISOString() ?? null,
+        participantSignedAt: inscription.conventionParticipantSigneeAt?.toISOString() ?? null,
+        seal: inscription.conventionSeal ?? null,
       },
     })
   );

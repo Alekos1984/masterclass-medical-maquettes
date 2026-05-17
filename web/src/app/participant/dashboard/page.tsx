@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { StatutInscription } from "@/generated/prisma/enums";
 import PayerButton from "./PayerButton";
+import SignerConventionButton from "./SignerConventionButton";
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(date);
@@ -198,8 +199,12 @@ export default async function ParticipantDashboardPage() {
                             </div>
                           </div>
                           <div style={{ fontSize: 18, fontWeight: 800, flexShrink: 0 }}>
-                            {Number(insc.montantHT).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €{" "}
-                            <span style={{ fontSize: 11, fontWeight: 400, color: "var(--gray)" }}>HT</span>
+                            {f.gratuite || Number(insc.montantHT) === 0 ? (
+                              <span style={{ color: "#2e7d32" }}>Gratuit</span>
+                            ) : (
+                              <>{Number(insc.montantHT).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €{" "}
+                              <span style={{ fontSize: 11, fontWeight: 400, color: "var(--gray)" }}>HT</span></>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const, marginBottom: 8 }}>
@@ -215,11 +220,18 @@ export default async function ParticipantDashboardPage() {
                       </div>
                     </div>
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
-                      {insc.conventionSignee && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention signée</span>}
-                      {!insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "var(--gray)" }}>Convention en attente de signature</span>}
+                      {insc.conventionSignee && (insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention co-signée</span>}
+                      {insc.conventionSignee && !(insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "#f57f17" }}>Convention en attente de votre signature</span>}
+                      {!insc.conventionSignee && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "var(--gray)" }}>Convention en attente du formateur</span>}
                       <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {insc.statut === StatutInscription.EN_ATTENTE_PAIEMENT && (
-                          <PayerButton inscriptionId={insc.id} />
+                          f.gratuite || Number(insc.montantHT) === 0
+                            ? <PayerButton inscriptionId={insc.id} label="Confirmer mon inscription" />
+                            : <PayerButton inscriptionId={insc.id} />
+                        )}
+                        {/* Bouton signer convention côté participant */}
+                        {insc.statut === StatutInscription.CONFIRMEE && insc.conventionSignee && !(insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && (
+                          <SignerConventionButton inscriptionId={insc.id} />
                         )}
                         {/* Convocation — dispo après envoi par le formateur */}
                         {insc.convocationSignee ? (
@@ -289,8 +301,8 @@ export default async function ParticipantDashboardPage() {
                             </div>
                             <div style={{ fontSize: 14, fontWeight: 800 }}>{f.titre}</div>
                           </div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--gray)" }}>
-                            {Number(insc.montantHT).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} € HT
+                          <div style={{ fontSize: 14, fontWeight: 700, color: f.gratuite || Number(insc.montantHT) === 0 ? "#2e7d32" : "var(--gray)" }}>
+                            {f.gratuite || Number(insc.montantHT) === 0 ? "Gratuit" : `${Number(insc.montantHT).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} € HT`}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>

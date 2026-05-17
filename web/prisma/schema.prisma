@@ -371,8 +371,13 @@ model Inscription {
   stripeSessionId       String? @unique
 
   // Documents
-  convocationSignee Boolean @default(false)
-  conventionSignee  Boolean @default(false)
+  convocationSignee    Boolean   @default(false)
+  convocationSigneeAt  DateTime?                  // horodatage signature formateur
+  convocationAccuseAt  DateTime?                  // accusé de réception participant
+  conventionSignee     Boolean   @default(false)
+  conventionSigneeAt   DateTime?                  // horodatage signature formateur
+  conventionParticipantSigneeAt DateTime?          // horodatage signature participant
+  conventionSeal       String?                    // HMAC une fois les deux signatures
   conventionUrl    String?
   attestationUrl   String?
 

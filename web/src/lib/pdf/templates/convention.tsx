@@ -17,7 +17,7 @@ const s = StyleSheet.create({
     borderColor: LIGHT_GRAY,
     borderRadius: 6,
     padding: 12,
-    height: 100,
+    height: 72,
     justifyContent: "flex-end",
     marginBottom: 6,
   },
@@ -33,12 +33,19 @@ const s = StyleSheet.create({
   refValue: { fontSize: 8, color: BLACK, fontFamily: "Helvetica-Bold" },
 });
 
+interface SignatureState {
+  formateurSignedAt?: string | null;
+  participantSignedAt?: string | null;
+  seal?: string | null;
+}
+
 interface Props {
   company: CompanyData;
   formateur: FormateurData;
   formation: FormationData;
   participant: ParticipantData;
   inscription: InscriptionData;
+  signatures?: SignatureState;
 }
 
 function formatDate(d: string) {
@@ -49,8 +56,12 @@ function formatDate(d: string) {
   });
 }
 
-export function ConventionPdf({ company, formateur, formation, participant, inscription }: Props) {
+export function ConventionPdf({ company, formateur, formation, participant, inscription, signatures }: Props) {
   const refNum = `CONV-${inscription.id.slice(0, 8).toUpperCase()}`;
+  const bothSigned = !!(signatures?.formateurSignedAt && signatures?.participantSignedAt);
+  const formateurSigned = !!signatures?.formateurSignedAt;
+  const participantSigned = !!signatures?.participantSignedAt;
+  const isGratuite = inscription.montantHT === 0;
 
   return (
     <Document title={`Convention — ${formation.titre}`} author={company.raisonSociale}>
@@ -79,42 +90,30 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
               <Text style={base.infoLabel}>Nom</Text>
               <Text style={base.infoValue}>{formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}</Text>
             </View>
-            {formateur.specialite && (
+            {formateur.specialite ? (
               <View style={base.infoRow}>
-                <Text style={base.infoLabel}>Spécialité</Text>
+                <Text style={base.infoLabel}>Specialite</Text>
                 <Text style={base.infoValue}>{formateur.specialite}</Text>
               </View>
-            )}
-            {formateur.rpps && (
+            ) : <View style={{ height: 0 }} />}
+            {formateur.rpps ? (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>N° RPPS</Text>
                 <Text style={base.infoValue}>{formateur.rpps}</Text>
               </View>
-            )}
-            {formateur.raisonSociale && (
+            ) : <View style={{ height: 0 }} />}
+            {formateur.raisonSociale ? (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>Raison sociale</Text>
                 <Text style={base.infoValue}>{formateur.raisonSociale}</Text>
               </View>
-            )}
-            {formateur.siret && (
-              <View style={base.infoRow}>
-                <Text style={base.infoLabel}>SIRET</Text>
-                <Text style={base.infoValue}>{formateur.siret}</Text>
-              </View>
-            )}
-            {formateur.email && (
+            ) : <View style={{ height: 0 }} />}
+            {formateur.email ? (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>Email</Text>
                 <Text style={base.infoValue}>{formateur.email}</Text>
               </View>
-            )}
-            {formateur.phone && (
-              <View style={base.infoRow}>
-                <Text style={base.infoLabel}>Téléphone</Text>
-                <Text style={base.infoValue}>{formateur.phone}</Text>
-              </View>
-            )}
+            ) : <View style={{ height: 0 }} />}
           </View>
           <View style={s.partieCard}>
             <Text style={s.partieCardTitle}>Le stagiaire</Text>
@@ -122,114 +121,159 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
               <Text style={base.infoLabel}>Nom</Text>
               <Text style={base.infoValue}>{participant.titre ? `${participant.titre} ` : ""}{participant.nom}</Text>
             </View>
-            {participant.specialite && (
+            {participant.specialite ? (
               <View style={base.infoRow}>
-                <Text style={base.infoLabel}>Spécialité</Text>
+                <Text style={base.infoLabel}>Specialite</Text>
                 <Text style={base.infoValue}>{participant.specialite}</Text>
               </View>
-            )}
-            {participant.rpps && (
+            ) : <View style={{ height: 0 }} />}
+            {participant.rpps ? (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>N° RPPS</Text>
                 <Text style={base.infoValue}>{participant.rpps}</Text>
               </View>
-            )}
+            ) : <View style={{ height: 0 }} />}
             <View style={base.infoRow}>
               <Text style={base.infoLabel}>Email</Text>
               <Text style={base.infoValue}>{participant.email}</Text>
             </View>
-            {participant.adresse && (
+            {participant.adresse ? (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>Adresse</Text>
                 <Text style={base.infoValue}>{participant.adresse}, {participant.codePostal} {participant.ville}</Text>
               </View>
-            )}
+            ) : <View style={{ height: 0 }} />}
           </View>
         </View>
 
         {/* Articles */}
         <Text style={s.articleTitle}>Article 1 — Objet</Text>
         <Text style={s.articleText}>
-          La présente convention a pour objet la participation de {participant.nom} à la formation intitulée «{" "}
-          {formation.titre} », dispensée par {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}{formateur.specialite ? `, ${formateur.specialite}` : ""}, organisme de formation référencé sur la plateforme Masterclass Médical.
+          La présente convention a pour objet la participation de {participant.nom} a la formation intitulee «{" "}
+          {formation.titre} », dispensee par {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}{formateur.specialite ? `, ${formateur.specialite}` : ""}.
         </Text>
 
-        <Text style={s.articleTitle}>Article 2 — Nature et durée de la formation</Text>
+        <Text style={s.articleTitle}>Article 2 — Nature et duree de la formation</Text>
         <View style={base.infoRow}>
-          <Text style={base.infoLabel}>Intitulé</Text>
+          <Text style={base.infoLabel}>Intitule</Text>
           <Text style={base.infoValue}>{formation.titre}</Text>
         </View>
         <View style={base.infoRow}>
           <Text style={base.infoLabel}>Date</Text>
-          <Text style={base.infoValue}>{formatDate(formation.date)} — {formation.heureDebut} à {formation.heureFin}</Text>
+          <Text style={base.infoValue}>{formatDate(formation.date)} — {formation.heureDebut} a {formation.heureFin}</Text>
         </View>
         <View style={base.infoRow}>
-          <Text style={base.infoLabel}>Durée</Text>
+          <Text style={base.infoLabel}>Duree</Text>
           <Text style={base.infoValue}>{formation.dureeHeures} heure(s)</Text>
         </View>
         <View style={base.infoRow}>
           <Text style={base.infoLabel}>Lieu</Text>
-          <Text style={base.infoValue}>{formation.lieuNom ? `${formation.lieuNom}, ${formation.lieuAdresse ?? ""}, ${formation.lieuVille ?? ""}` : "À confirmer"}</Text>
+          <Text style={base.infoValue}>{formation.lieuNom ? `${formation.lieuNom}, ${formation.lieuVille ?? ""}` : "A confirmer"}</Text>
         </View>
 
         <Text style={s.articleTitle}>Article 3 — Programme et objectifs</Text>
         <Text style={s.articleText}>
-          Les objectifs pédagogiques et le programme détaillé figurent en annexe de la présente convention.
-          {"\n"}Objectifs : {formation.objectifs.join(" ; ")}.
+          Les objectifs pedagogiques et le programme figure en annexe.{"\n"}Objectifs : {formation.objectifs.join(" ; ")}.
         </Text>
 
-        <Text style={s.articleTitle}>Article 4 — Prix et modalités de règlement</Text>
-        <View style={base.infoRow}>
-          <Text style={base.infoLabel}>Montant HT</Text>
-          <Text style={base.infoValue}>{inscription.montantHT.toFixed(2)} €</Text>
-        </View>
-        <View style={base.infoRow}>
-          <Text style={base.infoLabel}>TVA</Text>
-          <Text style={base.infoValue}>{formation.exonerationTVA ? "Exonérée — Art. 261-4-4° CGI" : "20%"}</Text>
-        </View>
-        <Text style={[s.articleText, { marginTop: 6 }]}>
-          Le règlement est effectué en ligne par carte bancaire via la plateforme sécurisée Stripe au moment de l'inscription.
-        </Text>
+        <Text style={s.articleTitle}>Article 4 — Prix et modalites de reglement</Text>
+        {isGratuite ? (
+          <View>
+            <View style={base.infoRow}>
+              <Text style={base.infoLabel}>Tarif</Text>
+              <Text style={[base.infoValue, { color: "#2e7d32", fontFamily: "Helvetica-Bold" }]}>FORMATION GRATUITE</Text>
+            </View>
+            <Text style={[s.articleText, { marginTop: 6 }]}>
+              Cette formation est organisee a titre gratuit. Aucun reglement n'est requis.
+            </Text>
+          </View>
+        ) : (
+          <View>
+            <View style={base.infoRow}>
+              <Text style={base.infoLabel}>Montant HT</Text>
+              <Text style={base.infoValue}>{inscription.montantHT.toFixed(2)} EUR</Text>
+            </View>
+            <View style={base.infoRow}>
+              <Text style={base.infoLabel}>TVA</Text>
+              <Text style={base.infoValue}>{formation.exonerationTVA ? "Exoneree — Art. 261-4-4° CGI" : "20%"}</Text>
+            </View>
+            <Text style={[s.articleText, { marginTop: 6 }]}>
+              Le reglement est effectue en ligne par carte bancaire via la plateforme securisee Stripe.
+            </Text>
+          </View>
+        )}
 
-        <Text style={s.articleTitle}>Article 5 — Conditions d'annulation et de remboursement</Text>
+        <Text style={s.articleTitle}>Article 5 — Conditions d'annulation</Text>
         <Text style={s.articleText}>
-          Toute annulation effectuée plus de 14 jours avant la date de la formation donne droit à un remboursement intégral.
-          En deçà de ce délai, aucun remboursement ne sera effectué sauf en cas d'annulation par l'organisme ou de force majeure.
-          {"\n"}En cas d'annulation par l'organisme, les participants seront intégralement remboursés.
+          Toute annulation effectuee plus de 14 jours avant la date de la formation donne droit a un remboursement integral.
+          En deca de ce delai, aucun remboursement ne sera effectue sauf cas de force majeure ou annulation par l'organisateur.
         </Text>
 
         <Text style={s.articleTitle}>Article 6 — Litiges</Text>
         <Text style={s.articleText}>
-          En cas de litige, les parties s'engagent à rechercher une solution amiable avant tout recours juridictionnel.
+          En cas de litige, les parties s'engagent a rechercher une solution amiable avant tout recours juridictionnel.
         </Text>
 
         {/* Signatures */}
         <View style={s.signatureGrid}>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 6 }}>
-              Le formateur
-            </Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le formateur</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 6 }}>
               {formateur.titre ? `${formateur.titre} ` : ""}{formateur.nom}
             </Text>
-            <View style={s.signatureBoxBig}>
-              <Text style={{ fontSize: 8, color: GRAY }}>Signature et cachet</Text>
-            </View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Fait à _________, le {formatDate(new Date().toISOString())}</Text>
+            {formateurSigned ? (
+              <View style={{ borderWidth: 1, borderColor: "#2e7d32", borderRadius: 6, padding: 10, marginBottom: 6, backgroundColor: "#f0fdf4" }}>
+                <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: "#2e7d32" }}>Signe numeriquement</Text>
+                <Text style={{ fontSize: 7, color: GRAY, marginTop: 3 }}>
+                  {new Date(signatures!.formateurSignedAt!).toLocaleString("fr-FR")}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.signatureBoxBig}>
+                <Text style={{ fontSize: 8, color: LIGHT_GRAY }}>En attente de signature</Text>
+              </View>
+            )}
           </View>
           <View style={s.signatureBlock}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 6 }}>
-              Le stagiaire
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Le stagiaire</Text>
+            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 6 }}>
+              {participant.nom} — Lu et approuve
             </Text>
-            <Text style={{ fontSize: 8, color: GRAY, marginBottom: 8 }}>
-              {participant.nom} — Lu et approuvé
-            </Text>
-            <View style={s.signatureBoxBig}>
-              <Text style={{ fontSize: 8, color: GRAY }}>Signature</Text>
-            </View>
-            <Text style={{ fontSize: 7, color: GRAY }}>Fait à _________, le {formatDate(new Date().toISOString())}</Text>
+            {participantSigned ? (
+              <View style={{ borderWidth: 1, borderColor: "#2e7d32", borderRadius: 6, padding: 10, marginBottom: 6, backgroundColor: "#f0fdf4" }}>
+                <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: "#2e7d32" }}>Signe numeriquement</Text>
+                <Text style={{ fontSize: 7, color: GRAY, marginTop: 3 }}>
+                  {new Date(signatures!.participantSignedAt!).toLocaleString("fr-FR")}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.signatureBoxBig}>
+                <Text style={{ fontSize: 8, color: LIGHT_GRAY }}>En attente de signature</Text>
+              </View>
+            )}
           </View>
         </View>
+
+        {/* Sceau d'intégrité — visible uniquement si les deux ont signé */}
+        {bothSigned && signatures?.seal ? (
+          <View style={{ marginTop: 12, padding: 8, backgroundColor: "#f8f9ff", borderRadius: 4, borderWidth: 1, borderColor: "#dde3f5" }}>
+            <Text style={{ fontSize: 7, color: "#1565c0", fontFamily: "Helvetica-Bold" }}>
+              DOCUMENT CERTIFIE NUMERIQUEMENT — Integrite garantie HMAC-SHA-256
+            </Text>
+            <Text style={{ fontSize: 6, color: GRAY, marginTop: 3 }}>
+              Formateur signe le : {new Date(signatures.formateurSignedAt!).toLocaleString("fr-FR")}
+            </Text>
+            <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>
+              Stagiaire signe le : {new Date(signatures.participantSignedAt!).toLocaleString("fr-FR")}
+            </Text>
+            <Text style={{ fontSize: 6, color: "#444", marginTop: 2 }}>
+              Sceau : {signatures.seal}
+            </Text>
+            <Text style={{ fontSize: 6, color: GRAY, marginTop: 2, fontFamily: "Helvetica-Oblique" }}>
+              Ce sceau cryptographique est lie au contenu du document. Toute modification invalide ce sceau.
+            </Text>
+          </View>
+        ) : <View style={{ height: 0 }} />}
 
         <View style={base.footer} fixed>
           <Text style={base.footerText}>{refNum} — {company.raisonSociale}</Text>
