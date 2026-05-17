@@ -253,6 +253,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     placesTotal: formation.placesTotal,
     minParticipants: formation.minParticipants,
     prixHT: formation.prixHT,
+    gratuite: formation.gratuite,
     formatFormation: formation.formatFormation,
     restauration: formation.restauration,
     publicCible: formation.publicCible,
@@ -333,7 +334,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         dureeHeures: Number(infosState.dureeHeures),
         placesTotal: Number(infosState.placesTotal),
         minParticipants: Number(infosState.minParticipants),
-        prixHT: Number(infosState.prixHT),
+        prixHT: infosState.gratuite ? 0 : Number(infosState.prixHT),
+        gratuite: infosState.gratuite,
         formatFormation: infosState.formatFormation,
         restauration: infosState.restauration,
         publicCible: infosState.publicCible,
@@ -1935,8 +1937,18 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                       <label style={labelStyle}>Participants min</label>
                       <input type="number" value={infosState.minParticipants} min={1} max={50} onChange={e => setInfosState(s => ({...s, minParticipants: Number(e.target.value)}))} style={inputStyle} />
 
-                      <label style={labelStyle}>Prix HT (€)</label>
-                      <input type="number" value={infosState.prixHT} min={0} step={10} onChange={e => setInfosState(s => ({...s, prixHT: Number(e.target.value)}))} style={inputStyle} />
+                      <label style={labelStyle}>Tarif</label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginBottom: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={infosState.gratuite}
+                          onChange={e => setInfosState(s => ({ ...s, gratuite: e.target.checked, prixHT: e.target.checked ? 0 : s.prixHT }))}
+                        />
+                        Formation gratuite
+                      </label>
+                      {!infosState.gratuite && (
+                        <input type="number" value={infosState.prixHT} min={0} step={10} placeholder="Prix HT en €" onChange={e => setInfosState(s => ({...s, prixHT: Number(e.target.value)}))} style={inputStyle} />
+                      )}
 
                       <label style={labelStyle}>Public cible</label>
                       <select value={infosState.publicCible} onChange={e => setInfosState(s => ({...s, publicCible: e.target.value}))} style={inputStyle}>
