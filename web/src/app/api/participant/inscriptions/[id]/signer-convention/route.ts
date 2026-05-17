@@ -36,8 +36,15 @@ export async function POST(
     return NextResponse.json({ ok: true, alreadySigned: true });
   }
 
+  if (!inscription.conventionSigneeAt) {
+    return NextResponse.json(
+      { error: "Le formateur doit mettre à jour sa signature (cliquez sur '↻ Mettre à jour' dans le tableau des conventions)." },
+      { status: 400 }
+    );
+  }
+
   const now = new Date();
-  const formateurAt = inscription.conventionSigneeAt!.toISOString();
+  const formateurAt = inscription.conventionSigneeAt.toISOString();
   const seal = computeInscriptionSeal(inscriptionId, "convention", formateurAt, now.toISOString());
 
   await prisma.inscription.update({

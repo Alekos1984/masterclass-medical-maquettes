@@ -92,7 +92,8 @@ export async function GET(
       },
       formation,
       participant: mapParticipant(inscription.participant),
-      formateurSignedAt: inscriptionMeta?.convocationSigneeAt?.toISOString() ?? null,
+      formateurSignedAt: inscriptionMeta?.convocationSigneeAt?.toISOString()
+        ?? (inscription.convocationSignee ? "date non disponible" : null),
       accuseReception: accuse
         ? { at: accuse.at.toISOString(), participantName: accuse.name }
         : inscriptionMeta?.convocationAccuseAt

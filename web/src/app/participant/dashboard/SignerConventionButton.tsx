@@ -11,7 +11,11 @@ export default function SignerConventionButton({ inscriptionId, onSigned }: { in
     try {
       const res = await fetch(`/api/participant/inscriptions/${inscriptionId}/signer-convention`, { method: "POST" });
       if (res.ok) { setDone(true); onSigned?.(); window.location.reload(); }
-      else { const msg = await res.text(); alert("Erreur : " + msg); }
+      else {
+        let msg = await res.text();
+        try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch { /* raw text */ }
+        alert("Erreur : " + msg);
+      }
     } finally { setLoading(false); }
   }
 

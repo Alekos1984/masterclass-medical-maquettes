@@ -91,7 +91,7 @@ type FormationDetail = {
 };
 
 function PillStatus({ status }: { status: string }) {
-  if (status === "CONFIRMEE" || status === "Payé" || status === "Signée")
+  if (status === "CONFIRMEE" || status === "Payé" || status === "Signée" || status === "Confirmé")
     return <span className="pill pill-green">{status === "CONFIRMEE" ? "Payé" : status}</span>;
   if (status === "EN_ATTENTE_PAIEMENT" || status === "En attente")
     return <span className="pill pill-orange">En attente</span>;
@@ -1267,7 +1267,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                           </div>
                         </td>
                         <td>{new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(p.createdAt))}</td>
-                        <td><PillStatus status={p.statut} /></td>
+                        <td><PillStatus status={p.statut === "CONFIRMEE" && formation.gratuite ? "Confirmé" : p.statut} /></td>
                         <td><PillStatus status={p.conventionSignee ? "Signée" : "En attente"} /></td>
                       </tr>
                     ))}
@@ -1434,7 +1434,17 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                                   ✍️ Signer
                                 </button>
                               )}
-                              {confirmed && convocationState[insc.id] && (
+                              {confirmed && convocationState[insc.id] && !insc.convocationSigneeAt && (
+                                <button
+                                  type="button"
+                                  onClick={async () => { await signerConvocation(insc.id); window.location.reload(); }}
+                                  style={{ background: "#b45309", color: "white", border: "none", borderRadius: 7, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                                  title="Signature datée manquante — cliquez pour mettre à jour"
+                                >
+                                  ↻ Mettre à jour
+                                </button>
+                              )}
+                              {confirmed && convocationState[insc.id] && insc.convocationSigneeAt && (
                                 <span style={{ fontSize: 12, color: "#2e7d32", padding: "5px 10px" }}>✓</span>
                               )}
                             </div>
@@ -1491,12 +1501,13 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                           </td>
                           <td style={{ padding: "10px 0", textAlign: "right" }}>
                             <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                              {confirmed && (
-                                <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", color: "#0F0F0F" }}>
+                              {confirmed && bothSigned ? (
+                                <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #16a34a", background: "#f0fdf4", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", color: "#16a34a" }}>
                                   PDF ↗
                                 </a>
-                              )}
-                              {!confirmed && (
+                              ) : confirmed ? (
+                                <span style={{ fontSize: 12, color: "#BDBDBD", padding: "5px 10px", border: "1.5px solid #E0E0E0", borderRadius: 7 }} title="Disponible après co-signature">PDF 🔒</span>
+                              ) : (
                                 <span style={{ fontSize: 12, color: "#BDBDBD", padding: "5px 10px", border: "1.5px solid #E0E0E0", borderRadius: 7 }}>PDF</span>
                               )}
                               {confirmed && !conventionState[insc.id] && (
@@ -1506,6 +1517,16 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                                   style={{ background: "#C8102E", color: "white", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                                 >
                                   ✍️ Signer
+                                </button>
+                              )}
+                              {confirmed && conventionState[insc.id] && !insc.conventionSigneeAt && (
+                                <button
+                                  type="button"
+                                  onClick={async () => { await signerConvention(insc.id); window.location.reload(); }}
+                                  style={{ background: "#b45309", color: "white", border: "none", borderRadius: 7, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                                  title="Signature datée manquante — cliquez pour mettre à jour"
+                                >
+                                  ↻ Mettre à jour
                                 </button>
                               )}
                             </div>
@@ -1702,8 +1723,12 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                         <td><PillStatus status={insc.statut} /></td>
                         <td>
                           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
-                            <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convocation</a>
-                            <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convention</a>
+                            {insc.convocationSignee && (
+                              <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convocation</a>
+                            )}
+                            {insc.conventionSignee && insc.conventionParticipantSigneeAt && (
+                              <a href={`/api/pdf/convention/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Convention</a>
+                            )}
                             {insc.statut === "CONFIRMEE" && (
                               <a href={`/api/pdf/attestation/${insc.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }}>Attestation</a>
                             )}
