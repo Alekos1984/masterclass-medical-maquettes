@@ -303,6 +303,7 @@ model Formation {
   signatureFormateurSnap String? @db.Text  // snapshot de la signature au moment de la signature
   pvContent              Json?            // { objectifsAtteints, observations, acquis }
   bilanContent           Json?            // { resume, recommandations, pointsForts }
+  afficheParams          Json?            // { titre, description, infoPratiques, couleur }
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?

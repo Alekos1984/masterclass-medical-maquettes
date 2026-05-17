@@ -39,14 +39,13 @@ export function AffichePdf({
   imageBase64, infoPratiques, couleur, qrCodeDataUrl,
 }: Props) {
   const col  = COLORS[couleur ?? "red"] ?? COLORS.red;
-  const prog = (formation.programme ?? []).slice(0, 7);
-  const desc = truncate(formation.description ?? "", 320);
+  const desc = truncate(formation.description ?? "", 600);
   const bio  = (formateur as FormateurData & { bio?: string }).bio
     ? truncate((formateur as FormateurData & { bio?: string }).bio!, 200)
     : null;
   const infos     = infoPratiques ?? null;
   const prixNum   = Number(formation.prixHT);
-  const objectifs = (formation.objectifs ?? []).slice(0, 4);
+  const objectifs = (formation.objectifs ?? []).slice(0, 6);
 
   return (
     <Document title={`Affiche — ${formation.titre}`} author={company.raisonSociale}>
@@ -153,36 +152,10 @@ export function AffichePdf({
         </View>
 
         {/* ── CONTENT (flex: 1 fills remaining page) ────────── */}
-        <View style={{ flex: 1, flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#E0E0E0" }}>
+        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: "#E0E0E0" }}>
 
-          {/* LEFT — Programme */}
-          <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: "#EBEBEB", paddingHorizontal: 20, paddingVertical: 12 }}>
-            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
-              Programme
-            </Text>
-            {prog.length > 0 ? (
-              <View>
-                {prog.map((slot, i) => (
-                  <View key={i} style={{ flexDirection: "row", marginBottom: 6, paddingBottom: 6, borderBottomWidth: i < prog.length - 1 ? 1 : 0, borderBottomColor: "#F0F0F0" }}>
-                    <Text style={{ fontSize: 8, color: col.main, fontFamily: "Helvetica-Bold", width: 36, flexShrink: 0 }}>{slot.heure ?? ""}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: BLACK }}>{truncate(slot.titre ?? "", 60)}</Text>
-                      {slot.description ? (
-                        <Text style={{ fontSize: 7, color: GRAY, marginTop: 1, lineHeight: 1.4 }}>{truncate(slot.description, 80)}</Text>
-                      ) : (
-                        <View style={{ height: 0 }} />
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={{ fontSize: 8, color: GRAY }}>Programme en cours de finalisation.</Text>
-            )}
-          </View>
-
-          {/* RIGHT — Description + objectifs + infos pratiques */}
-          <View style={{ flex: 1, paddingHorizontal: 20, paddingVertical: 12 }}>
+          {/* Pleine largeur — Description + objectifs + infos pratiques */}
+          <View style={{ flex: 1, paddingHorizontal: 28, paddingVertical: 14 }}>
             <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8 }}>
               A propos
             </Text>
@@ -191,15 +164,17 @@ export function AffichePdf({
             </Text>
             {objectifs.length > 0 ? (
               <View>
-                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>
+                <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 4 }}>
                   Objectifs
                 </Text>
-                {objectifs.map((obj, i) => (
-                  <View key={i} style={{ flexDirection: "row", marginBottom: 3 }}>
-                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: col.main, marginTop: 3, marginRight: 5, flexShrink: 0 }} />
-                    <Text style={{ fontSize: 7.5, color: BLACK, flex: 1, lineHeight: 1.5 }}>{truncate(obj, 90)}</Text>
-                  </View>
-                ))}
+                <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                  {objectifs.map((obj, i) => (
+                    <View key={i} style={{ width: "50%", flexDirection: "row", marginBottom: 4, paddingRight: 10 }}>
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: col.main, marginTop: 3, marginRight: 5, flexShrink: 0 }} />
+                      <Text style={{ fontSize: 7.5, color: BLACK, flex: 1, lineHeight: 1.5 }}>{truncate(obj, 80)}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             ) : (
               <View style={{ height: 0 }} />

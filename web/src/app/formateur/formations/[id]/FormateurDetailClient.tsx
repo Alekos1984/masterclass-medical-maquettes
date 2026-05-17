@@ -82,6 +82,7 @@ type FormationDetail = {
   }[];
   emargementSigne?: boolean;
   emargementSigneAt?: string | null;
+  afficheParams?: Record<string, string> | null;
 };
 
 function PillStatus({ status }: { status: string }) {
@@ -103,7 +104,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     Object.fromEntries(formation.inscriptions.map((i) => [i.id, i.conventionSignee]))
   );
   const [afficheOverlayOpen, setAfficheOverlayOpen] = useState(false);
-  const [afficheDownloadUrl, setAfficheDownloadUrl] = useState<string | null>(null);
+  const [afficheGenerated, setAfficheGenerated] = useState<boolean>(!!formation.afficheParams);
   const [publishing, setPublishing] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<string | null>(formation.sessionStatus);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
@@ -1332,15 +1333,16 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 600 }}>Affiche A4</div>
                       <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>
-                        {afficheDownloadUrl ? "Modifier l'affiche" : "Personnaliser et générer"}
+                        {afficheGenerated ? "Modifier / Regénérer" : "Personnaliser et générer"}
                       </div>
                     </div>
                     <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>⚙️</span>
                   </button>
-                  {afficheDownloadUrl && (
+                  {afficheGenerated && (
                     <a
-                      href={afficheDownloadUrl}
-                      download={`affiche-${formation.id}.pdf`}
+                      href={`/api/pdf/affiche/${formation.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       style={{ display: "flex", alignItems: "center", gap: 6, padding: "12px 14px", border: "1.5px solid #16a34a", borderRadius: 10, background: "#f0fdf4", color: "#16a34a", fontWeight: 700, fontSize: 12, textDecoration: "none", whiteSpace: "nowrap" }}
                     >
                       Télécharger PDF
@@ -2149,7 +2151,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           .join(" · ")}
         visible={afficheOverlayOpen}
         onClose={() => setAfficheOverlayOpen(false)}
-        onGenerated={(url) => setAfficheDownloadUrl(url)}
+        onGenerated={() => setAfficheGenerated(true)}
       />
     </>
   );

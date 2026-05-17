@@ -21,7 +21,7 @@ interface Props {
   defaultInfoPratiques?: string;
   visible: boolean;
   onClose: () => void;
-  onGenerated: (url: string) => void;
+  onGenerated: () => void;
 }
 
 export default function AfficheOverlay({
@@ -96,7 +96,7 @@ export default function AfficheOverlay({
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
-      onGenerated(url);
+      onGenerated();
     } catch (err) {
       setGenerateError("Erreur réseau : " + (err instanceof Error ? err.message : String(err)));
     } finally {
