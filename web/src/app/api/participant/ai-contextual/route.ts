@@ -122,25 +122,24 @@ RÈGLES :
     const firstMsg = first.choices[0]?.message;
     if (!firstMsg) return NextResponse.json({ reply: "Pas de réponse." });
 
-    // If the model wants to call PubMed
+    // If the model wants to call PubMed (possibly multiple parallel calls)
     if (firstMsg.tool_calls?.length) {
-      const toolCall = firstMsg.tool_calls[0];
-      if (toolCall.type !== "function") return NextResponse.json({ reply: "Erreur interne." });
-      const args = JSON.parse(toolCall.function.arguments) as { query: string };
-      const pubmedResults = await searchPubMed(args.query);
+      const toolResponses: OpenAI.Chat.ChatCompletionToolMessageParam[] = await Promise.all(
+        firstMsg.tool_calls
+          .filter((tc) => tc.type === "function")
+          .map(async (tc) => {
+            const args = JSON.parse(tc.function.arguments) as { query: string };
+            const results = await searchPubMed(args.query);
+            return { role: "tool" as const, tool_call_id: tc.id, content: results };
+          })
+      );
 
-      // Second call with PubMed results injected
+      if (toolResponses.length === 0) return NextResponse.json({ reply: "Erreur interne." });
+
+      // Second call with all PubMed results injected
       const second = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [
-          ...messages,
-          firstMsg,
-          {
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: pubmedResults,
-          },
-        ],
+        messages: [...messages, firstMsg, ...toolResponses],
         max_tokens: 800,
         temperature: 0.2,
       });
