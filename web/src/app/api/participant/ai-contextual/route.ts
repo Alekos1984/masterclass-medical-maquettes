@@ -111,7 +111,7 @@ RÈGLES :
   try {
     // First call — may trigger tool use
     const first = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages,
       tools,
       tool_choice: "auto",
@@ -131,7 +131,7 @@ RÈGLES :
 
       // Second call with PubMed results injected
       const second = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           ...messages,
           firstMsg,
@@ -152,6 +152,15 @@ RÈGLES :
     return NextResponse.json({ reply: firstMsg.content ?? "Pas de réponse." });
   } catch (e) {
     console.error("OpenAI error:", e);
-    return NextResponse.json({ error: "Erreur IA" }, { status: 500 });
+    if (e instanceof OpenAI.APIError) {
+      const msg =
+        e.status === 401 ? "Clé API OpenAI invalide ou expirée" :
+        e.status === 403 ? "Accès refusé — vérifiez les permissions de votre clé OpenAI" :
+        e.status === 429 ? "Quota OpenAI dépassé — réessayez dans quelques instants" :
+        e.status === 503 ? "Service OpenAI temporairement indisponible" :
+        `Erreur OpenAI (${e.status}) : ${e.message}`;
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+    return NextResponse.json({ error: `Erreur inattendue : ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
   }
 }
