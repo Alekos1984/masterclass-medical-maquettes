@@ -849,22 +849,49 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                                   {e.presentApresMidi ? "✓" : "✗"}
                                 </td>
                                 <td style={{ padding: "10px 10px", textAlign: "center" as const }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => setCorrectionState((prev) => ({
-                                      ...prev,
-                                      [e.id]: prev[e.id]?.open
-                                        ? { ...prev[e.id], open: false }
-                                        : { open: true, presentMatin: e.presentMatin, presentApresMidi: e.presentApresMidi, justification: e.correctionJustification ?? "" },
-                                    }))}
-                                    style={{
-                                      background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0",
-                                      borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-                                      cursor: "pointer", fontFamily: "inherit",
-                                    }}
-                                  >
-                                    ✏️ Corriger
-                                  </button>
+                                  <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setCorrectionState((prev) => ({
+                                        ...prev,
+                                        [e.id]: prev[e.id]?.open
+                                          ? { ...prev[e.id], open: false }
+                                          : { open: true, presentMatin: e.presentMatin, presentApresMidi: e.presentApresMidi, justification: e.correctionJustification ?? "" },
+                                      }))}
+                                      style={{
+                                        background: "white", color: "#0F0F0F", border: "1.5px solid #E0E0E0",
+                                        borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                                        cursor: "pointer", fontFamily: "inherit",
+                                      }}
+                                    >
+                                      ✏️ Corriger
+                                    </button>
+                                    {(e.presentMatin || e.presentApresMidi) && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          if (!confirm(`Annuler la présence de ${e.participantName} ?`)) return;
+                                          const res = await fetch(`/api/formateur/formations/${formation.id}/emargement-reset`, {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ emargementId: e.id }),
+                                          });
+                                          if (res.ok) window.location.reload();
+                                          else {
+                                            const err = await res.json().catch(() => ({})) as { error?: string };
+                                            alert(err.error ?? "Erreur");
+                                          }
+                                        }}
+                                        style={{
+                                          background: "white", color: "#C8102E", border: "1.5px solid #ffc5cc",
+                                          borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                                          cursor: "pointer", fontFamily: "inherit",
+                                        }}
+                                      >
+                                        ✕ Annuler
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                               {cs?.open && (

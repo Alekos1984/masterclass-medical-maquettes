@@ -45,6 +45,8 @@ export default function EmargementClient({
   const [showCloture, setShowCloture] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [reminderSent, setReminderSent] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [reminderLoading, setReminderLoading] = useState(false);
 
   const presentIds = new Set([
     ...participants
@@ -68,9 +70,30 @@ export default function EmargementClient({
     setManualPresent((prev) => ({ ...prev, [inscriptionId]: { time } }));
   }
 
-  function sendReminder() {
-    setReminderSent(true);
-    setTimeout(() => setReminderSent(false), 3000);
+  async function sendReminder() {
+    setReminderLoading(true);
+    setReminderError(null);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formationId}/send-emargement`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: window.location.origin }),
+      });
+      const data = await res.json() as { sent?: number; total?: number; errors?: string[]; error?: string };
+      if (!res.ok) {
+        setReminderError(data.error ?? "Erreur lors de l'envoi");
+      } else if ((data.errors?.length ?? 0) > 0) {
+        setReminderError(`Envoyé ${data.sent}/${data.total} · Échec : ${data.errors?.join(", ")}`);
+        setReminderSent(true);
+      } else {
+        setReminderSent(true);
+        setTimeout(() => setReminderSent(false), 5000);
+      }
+    } catch {
+      setReminderError("Erreur réseau");
+    } finally {
+      setReminderLoading(false);
+    }
   }
 
   function confirmCloture() {
@@ -106,25 +129,26 @@ export default function EmargementClient({
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={sendReminder}
-            style={{
-              background: reminderSent ? "#e8f5e9" : "white",
-              color: reminderSent ? "#2e7d32" : "var(--gray)",
-              border: `1.5px solid ${reminderSent ? "#c8e6c9" : "#E0E0E0"}`,
-              borderRadius: 8,
-              padding: "8px 16px",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            {reminderSent ? "✓ Envoyé" : "📧 Renvoyer les liens"}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <button
+              onClick={sendReminder}
+              disabled={reminderLoading}
+              style={{
+                background: reminderSent ? "#e8f5e9" : reminderError ? "#fff3e0" : "white",
+                color: reminderSent ? "#2e7d32" : reminderError ? "#e65100" : "var(--gray)",
+                border: `1.5px solid ${reminderSent ? "#c8e6c9" : reminderError ? "#ffcc80" : "#E0E0E0"}`,
+                borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 700,
+                cursor: reminderLoading ? "wait" : "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: 6,
+                opacity: reminderLoading ? 0.7 : 1,
+              }}
+            >
+              {reminderLoading ? "Envoi…" : reminderSent ? "✓ Liens envoyés" : "📧 Envoyer les liens"}
+            </button>
+            {reminderError && (
+              <span style={{ fontSize: 11, color: "#e65100", maxWidth: 260, textAlign: "right" }}>{reminderError}</span>
+            )}
+          </div>
           <button
             onClick={() => setShowCloture(true)}
             style={{
