@@ -87,6 +87,7 @@ export default async function FormateurDetailFormationPage({
       id: i.id,
       createdAt: i.createdAt.toISOString(),
       statut: i.statut,
+      convocationSignee: i.convocationSignee,
       conventionSignee: i.conventionSignee,
       paiementId: i.paiement?.id ?? null,
       participant: {

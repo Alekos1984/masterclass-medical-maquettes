@@ -370,7 +370,8 @@ model Inscription {
   stripeSessionId       String? @unique
 
   // Documents
-  conventionSignee Boolean @default(false)
+  convocationSignee Boolean @default(false)
+  conventionSignee  Boolean @default(false)
   conventionUrl    String?
   attestationUrl   String?
 

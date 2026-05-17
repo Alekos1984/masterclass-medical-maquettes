@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatutFormation } from "@/generated/prisma/enums";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import AfficheOverlay from "./AfficheOverlay";
 
 function niveauLabel(n: string) {
   return ({ tous: "Tous niveaux", debutant: "Débutant", intermediaire: "Intermédiaire", avance: "Avancé", expert: "Expert" } as Record<string, string>)[n] ?? n;
@@ -14,6 +15,7 @@ type Inscription = {
   id: string;
   createdAt: string;
   statut: string;
+  convocationSignee: boolean;
   conventionSignee: boolean;
   paiementId: string | null;
   participant: {
@@ -94,9 +96,13 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("inscrits");
   const [statut, setStatut] = useState(formation.statut);
+  const [convocationState, setConvocationState] = useState<Record<string, boolean>>(
+    Object.fromEntries(formation.inscriptions.map((i) => [i.id, i.convocationSignee]))
+  );
   const [conventionState, setConventionState] = useState<Record<string, boolean>>(
     Object.fromEntries(formation.inscriptions.map((i) => [i.id, i.conventionSignee]))
   );
+  const [afficheOverlayOpen, setAfficheOverlayOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<string | null>(formation.sessionStatus);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
@@ -149,6 +155,11 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       setSessionStatus(null);
       setSessionMenuOpen(false);
     }
+  }
+
+  async function signerConvocation(inscriptionId: string) {
+    const res = await fetch(`/api/formateur/formations/${formation.id}/inscriptions/${inscriptionId}/signer-convocation`, { method: "POST" });
+    if (res.ok) setConvocationState((prev) => ({ ...prev, [inscriptionId]: true }));
   }
 
   async function signerConvention(inscriptionId: string) {
@@ -1291,34 +1302,93 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                 <span className="card-title">Avant la formation</span>
                 <span style={{ fontSize: 11, color: "#6A6A6A" }}>Disponibles dès maintenant</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                {[
-                  { icon: "📄", label: "Programme officiel", href: `/api/pdf/programme/${formation.id}`, sub: "Format Qualiopi" },
-                  { icon: "🖼️", label: "Affiche A4", href: `/api/pdf/affiche/${formation.id}?ai=true`, sub: "Accroche générée par IA" },
-                ].map((doc) => (
-                  <a
-                    key={doc.href}
-                    href={doc.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                      border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none",
-                      color: "#0F0F0F", transition: "border-color 0.15s, background 0.15s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
-                  >
-                    <span style={{ fontSize: 20 }}>{doc.icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600 }}>{doc.label}</div>
-                      {doc.sub && <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>{doc.sub}</div>}
-                    </div>
-                    <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
-                  </a>
-                ))}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <a
+                  href={`/api/pdf/programme/${formation.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: "1.5px solid #E0E0E0", borderRadius: 10, textDecoration: "none", color: "#0F0F0F" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
+                >
+                  <span style={{ fontSize: 20 }}>📄</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>Programme officiel</div>
+                    <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>Format Qualiopi</div>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>PDF ↗</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setAfficheOverlayOpen(true)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: "1.5px solid #E0E0E0", borderRadius: 10, background: "white", cursor: "pointer", fontFamily: "inherit", color: "#0F0F0F", textAlign: "left" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C8102E"; e.currentTarget.style.background = "#fff5f6"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E0E0E0"; e.currentTarget.style.background = "white"; }}
+                >
+                  <span style={{ fontSize: 20 }}>🖼️</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>Affiche A4</div>
+                    <div style={{ fontSize: 10, color: "#6A6A6A", marginTop: 1 }}>Personnaliser et télécharger</div>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#C8102E", fontWeight: 700 }}>⚙️</span>
+                </button>
               </div>
             </div>
+
+            {/* Convocations individuelles */}
+            {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length > 0 && (
+              <div style={cardStyle}>
+                <div className="card-header">
+                  <span className="card-title">Convocations individuelles</span>
+                  <span style={{ fontSize: 11, color: "#6A6A6A" }}>
+                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE" && convocationState[i.id]).length}
+                    /{formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length} envoyées
+                  </span>
+                </div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #EBEBEB" }}>
+                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Participant</th>
+                      <th style={{ textAlign: "left", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Statut</th>
+                      <th style={{ textAlign: "right", fontSize: 11, fontWeight: 600, padding: "6px 0", color: "#6A6A6A" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").map((insc) => (
+                      <tr key={insc.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
+                        <td style={{ padding: "10px 0", fontSize: 13 }}>
+                          <div style={{ fontWeight: 600 }}>{insc.participant.name}</div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A" }}>{insc.participant.email}</div>
+                        </td>
+                        <td style={{ padding: "10px 0" }}>
+                          {convocationState[insc.id] ? (
+                            <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Envoyée</span>
+                          ) : (
+                            <span style={{ fontSize: 12, color: "#6A6A6A" }}>En attente</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "10px 0", textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                          <a href={`/api/pdf/convocation/${insc.id}`} target="_blank" rel="noopener noreferrer" style={{ border: "1.5px solid #E0E0E0", background: "white", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", color: "#0F0F0F" }}>
+                            PDF ↗
+                          </a>
+                          {!convocationState[insc.id] ? (
+                            <button
+                              type="button"
+                              onClick={() => signerConvocation(insc.id)}
+                              style={{ background: "#1565c0", color: "white", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                            >
+                              ✍️ Marquer comme envoyée
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: 12, color: "#2e7d32", padding: "5px 10px" }}>✓</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Conventions individuelles */}
             {formation.inscriptions.filter((i) => i.statut === "CONFIRMEE").length > 0 && (
@@ -2032,6 +2102,15 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           </div>
         )}
       </div>
+
+      {afficheOverlayOpen && (
+        <AfficheOverlay
+          formationId={formation.id}
+          defaultTitre={formation.titre}
+          defaultDescription={formation.description}
+          onClose={() => setAfficheOverlayOpen(false)}
+        />
+      )}
     </>
   );
 }

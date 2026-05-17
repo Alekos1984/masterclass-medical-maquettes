@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, StyleSheet, Image } from "@react-pdf/renderer";
 import { RED, BLACK, GRAY, OFF_WHITE, WHITE, LIGHT_GRAY } from "../shared/styles";
 import type { CompanyData, FormateurData, FormationData } from "../shared/types";
 
@@ -148,6 +148,8 @@ interface Props {
   formation: FormationData;
   marketingText?: { headline?: string; accroche?: string };
   registrationUrl?: string;
+  imageBase64?: string | null;
+  infoPratiques?: string | null;
 }
 
 function formatDate(d: string) {
@@ -169,9 +171,9 @@ const NIVEAU_LABELS: Record<string, string> = {
   expert: "Expert",
 };
 
-export function AffichePdf({ company, formateur, formation, marketingText, registrationUrl }: Props) {
+export function AffichePdf({ company, formateur, formation, marketingText, registrationUrl, imageBase64, infoPratiques }: Props) {
   const headline = marketingText?.headline ?? formation.titre;
-  const accroche = marketingText?.accroche ?? formation.description.slice(0, 200) + (formation.description.length > 200 ? "…" : "");
+  const accroche = marketingText?.accroche ?? formation.description.slice(0, 200) + (formation.description.length > 200 ? "..." : "");
 
   return (
     <Document title={`Affiche — ${formation.titre}`} author={company.raisonSociale}>
@@ -184,10 +186,15 @@ export function AffichePdf({ company, formateur, formation, marketingText, regis
         </View>
 
         <View style={s.content}>
+          {/* Optional photo */}
+          {imageBase64 && (
+            <Image src={imageBase64} style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 8, marginBottom: 16 }} />
+          )}
+
           {/* Key info grid */}
           <View style={s.infoGrid}>
             <View style={s.infoItem}>
-              <Text style={s.infoIcon}>📅</Text>
+              <View style={{ width: 16, height: 16, backgroundColor: RED, borderRadius: 4, marginBottom: 6 }} />
               <Text style={s.infoLabel}>Date</Text>
               <Text style={s.infoValue}>
                 {new Date(formation.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
@@ -195,24 +202,34 @@ export function AffichePdf({ company, formateur, formation, marketingText, regis
               <Text style={s.infoSub}>{new Date(formation.date).getFullYear()}</Text>
             </View>
             <View style={s.infoItem}>
-              <Text style={s.infoIcon}>🕐</Text>
+              <View style={{ width: 16, height: 16, backgroundColor: BLACK, borderRadius: 4, marginBottom: 6 }} />
               <Text style={s.infoLabel}>Horaires</Text>
               <Text style={s.infoValue}>{formation.heureDebut}</Text>
-              <Text style={s.infoSub}>à {formation.heureFin} ({formation.dureeHeures}h)</Text>
+              <Text style={s.infoSub}>a {formation.heureFin} ({formation.dureeHeures}h)</Text>
             </View>
             <View style={s.infoItem}>
-              <Text style={s.infoIcon}>📍</Text>
+              <View style={{ width: 16, height: 16, backgroundColor: "#1565c0", borderRadius: 4, marginBottom: 6 }} />
               <Text style={s.infoLabel}>Lieu</Text>
-              <Text style={s.infoValue}>{formation.lieuNom ?? "À définir"}</Text>
+              <Text style={s.infoValue}>{formation.lieuNom ?? "A definir"}</Text>
               <Text style={s.infoSub}>{formation.lieuVille ?? ""}</Text>
             </View>
             <View style={s.infoItemLast}>
-              <Text style={s.infoIcon}>👥</Text>
+              <View style={{ width: 16, height: 16, backgroundColor: "#2e7d32", borderRadius: 4, marginBottom: 6 }} />
               <Text style={s.infoLabel}>Places</Text>
               <Text style={s.infoValue}>{formation.placesRestantes}</Text>
               <Text style={s.infoSub}>disponibles sur {formation.placesTotal}</Text>
             </View>
           </View>
+
+          {/* Infos pratiques */}
+          {infoPratiques && (
+            <View style={{ backgroundColor: OFF_WHITE, borderRadius: 8, padding: 14, marginBottom: 16 }}>
+              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                Informations pratiques
+              </Text>
+              <Text style={{ fontSize: 9, color: BLACK, lineHeight: 1.5 }}>{infoPratiques}</Text>
+            </View>
+          )}
 
           {/* Formateur */}
           <View style={s.formateurCard}>
