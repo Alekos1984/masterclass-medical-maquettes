@@ -237,16 +237,22 @@ export default async function ParticipantDashboardPage() {
                           <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
                             🔴 Session démarrée{f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}
                           </span>
-                          {emg?.token ? (
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                             <a
-                              href={`/emarger/${emg.token}`}
-                              style={{ background: "white", color: "#C8102E", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
+                              href={`/participant/session/${f.id}`}
+                              style={{ background: "white", color: "#C8102E", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
                             >
-                              ✍️ Émarger maintenant
+                              🖥️ Rejoindre la session
                             </a>
-                          ) : (
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Lien d&apos;émargement en cours d&apos;envoi…</span>
-                          )}
+                            {emg?.token && (
+                              <a
+                                href={`/emarger/${emg.token}`}
+                                style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" as const }}
+                              >
+                                ✍️ Émarger
+                              </a>
+                            )}
+                          </div>
                         </div>
                       );
                     })()}
