@@ -35,6 +35,7 @@ export interface ParticipantData {
 
 export interface FormationData {
   id: string;
+  slug?: string;
   titre: string;
   specialite: string;
   description: string;
