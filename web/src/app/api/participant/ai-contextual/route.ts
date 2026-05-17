@@ -5,6 +5,42 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Search PubMed via NCBI E-utilities (free, no API key needed)
+async function searchPubMed(query: string, maxResults = 5): Promise<string> {
+  try {
+    const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${maxResults}&retmode=json&sort=relevance`;
+    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(8000) });
+    const searchData = await searchRes.json() as { esearchresult: { idlist: string[] } };
+    const ids = searchData.esearchresult?.idlist ?? [];
+    if (ids.length === 0) return "Aucun résultat PubMed pour cette requête.";
+
+    const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(",")}&retmode=json`;
+    const summaryRes = await fetch(summaryUrl, { signal: AbortSignal.timeout(8000) });
+    const summaryData = await summaryRes.json() as {
+      result: Record<string, {
+        uid: string;
+        title: string;
+        authors: { name: string }[];
+        source: string;
+        pubdate: string;
+        elocationid: string;
+      }>;
+    };
+
+    const articles = ids.map((id) => {
+      const a = summaryData.result[id];
+      if (!a) return null;
+      const authors = a.authors?.slice(0, 3).map((x) => x.name).join(", ") ?? "—";
+      const more = (a.authors?.length ?? 0) > 3 ? " et al." : "";
+      return `PMID ${a.uid} — ${a.title}\n  ${authors}${more} · ${a.source} · ${a.pubdate}\n  https://pubmed.ncbi.nlm.nih.gov/${a.uid}/`;
+    }).filter(Boolean);
+
+    return articles.join("\n\n");
+  } catch {
+    return "Impossible d'accéder à PubMed pour le moment.";
+  }
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -21,7 +57,6 @@ export async function POST(req: NextRequest) {
 
   if (!message?.trim()) return NextResponse.json({ error: "Message vide" }, { status: 400 });
 
-  // Load formation context
   const formation = await prisma.formation.findUnique({
     where: { id: formationId },
     select: { titre: true, description: true, objectifs: true, programme: true, specialite: true },
@@ -31,43 +66,89 @@ export async function POST(req: NextRequest) {
   const objectifsText = Array.isArray(formation.objectifs)
     ? (formation.objectifs as string[]).join("\n- ")
     : "";
-  const programmeText = Array.isArray(formation.programme)
-    ? (formation.programme as { titre?: string; description?: string }[])
-        .map((p) => `• ${p.titre ?? ""} ${p.description ?? ""}`.trim())
-        .join("\n")
-    : "";
 
-  const systemPrompt = `Tu es un assistant pédagogique médical pour la formation suivante :
+  const systemPrompt = `Tu es un assistant pédagogique médical pour la formation "${formation.titre}" (${formation.specialite}).
 
-TITRE : ${formation.titre}
-SPÉCIALITÉ : ${formation.specialite}
-DESCRIPTION : ${formation.description ?? ""}
-OBJECTIFS :
-- ${objectifsText}
-PROGRAMME :
-${programmeText}
+Contexte du cours :
+${formation.description ?? ""}
 
-RÈGLES STRICTES :
-1. Réponds UNIQUEMENT aux questions en lien avec cette formation et cette spécialité médicale.
-2. Si tu cites des études ou références scientifiques, mentionne systématiquement : "À vérifier sur PubMed/ClinicalKey" et n'invente JAMAIS de DOI, PMID ou auteurs.
-3. Si tu n'es pas certain d'une information médicale, dis-le explicitement : "Cette information nécessite vérification auprès de sources officielles."
-4. Pour toute question clinique sur un patient, rappelle que tu es un outil pédagogique et non un outil de décision clinique.
-5. Réponds en français, de façon concise et structurée.`;
+Objectifs : ${objectifsText}
+
+RÈGLES :
+1. Réponds en lien avec cette formation et la spécialité ${formation.specialite}.
+2. Pour les références bibliographiques, utilise TOUJOURS l'outil search_pubmed — ne cite jamais une étude de mémoire.
+3. Les résultats PubMed que tu reçois sont réels et vérifiés : tu peux les présenter avec leur PMID et lien.
+4. Si tu n'es pas certain d'une information clinique, dis-le explicitement.
+5. Tu n'es pas un outil de décision clinique.
+6. Réponds en français, de façon concise.`;
+
+  const tools: OpenAI.Chat.ChatCompletionTool[] = [
+    {
+      type: "function",
+      function: {
+        name: "search_pubmed",
+        description: "Recherche des articles scientifiques sur PubMed (base de données médicale officielle NIH). Utilise cet outil pour toute question sur des études, publications ou références médicales.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Requête de recherche en anglais (meilleurs résultats). Ex: 'rTMS depression treatment 2023'",
+            },
+          },
+          required: ["query"],
+        },
+      },
+    },
+  ];
+
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...history.slice(-6).map((m) => ({ role: m.role, content: m.content } as OpenAI.Chat.ChatCompletionMessageParam)),
+    { role: "user", content: message.trim() },
+  ];
 
   try {
-    const completion = await openai.chat.completions.create({
+    // First call — may trigger tool use
+    const first = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...history.slice(-6), // Keep last 6 exchanges for context
-        { role: "user", content: message.trim() },
-      ],
-      max_tokens: 600,
-      temperature: 0.3, // Low temperature for factual medical content
+      messages,
+      tools,
+      tool_choice: "auto",
+      max_tokens: 800,
+      temperature: 0.2,
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "Désolé, je n'ai pas pu répondre.";
-    return NextResponse.json({ reply });
+    const firstMsg = first.choices[0]?.message;
+    if (!firstMsg) return NextResponse.json({ reply: "Pas de réponse." });
+
+    // If the model wants to call PubMed
+    if (firstMsg.tool_calls?.length) {
+      const toolCall = firstMsg.tool_calls[0];
+      const args = JSON.parse(toolCall.function.arguments) as { query: string };
+      const pubmedResults = await searchPubMed(args.query);
+
+      // Second call with PubMed results injected
+      const second = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          ...messages,
+          firstMsg,
+          {
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: pubmedResults,
+          },
+        ],
+        max_tokens: 800,
+        temperature: 0.2,
+      });
+
+      const reply = second.choices[0]?.message?.content ?? "Pas de réponse.";
+      return NextResponse.json({ reply, pubmedUsed: true });
+    }
+
+    return NextResponse.json({ reply: firstMsg.content ?? "Pas de réponse." });
   } catch (e) {
     console.error("OpenAI error:", e);
     return NextResponse.json({ error: "Erreur IA" }, { status: 500 });

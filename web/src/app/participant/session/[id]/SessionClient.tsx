@@ -32,12 +32,24 @@ export default function SessionClient({
 
   // Notes (localStorage)
   const [notes, setNotes] = useState("");
+  const [notesSaved, setNotesSaved] = useState(false);
   useEffect(() => {
     setNotes(localStorage.getItem(`notes-session-${formationId}`) ?? "");
   }, [formationId]);
   function saveNotes(v: string) {
     setNotes(v);
     localStorage.setItem(`notes-session-${formationId}`, v);
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 1500);
+  }
+  function exportNotes() {
+    const blob = new Blob([notes], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `notes-${titre.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // Questions
@@ -110,11 +122,9 @@ export default function SessionClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ formationId, message: msg, history: aiHistory }),
       });
-      const data = await res.json() as { reply?: string; error?: string };
-      setAiHistory([...newHistory, {
-        role: "assistant",
-        content: data.reply ?? data.error ?? "Erreur",
-      }]);
+      const data = await res.json() as { reply?: string; error?: string; pubmedUsed?: boolean };
+      const content = (data.pubmedUsed ? "🔬 *Résultats PubMed en temps réel*\n\n" : "") + (data.reply ?? data.error ?? "Erreur");
+      setAiHistory([...newHistory, { role: "assistant", content }]);
     } catch {
       setAiHistory([...newHistory, { role: "assistant", content: "Erreur réseau." }]);
     } finally {
@@ -219,16 +229,35 @@ export default function SessionClient({
 
           {/* NOTES */}
           {activeTab === "notes" && (
-            <textarea
-              value={notes}
-              onChange={(e) => saveNotes(e.target.value)}
-              placeholder="Prenez vos notes ici — elles sont sauvegardées localement sur votre appareil…"
-              style={{
-                width: "100%", minHeight: 160, background: "#0d1117", color: "#f0f6fc",
-                border: "1px solid #30363d", borderRadius: 8, padding: 12,
-                fontSize: 13, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box",
-              }}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, color: notesSaved ? "#3fb950" : "#8b949e" }}>
+                  {notesSaved ? "✓ Sauvegardé" : "Sauvegarde automatique à chaque frappe"}
+                </span>
+                <button
+                  onClick={exportNotes}
+                  disabled={!notes.trim()}
+                  style={{
+                    background: "transparent", color: notes.trim() ? "#58a6ff" : "#484f58",
+                    border: `1px solid ${notes.trim() ? "#58a6ff" : "#30363d"}`, borderRadius: 6,
+                    padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: notes.trim() ? "pointer" : "default",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  ↓ Exporter .txt
+                </button>
+              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => saveNotes(e.target.value)}
+                placeholder="Prenez vos notes ici — sauvegardées automatiquement dans ce navigateur…"
+                style={{
+                  width: "100%", minHeight: 145, background: "#0d1117", color: "#f0f6fc",
+                  border: "1px solid #30363d", borderRadius: 8, padding: 12,
+                  fontSize: 13, fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box",
+                }}
+              />
+            </div>
           )}
 
           {/* RESSOURCES */}
@@ -304,8 +333,8 @@ export default function SessionClient({
               <div style={{ flex: 1, maxHeight: 130, overflowY: "auto" }}>
                 {aiHistory.length === 0 && (
                   <div style={{ color: "#8b949e", fontSize: 12, marginBottom: 8 }}>
-                    Posez une question en lien avec le cours. L&apos;IA répond uniquement sur les sujets de cette formation.
-                    <br /><span style={{ color: "#f0a853" }}>⚠️ Les références citées sont à vérifier sur PubMed.</span>
+                    Posez une question sur le contenu du cours ou demandez des références scientifiques.
+                    <br /><span style={{ color: "#3fb950" }}>🔬 Les références sont recherchées en temps réel sur PubMed (NIH).</span>
                   </div>
                 )}
                 {aiHistory.map((m, i) => (
