@@ -69,22 +69,15 @@ export default function SessionClient({
   const [aiLoading, setAiLoading] = useState(false);
   const aiEndRef = useRef<HTMLDivElement>(null);
 
-  // Render drawing overlay whenever drawingData or currentPage changes
-  const renderDrawing = useCallback((data: DrawingData | null) => {
-    const canvas = drawingCanvasRef.current;
-    const container = pdfContainerRef.current;
-    if (!canvas || !container) return;
-    const pdfCanvas = container.querySelector("canvas");
-    if (pdfCanvas) {
-      canvas.width = pdfCanvas.width;
-      canvas.height = pdfCanvas.height;
-      canvas.style.width = pdfCanvas.style.width || `${pdfCanvas.width}px`;
-      canvas.style.height = pdfCanvas.style.height || `${pdfCanvas.height}px`;
-    }
+  // Latest drawing data ref so onPdfRender closure always has current value
+  const drawingDataRef = useRef<DrawingData | null>(null);
+  drawingDataRef.current = drawingData;
+
+  function paintStrokes(canvas: HTMLCanvasElement, data: DrawingData | null, page: number) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!data || data.page !== currentPage || !data.strokes?.length) return;
+    if (!data || data.page !== page || !data.strokes?.length) return;
     for (const stroke of data.strokes) {
       if (stroke.points.length < 2) continue;
       ctx.beginPath();
@@ -98,9 +91,29 @@ export default function SessionClient({
       }
       ctx.stroke();
     }
+  }
+
+  // Called by PdfPageCanvas after each page render
+  const onPdfRender = useCallback((pdfCanvas: HTMLCanvasElement) => {
+    const drawCanvas = drawingCanvasRef.current;
+    const container = pdfContainerRef.current;
+    if (!drawCanvas || !container) return;
+    const pdfRect = pdfCanvas.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    drawCanvas.width = pdfCanvas.width;
+    drawCanvas.height = pdfCanvas.height;
+    drawCanvas.style.width = `${pdfRect.width}px`;
+    drawCanvas.style.height = `${pdfRect.height}px`;
+    drawCanvas.style.left = `${pdfRect.left - containerRect.left}px`;
+    drawCanvas.style.top = `${pdfRect.top - containerRect.top}px`;
+    paintStrokes(drawCanvas, drawingDataRef.current, currentPage);
   }, [currentPage]);
 
-  useEffect(() => { renderDrawing(drawingData); }, [drawingData, currentPage, renderDrawing]);
+  // Re-paint when drawing data updates (without waiting for PDF re-render)
+  useEffect(() => {
+    const canvas = drawingCanvasRef.current;
+    if (canvas && canvas.width > 0) paintStrokes(canvas, drawingData, currentPage);
+  }, [drawingData, currentPage]);
 
   // Polling for slide sync + session state (every 3s)
   useEffect(() => {
@@ -215,16 +228,13 @@ export default function SessionClient({
             <PdfPageCanvas
               pdfUrl={`/api/formateur/formations/${formationId}/slides`}
               page={currentPage}
+              onRender={onPdfRender}
               style={{ width: "100%", height: "100%", minHeight: 480 }}
             />
-            {/* Drawing overlay (read-only) */}
+            {/* Drawing overlay (read-only, positioned via onPdfRender) */}
             <canvas
               ref={drawingCanvasRef}
-              style={{
-                position: "absolute", top: "50%", left: "50%",
-                transform: "translate(-50%, -50%)",
-                pointerEvents: "none",
-              }}
+              style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
             />
             <div style={{
               position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",

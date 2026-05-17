@@ -125,7 +125,7 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   // Redraw all strokes on the drawing canvas
   const redrawCanvas = useCallback(() => {
     const canvas = drawingCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvas.width === 0) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -146,19 +146,21 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
 
   useEffect(() => { redrawCanvas(); }, [strokes, redrawCanvas]);
 
-  // Sync canvas size to PDF canvas size
-  function syncCanvasSize() {
-    const container = pdfContainerRef.current;
+  // Called by PdfPageCanvas after each page render — positions drawing canvas exactly over the PDF canvas
+  const onPdfRender = useCallback((pdfCanvas: HTMLCanvasElement) => {
     const drawCanvas = drawingCanvasRef.current;
-    if (!container || !drawCanvas) return;
-    const pdfCanvas = container.querySelector("canvas:not([data-drawing])");
-    if (!pdfCanvas) return;
-    const rect = pdfCanvas.getBoundingClientRect();
-    drawCanvas.width = (pdfCanvas as HTMLCanvasElement).width;
-    drawCanvas.height = (pdfCanvas as HTMLCanvasElement).height;
-    drawCanvas.style.width = `${rect.width}px`;
-    drawCanvas.style.height = `${rect.height}px`;
-  }
+    const container = pdfContainerRef.current;
+    if (!drawCanvas || !container) return;
+    const pdfRect = pdfCanvas.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    drawCanvas.width = pdfCanvas.width;
+    drawCanvas.height = pdfCanvas.height;
+    drawCanvas.style.width = `${pdfRect.width}px`;
+    drawCanvas.style.height = `${pdfRect.height}px`;
+    drawCanvas.style.left = `${pdfRect.left - containerRect.left}px`;
+    drawCanvas.style.top = `${pdfRect.top - containerRect.top}px`;
+    redrawCanvas();
+  }, [redrawCanvas]);
 
   function getRelPos(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): [number, number] {
     const canvas = drawingCanvasRef.current!;
@@ -174,7 +176,6 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   function onDrawStart(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
     if (!drawEnabled) return;
     e.preventDefault();
-    syncCanvasSize();
     setIsDrawing(true);
     currentStrokeRef.current = [getRelPos(e)];
   }
@@ -184,7 +185,6 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
     e.preventDefault();
     const point = getRelPos(e);
     currentStrokeRef.current.push(point);
-    // Live draw on canvas
     const canvas = drawingCanvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!ctx || !canvas) return;
@@ -947,6 +947,7 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
                       pdfUrl={`/api/formateur/formations/${formation.id}/slides`}
                       page={currentPage}
                       onPageCount={setPageCount}
+                      onRender={onPdfRender}
                       style={{ width: "100%", height: "100%" }}
                     />
                     <canvas
@@ -960,8 +961,7 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
                       onTouchMove={onDrawMove}
                       onTouchEnd={onDrawEnd}
                       style={{
-                        position: "absolute", top: "50%", left: "50%",
-                        transform: "translate(-50%, -50%)",
+                        position: "absolute", top: 0, left: 0,
                         cursor: drawEnabled ? "crosshair" : "default",
                         pointerEvents: drawEnabled ? "all" : "none",
                       }}

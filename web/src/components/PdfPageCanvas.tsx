@@ -8,9 +8,10 @@ interface Props {
   className?: string;
   style?: React.CSSProperties;
   onPageCount?: (total: number) => void;
+  onRender?: (canvas: HTMLCanvasElement) => void;
 }
 
-export default function PdfPageCanvas({ pdfUrl, page, className, style, onPageCount }: Props) {
+export default function PdfPageCanvas({ pdfUrl, page, className, style, onPageCount, onRender }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +24,6 @@ export default function PdfPageCanvas({ pdfUrl, page, className, style, onPageCo
 
     async function load() {
       try {
-        // Dynamic import to avoid SSR issues
         const pdfjsLib = await import("pdfjs-dist");
         pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
@@ -59,7 +59,6 @@ export default function PdfPageCanvas({ pdfUrl, page, className, style, onPageCo
     const container = containerRef.current;
     if (!doc || !canvas || !container) return;
 
-    // Cancel any in-progress render
     renderTaskRef.current?.cancel();
 
     doc.getPage(pageNum).then((pdfPage: { getViewport: (o: object) => { width: number; height: number }; render: (o: object) => { promise: Promise<void>; cancel: () => void } }) => {
@@ -77,7 +76,9 @@ export default function PdfPageCanvas({ pdfUrl, page, className, style, onPageCo
 
       const task = pdfPage.render({ canvasContext: ctx, viewport: scaledViewport });
       renderTaskRef.current = task;
-      task.promise.catch(() => { /* cancelled */ });
+      task.promise
+        .then(() => { onRender?.(canvas); })
+        .catch(() => {});
     }).catch(() => {});
   }
 
