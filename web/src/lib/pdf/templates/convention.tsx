@@ -67,7 +67,7 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
   const bothSigned = !!(signatures?.formateurSignedAt && signatures?.participantSignedAt);
   const formateurSigned = !!signatures?.formateurSignedAt;
   const participantSigned = !!signatures?.participantSignedAt;
-  const isGratuite = inscription.montantHT === 0;
+  const isGratuite = inscription.montantHT === 0 || formation.prixHT === 0;
 
   return (
     <Document title={`Convention — ${formation.titre}`} author={company.raisonSociale}>
