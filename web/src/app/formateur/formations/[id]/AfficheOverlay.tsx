@@ -31,6 +31,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
   const [imageError, setImageError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -69,6 +70,7 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
   async function handleGenerate() {
     setGenerating(true);
     setDownloadUrl(null);
+    setGenerateError(null);
     try {
       const res = await fetch(`/api/pdf/affiche/${formationId}`, {
         method: "POST",
@@ -83,14 +85,14 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
       });
       if (!res.ok) {
         const msg = await res.text();
-        alert(`Erreur : ${msg}`);
+        setGenerateError(msg || `Erreur serveur (${res.status})`);
         return;
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
-    } catch {
-      alert("Une erreur réseau est survenue.");
+    } catch (err) {
+      setGenerateError("Erreur réseau : " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setGenerating(false);
     }
@@ -241,6 +243,13 @@ export default function AfficheOverlay({ formationId, defaultTitre, defaultDescr
             🔗 Un QR code pointant vers la page d&apos;inscription sera automatiquement ajouté à l&apos;affiche.
           </div>
         </div>
+
+        {/* Generate error */}
+        {generateError && (
+          <div style={{ margin: "0 24px 12px", background: "#fff0f0", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#b91c1c" }}>
+            <strong>Erreur :</strong> {generateError}
+          </div>
+        )}
 
         {/* Footer actions */}
         <div style={{ padding: "16px 24px", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 10 }}>
