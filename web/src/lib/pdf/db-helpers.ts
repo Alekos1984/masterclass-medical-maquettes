@@ -43,6 +43,7 @@ export async function getFormationData(formationId: string): Promise<{
   return {
     formation: {
       id: f.id,
+      slug: f.slug,
       titre: f.titre,
       specialite: f.specialite,
       description: f.description,
