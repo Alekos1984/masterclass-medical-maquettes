@@ -125,6 +125,7 @@ RÈGLES :
     // If the model wants to call PubMed
     if (firstMsg.tool_calls?.length) {
       const toolCall = firstMsg.tool_calls[0];
+      if (toolCall.type !== "function") return NextResponse.json({ reply: "Erreur interne." });
       const args = JSON.parse(toolCall.function.arguments) as { query: string };
       const pubmedResults = await searchPubMed(args.query);
 
