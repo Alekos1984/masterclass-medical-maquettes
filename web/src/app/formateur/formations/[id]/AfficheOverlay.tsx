@@ -10,13 +10,14 @@ interface Props {
   formationId: string;
   defaultTitre: string;
   defaultDescription: string;
+  defaultInfoPratiques?: string;
   onClose: () => void;
 }
 
-export default function AfficheOverlay({ formationId, defaultTitre, defaultDescription, onClose }: Props) {
+export default function AfficheOverlay({ formationId, defaultTitre, defaultDescription, defaultInfoPratiques, onClose }: Props) {
   const [titre, setTitre] = useState(defaultTitre);
   const [description, setDescription] = useState(defaultDescription.slice(0, 300));
-  const [infoPratiques, setInfoPratiques] = useState("");
+  const [infoPratiques, setInfoPratiques] = useState(defaultInfoPratiques ?? "");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
