@@ -11,7 +11,11 @@ export default async function AdminFormationsPage() {
 
   const [formations, inscriptionsCount] = await Promise.all([
     prisma.formation.findMany({
-      include: { formateur: { include: { user: true } } },
+      include: {
+        formateur: { include: { user: true } },
+        demandeSalle: { select: { id: true, statut: true, hotelNom: true } },
+        _count: { select: { inscriptions: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.inscription.count(),
@@ -26,7 +30,11 @@ export default async function AdminFormationsPage() {
     date: f.date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }),
     placesTotal: f.placesTotal,
     placesRestantes: f.placesRestantes,
+    inscrits: f._count.inscriptions,
     statut: f.statut,
+    demandeSalle: f.demandeSalle
+      ? { id: f.demandeSalle.id, statut: f.demandeSalle.statut, hotelNom: f.demandeSalle.hotelNom }
+      : null,
   }));
 
   return <FormationsClient formations={data} totalInscriptions={inscriptionsCount} />;

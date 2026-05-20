@@ -29,6 +29,7 @@ export default async function AdminFormationDetailPage({
       },
       satisfactions: { select: { id: true } },
       emargements: { select: { id: true } },
+      demandeSalle: { select: { id: true, statut: true, hotelNom: true } },
     },
   });
 
@@ -48,6 +49,13 @@ export default async function AdminFormationDetailPage({
     formateurEmail: formation.formateur.user.email ?? "—",
     nbSatisfactions: formation.satisfactions.length,
     nbEmargements: formation.emargements.length,
+    pvSigne: formation.pvSigne,
+    bilanSigne: formation.bilanSigne,
+    emargementSigne: formation.emargementSigne,
+    certificatSigne: formation.certificatSigne,
+    demandeSalle: formation.demandeSalle
+      ? { id: formation.demandeSalle.id, statut: formation.demandeSalle.statut, hotelNom: formation.demandeSalle.hotelNom }
+      : null,
     inscriptions: formation.inscriptions.map((ins) => ({
       id: ins.id,
       statut: ins.statut,

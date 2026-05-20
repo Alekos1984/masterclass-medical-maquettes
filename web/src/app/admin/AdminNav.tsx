@@ -7,8 +7,7 @@ import { signOut } from "next-auth/react";
 const navItems = [
   { href: "/admin/dashboard", icon: "📊", label: "Dashboard" },
   { href: "/admin/utilisateurs", icon: "👥", label: "Utilisateurs" },
-  { href: "/admin/demandes", icon: "🏨", label: "Demandes salles" },
-  { href: "/admin/formations", icon: "🎓", label: "Formations" },
+  { href: "/admin/formations", icon: "🎓", label: "Formations & salles" },
   { href: "/admin/formateurs", icon: "👨‍⚕️", label: "Formateurs" },
   { href: "/admin/paiements", icon: "💶", label: "Paiements" },
   { href: "/admin/remboursements", icon: "↩️", label: "Remboursements" },
