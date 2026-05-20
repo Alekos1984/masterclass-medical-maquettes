@@ -114,12 +114,6 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
                 <Text style={base.infoValue}>{formateur.raisonSociale}</Text>
               </View>
             ) : <View style={{ height: 0 }} />}
-            {formateur.email ? (
-              <View style={base.infoRow}>
-                <Text style={base.infoLabel}>Email</Text>
-                <Text style={base.infoValue}>{formateur.email}</Text>
-              </View>
-            ) : <View style={{ height: 0 }} />}
           </View>
           <View style={s.partieCard}>
             <Text style={s.partieCardTitle}>Le stagiaire</Text>
@@ -139,10 +133,6 @@ export function ConventionPdf({ company, formateur, formation, participant, insc
                 <Text style={base.infoValue}>{participant.rpps}</Text>
               </View>
             ) : <View style={{ height: 0 }} />}
-            <View style={base.infoRow}>
-              <Text style={base.infoLabel}>Email</Text>
-              <Text style={base.infoValue}>{participant.email}</Text>
-            </View>
             {participant.adresse ? (
               <View style={base.infoRow}>
                 <Text style={base.infoLabel}>Adresse</Text>

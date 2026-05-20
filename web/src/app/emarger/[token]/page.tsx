@@ -39,6 +39,7 @@ export default async function EmargerPage({
       data={{
         emargementId: emg.id,
         token,
+        formationId: f.id,
         alreadySigned: emg.presentMatin || emg.presentApresMidi,
         signedAt: emg.signatureMatin?.toISOString() ?? emg.signatureApresMidi?.toISOString() ?? null,
         participant: {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import { SPECIALITES_OPTIONS } from "@/lib/specialites";
 
 const STEPS = [
   { num: 1, label: "Étape 1", title: "Informations" },
@@ -54,6 +55,10 @@ export default function NouvelleFormationPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  type DemandeSalleItem = { id: string; statut: string; hotelNom: string | null; notes: string | null; devisHT: number | null; dateDevis: string | null; createdAt: string; formation: { titre: string; date: string } };
+  const [demandesSalle, setDemandesSalle] = useState<DemandeSalleItem[]>([]);
+  const [demandesSalleLoading, setDemandesSalleLoading] = useState(false);
+  const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
   const [objectifsAiLoading, setObjectifsAiLoading] = useState(false);
   const [programmeAiLoading, setProgrammeAiLoading] = useState(false);
   const [programmeAi, setProgrammeAi] = useState<string[]>([]);
@@ -109,6 +114,16 @@ export default function NouvelleFormationPage() {
   const [prix, setPrix] = useState("");
   const [objectives, setObjectives] = useState("");
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    if (locationMode !== "existing") return;
+    setDemandesSalleLoading(true);
+    fetch("/api/formateur/demandes-salle")
+      .then((r) => r.json())
+      .then((d) => setDemandesSalle(d.demandes ?? []))
+      .catch(() => {})
+      .finally(() => setDemandesSalleLoading(false));
+  }, [locationMode]);
 
   const goTo = (step: number) => {
     if (step >= 1 && step <= STEPS.length) setCurrentStep(step);
@@ -310,16 +325,7 @@ export default function NouvelleFormationPage() {
                     onChange={(e) => setThematique(e.target.value)}
                     style={inputStyle}
                   >
-                    <option value="">Sélectionner une thématique</option>
-                    <option>Cardiologie</option>
-                    <option>Neurologie</option>
-                    <option>Oncologie</option>
-                    <option>Chirurgie</option>
-                    <option>Médecine interne</option>
-                    <option>Pédiatrie</option>
-                    <option>Psychiatrie</option>
-                    <option>Rhumatologie</option>
-                    <option>Autre</option>
+                    {SPECIALITES_OPTIONS}
                   </select>
                 </div>
                 <div>
@@ -905,68 +911,62 @@ export default function NouvelleFormationPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: 1, color: "#6A6A6A", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid #EBEBEB" }}>
                   Vos demandes de salle en cours
                 </div>
-                {[
-                  { badge: "Devis reçu", badgeBg: "#e8f5e9", badgeColor: "#2e7d32", extra: "Expire dans 5 jours", title: "Marriott Lyon — Salle Rhône", meta: "Lyon · 10–25 personnes · Devis : 1 200 € HT · Soumis le 18 avril 2026", selected: true },
-                  { badge: "En attente de devis", badgeBg: "#fff3e0", badgeColor: "#e65100", extra: null, title: "Centre de Congrès de Bordeaux", meta: "Bordeaux · 25–50 personnes · Soumis le 22 avril 2026", selected: false },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      border: `1.5px solid ${item.selected ? "#C8102E" : "#E0E0E0"}`,
-                      background: item.selected ? "#fff5f6" : "white",
-                      borderRadius: 12,
-                      padding: "16px 18px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                      marginBottom: 10,
-                      transition: "border-color 0.15s",
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            textTransform: "uppercase" as const,
-                            letterSpacing: 0.8,
-                            padding: "3px 9px",
-                            borderRadius: 100,
-                            background: item.badgeBg,
-                            color: item.badgeColor,
-                          }}
-                        >
-                          {item.badge}
-                        </span>
-                        {item.extra && (
-                          <span style={{ fontSize: 11, fontWeight: 600, background: "#e3f2fd", color: "#1565c0", padding: "2px 8px", borderRadius: 100 }}>
-                            {item.extra}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F", marginTop: 4 }}>{item.title}</div>
-                      <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>{item.meta}</div>
-                    </div>
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: `2px solid ${item.selected ? "#C8102E" : "#E0E0E0"}`,
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {item.selected && (
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#C8102E" }} />
-                      )}
-                    </div>
+                {demandesSalleLoading ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "#6A6A6A", fontSize: 13 }}>Chargement…</div>
+                ) : demandesSalle.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "#6A6A6A", fontSize: 13 }}>
+                    Aucune demande de salle existante.<br />Soumettez une nouvelle demande ci-dessous.
                   </div>
-                ))}
+                ) : (
+                  demandesSalle.map((item) => {
+                    const statutLabels: Record<string, { label: string; bg: string; color: string }> = {
+                      EN_ATTENTE: { label: "En attente", bg: "#fff3e0", color: "#e65100" },
+                      CONTACT_HOTEL: { label: "Hôtel contacté", bg: "#e3f2fd", color: "#1565c0" },
+                      DEVIS_RECU: { label: "Devis reçu", bg: "#e8f5e9", color: "#2e7d32" },
+                      VALIDE: { label: "Validé", bg: "#e8f5e9", color: "#2e7d32" },
+                      TRANSMIS_FORMATEUR: { label: "Transmis", bg: "#e8f5e9", color: "#2e7d32" },
+                      PAYE: { label: "Payé", bg: "#e8f5e9", color: "#2e7d32" },
+                    };
+                    const s = statutLabels[item.statut] ?? { label: item.statut, bg: "#f5f5f5", color: "#6A6A6A" };
+                    const isSelected = selectedDemande === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => setSelectedDemande(isSelected ? null : item.id)}
+                        style={{
+                          border: `1.5px solid ${isSelected ? "#C8102E" : "#E0E0E0"}`,
+                          background: isSelected ? "#fff5f6" : "white",
+                          borderRadius: 12,
+                          padding: "16px 18px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          cursor: "pointer",
+                          marginBottom: 10,
+                          transition: "border-color 0.15s",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: 0.8, padding: "3px 9px", borderRadius: 100, background: s.bg, color: s.color }}>
+                              {s.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F", marginTop: 4 }}>
+                            {item.hotelNom ?? "Salle sans nom"}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>
+                            {item.formation.titre} · {new Date(item.formation.date).toLocaleDateString("fr-FR")}
+                            {item.devisHT ? ` · Devis : ${item.devisHT.toLocaleString("fr-FR")} € HT` : ""}
+                          </div>
+                        </div>
+                        <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${isSelected ? "#C8102E" : "#E0E0E0"}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {isSelected && <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#C8102E" }} />}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #EBEBEB", fontSize: 13, color: "#6A6A6A" }}>
                   Vous ne voyez pas votre salle ?{" "}
                   <button

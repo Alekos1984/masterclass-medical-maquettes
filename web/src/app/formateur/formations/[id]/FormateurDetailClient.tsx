@@ -2137,21 +2137,10 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={cardStyle}>
               <div className="card-header">
                 <span className="card-title">Informations générales</span>
-                {canPublish && (
-                  <button
-                    onClick={publierFormation}
-                    disabled={publishing}
-                    style={{
-                      background: "#C8102E", color: "white", border: "none", borderRadius: 8,
-                      padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                      fontFamily: "inherit", opacity: publishing ? 0.7 : 1,
-                    }}
-                  >
-                    {publishing ? "Publication…" : "🚀 Publier la formation"}
-                  </button>
-                )}
-                {isPubilee && (
+                {isPubilee ? (
                   <span className="pill pill-green" style={{ fontSize: 11 }}>✓ Publiée</span>
+                ) : (
+                  <span className="pill pill-orange" style={{ fontSize: 11 }}>En attente de validation admin</span>
                 )}
               </div>
               {[

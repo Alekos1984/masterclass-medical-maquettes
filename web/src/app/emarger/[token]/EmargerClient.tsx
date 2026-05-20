@@ -5,6 +5,7 @@ import Link from "next/link";
 
 interface EmargerData {
   emargementId: string;
+  formationId: string;
   alreadySigned: boolean;
   signedAt: string | null;
   participant: { nom: string; email: string };
@@ -149,11 +150,19 @@ export default function EmargerClient({ data }: { data: EmargerData }) {
 
         {/* ALREADY SIGNED */}
         {signed && (
-          <div style={{ background: "#e8f5e9", border: "1.5px solid #c8e6c9", borderRadius: 12, padding: 16, textAlign: "center", marginBottom: 20 }}>
+          <div style={{ background: "#e8f5e9", border: "1.5px solid #c8e6c9", borderRadius: 12, padding: 16, textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "#2e7d32", marginBottom: 4 }}>Présence déjà confirmée</div>
             <div style={{ fontSize: 13, color: "#388e3c" }}>Émargé à <strong>{signedTime}</strong> · Merci !</div>
           </div>
+        )}
+        {signed && (
+          <a
+            href={`/participant/session/${data.formationId}`}
+            style={{ display: "block", background: "#0F0F0F", color: "white", border: "none", borderRadius: 12, padding: "14px 24px", fontSize: 14, fontWeight: 700, textAlign: "center", textDecoration: "none", marginBottom: 20 }}
+          >
+            🖥️ Rejoindre la session en direct →
+          </a>
         )}
 
         {/* BOUTON ÉMARGER */}
