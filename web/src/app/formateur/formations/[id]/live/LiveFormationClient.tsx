@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import PdfPageCanvas from "@/components/PdfPageCanvas";
 
 type Participant = {
   id: string;
@@ -52,10 +53,12 @@ function formatTime(iso: string | null) {
   return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
+type Question = { id: string; texte: string; lue: boolean; createdAt: string; participantName: string };
+type Stroke = { color: string; width: number; points: [number, number][] };
+
 export default function LiveFormationClient({ formation }: { formation: Formation }) {
   const now = useCurrentTime();
-  const [activeSection, setActiveSection] = useState<"participants" | "emargement" | "diaporama" | "log">("participants");
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"participants" | "emargement" | "diaporama" | "questions" | "log">("participants");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Session state (DB-backed)
@@ -71,6 +74,228 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   const [emailResult, setEmailResult] = useState<string | null>(null);
   const [satisfactionSending, setSatisfactionSending] = useState(false);
   const [satisfactionResult, setSatisfactionResult] = useState<string | null>(null);
+
+  // Slides (diaporama)
+  const [hasSlides, setHasSlides] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [slidesUploading, setSlidesUploading] = useState(false);
+  const [slidesKey, setSlidesKey] = useState(0); // forces PdfPageCanvas reload
+  const [pageCount, setPageCount] = useState(0);
+
+  // Drawing
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [drawColor, setDrawColor] = useState("#ff3b30");
+  const [drawWidth, setDrawWidth] = useState(4);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawEnabled, setDrawEnabled] = useState(false);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const currentStrokeRef = useRef<[number, number][]>([]);
+  const savingDrawRef = useRef(false);
+
+  // Questions
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const unreadCount = questions.filter((q) => !q.lue).length;
+
+  // Poll questions every 5s when session active
+  useEffect(() => {
+    if (sessionStatus !== "EN_COURS" && sessionStatus !== "EN_PAUSE") return;
+    const fetchQ = async () => {
+      try {
+        const res = await fetch(`/api/formateur/formations/${formation.id}/questions`);
+        if (res.ok) setQuestions(await res.json() as Question[]);
+      } catch { /* ignore */ }
+    };
+    fetchQ();
+    const id = setInterval(fetchQ, 5000);
+    return () => clearInterval(id);
+  }, [formation.id, sessionStatus]);
+
+  // Fetch initial slide state
+  useEffect(() => {
+    fetch(`/api/session/${formation.id}/state`)
+      .then((r) => r.json())
+      .then((d: { hasSlides: boolean; currentPage: number }) => {
+        setHasSlides(d.hasSlides);
+        setCurrentPage(d.currentPage);
+      })
+      .catch(() => {});
+  }, [formation.id]);
+
+  // Redraw all strokes on the drawing canvas
+  const redrawCanvas = useCallback(() => {
+    const canvas = drawingCanvasRef.current;
+    if (!canvas || canvas.width === 0) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const stroke of strokes) {
+      if (stroke.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.width * (canvas.width / 1000);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.moveTo(stroke.points[0][0] * canvas.width, stroke.points[0][1] * canvas.height);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i][0] * canvas.width, stroke.points[i][1] * canvas.height);
+      }
+      ctx.stroke();
+    }
+  }, [strokes]);
+
+  useEffect(() => { redrawCanvas(); }, [strokes, redrawCanvas]);
+
+  // Called by PdfPageCanvas after each page render — positions drawing canvas exactly over the PDF canvas
+  const onPdfRender = useCallback((pdfCanvas: HTMLCanvasElement) => {
+    const drawCanvas = drawingCanvasRef.current;
+    const container = pdfContainerRef.current;
+    if (!drawCanvas || !container) return;
+    const pdfRect = pdfCanvas.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    drawCanvas.width = pdfCanvas.width;
+    drawCanvas.height = pdfCanvas.height;
+    drawCanvas.style.width = `${pdfRect.width}px`;
+    drawCanvas.style.height = `${pdfRect.height}px`;
+    drawCanvas.style.left = `${pdfRect.left - containerRect.left}px`;
+    drawCanvas.style.top = `${pdfRect.top - containerRect.top}px`;
+    redrawCanvas();
+  }, [redrawCanvas]);
+
+  function getRelPos(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): [number, number] {
+    const canvas = drawingCanvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    return [
+      (clientX - rect.left) / rect.width,
+      (clientY - rect.top) / rect.height,
+    ];
+  }
+
+  function onDrawStart(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!drawEnabled) return;
+    e.preventDefault();
+    setIsDrawing(true);
+    currentStrokeRef.current = [getRelPos(e)];
+  }
+
+  function onDrawMove(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!drawEnabled || !isDrawing) return;
+    e.preventDefault();
+    const point = getRelPos(e);
+    currentStrokeRef.current.push(point);
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+    const pts = currentStrokeRef.current;
+    if (pts.length < 2) return;
+    ctx.beginPath();
+    ctx.strokeStyle = drawColor;
+    ctx.lineWidth = drawWidth * (canvas.width / 1000);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    const prev = pts[pts.length - 2];
+    ctx.moveTo(prev[0] * canvas.width, prev[1] * canvas.height);
+    ctx.lineTo(point[0] * canvas.width, point[1] * canvas.height);
+    ctx.stroke();
+  }
+
+  async function onDrawEnd(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    if (!drawEnabled || !isDrawing) return;
+    e.preventDefault();
+    setIsDrawing(false);
+    const pts = [...currentStrokeRef.current];
+    currentStrokeRef.current = [];
+    if (pts.length < 2) return;
+    const newStroke: Stroke = { color: drawColor, width: drawWidth, points: pts };
+    const newStrokes = [...strokes, newStroke];
+    setStrokes(newStrokes);
+    await saveDrawing(newStrokes);
+  }
+
+  async function saveDrawing(strokesToSave: Stroke[]) {
+    if (savingDrawRef.current) return;
+    savingDrawRef.current = true;
+    try {
+      await fetch(`/api/formateur/formations/${formation.id}/drawing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          drawingData: JSON.stringify({ page: currentPage, strokes: strokesToSave }),
+        }),
+      });
+    } catch { /* ignore */ } finally {
+      savingDrawRef.current = false;
+    }
+  }
+
+  async function clearDrawing() {
+    setStrokes([]);
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    await fetch(`/api/formateur/formations/${formation.id}/drawing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ drawingData: null }),
+    }).catch(() => {});
+  }
+
+  async function uploadSlides(file: File) {
+    setSlidesUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = (e.target?.result as string).split(",")[1];
+      const res = await fetch(`/api/formateur/formations/${formation.id}/upload-slides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64 }),
+      });
+      if (res.ok) {
+        setHasSlides(true);
+        setCurrentPage(1);
+        setSlidesKey((k) => k + 1);
+      } else {
+        const d = await res.json() as { error?: string };
+        alert(d.error ?? "Erreur upload");
+      }
+      setSlidesUploading(false);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function changePage(delta: number) {
+    const next = pageCount > 0 ? Math.min(pageCount, Math.max(1, currentPage + delta)) : Math.max(1, currentPage + delta);
+    setCurrentPage(next);
+    setSlidesKey((k) => k + 1);
+    // Clear drawing for new page
+    setStrokes([]);
+    const canvas = drawingCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    await Promise.all([
+      fetch(`/api/formateur/formations/${formation.id}/session-page`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page: next }),
+      }),
+      fetch(`/api/formateur/formations/${formation.id}/drawing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drawingData: null }),
+      }),
+    ]);
+  }
+
+  async function markQuestionRead(questionId: string) {
+    await fetch(`/api/formateur/formations/${formation.id}/questions`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionId, lue: true }),
+    });
+    setQuestions((prev) => prev.map((q) => q.id === questionId ? { ...q, lue: true } : q));
+  }
 
   // Client-side baseUrl for QR code
   const [baseUrl, setBaseUrl] = useState<string>("");
@@ -206,13 +431,6 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
   const total = formation.participants.length;
 
   const emargementUrl = `/formateur/emargement/${formation.id}`;
-
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setUploadedFile(url);
-  }
 
   const sectionBtn = (key: typeof activeSection, label: string) => (
     <button
@@ -441,6 +659,17 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
           {sectionBtn("participants", "👥 Participants")}
           {sectionBtn("emargement", "✍️ Émargement")}
           {sectionBtn("diaporama", "🖥 Diaporama")}
+          <button
+            onClick={() => setActiveSection("questions")}
+            style={{
+              flex: 1, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontSize: 12, fontWeight: 700, fontFamily: "inherit", transition: "all 0.15s",
+              background: activeSection === "questions" ? "#C8102E" : "rgba(255,255,255,0.07)",
+              color: activeSection === "questions" ? "white" : "rgba(255,255,255,0.6)",
+            }}
+          >
+            ❓ Questions {unreadCount > 0 && <span style={{ background: "#f0a853", color: "#000", borderRadius: 10, padding: "1px 6px", fontSize: 10, marginLeft: 4 }}>{unreadCount}</span>}
+          </button>
           {sectionBtn("log", "📋 Log")}
         </div>
 
@@ -663,66 +892,173 @@ export default function LiveFormationClient({ formation }: { formation: Formatio
         {activeSection === "diaporama" && (
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
             <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
-              {uploadedFile ? (
-                <iframe
-                  src={uploadedFile}
-                  style={{ width: "100%", height: 540, border: "none" }}
-                  title="Diaporama"
-                />
+              {hasSlides ? (
+                <>
+                  {/* Drawing toolbar */}
+                  <div style={{ padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 10 }}>
+                    <button
+                      onClick={() => setDrawEnabled((v) => !v)}
+                      style={{
+                        background: drawEnabled ? "rgba(255,59,48,0.2)" : "rgba(255,255,255,0.07)",
+                        color: drawEnabled ? "#ff3b30" : "rgba(255,255,255,0.6)",
+                        border: `1px solid ${drawEnabled ? "rgba(255,59,48,0.5)" : "rgba(255,255,255,0.12)"}`,
+                        borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      ✏️ {drawEnabled ? "Dessin activé" : "Dessiner"}
+                    </button>
+                    {drawEnabled && (
+                      <>
+                        {["#ff3b30", "#ff9500", "#34c759", "#007aff", "#ffffff"].map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => setDrawColor(c)}
+                            style={{
+                              width: 22, height: 22, borderRadius: "50%", background: c,
+                              border: drawColor === c ? "3px solid white" : "2px solid rgba(255,255,255,0.2)",
+                              cursor: "pointer", flexShrink: 0,
+                            }}
+                          />
+                        ))}
+                        <select
+                          value={drawWidth}
+                          onChange={(e) => setDrawWidth(Number(e.target.value))}
+                          style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 6px", fontSize: 11, fontFamily: "inherit" }}
+                        >
+                          <option value={2}>Fin</option>
+                          <option value={4}>Normal</option>
+                          <option value={8}>Épais</option>
+                        </select>
+                        <button
+                          onClick={clearDrawing}
+                          style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          ✕ Effacer
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* PDF canvas + drawing overlay */}
+                  <div ref={pdfContainerRef} style={{ position: "relative", height: 460 }}>
+                    <PdfPageCanvas
+                      key={slidesKey}
+                      pdfUrl={`/api/formateur/formations/${formation.id}/slides`}
+                      page={currentPage}
+                      onPageCount={setPageCount}
+                      onRender={onPdfRender}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                    <canvas
+                      ref={drawingCanvasRef}
+                      data-drawing="true"
+                      onMouseDown={onDrawStart}
+                      onMouseMove={onDrawMove}
+                      onMouseUp={onDrawEnd}
+                      onMouseLeave={onDrawEnd}
+                      onTouchStart={onDrawStart}
+                      onTouchMove={onDrawMove}
+                      onTouchEnd={onDrawEnd}
+                      style={{
+                        position: "absolute", top: 0, left: 0,
+                        cursor: drawEnabled ? "crosshair" : "default",
+                        pointerEvents: drawEnabled ? "all" : "none",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+                    <button onClick={() => changePage(-1)} disabled={currentPage <= 1} style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 18, cursor: "pointer", fontFamily: "inherit", opacity: currentPage <= 1 ? 0.3 : 1 }}>‹</button>
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
+                      Page <strong style={{ color: "white" }}>{currentPage}</strong>
+                      {pageCount > 0 && <span style={{ color: "rgba(255,255,255,0.35)" }}> / {pageCount}</span>}
+                    </span>
+                    <button onClick={() => changePage(1)} disabled={pageCount > 0 && currentPage >= pageCount} style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 18, cursor: "pointer", fontFamily: "inherit", opacity: pageCount > 0 && currentPage >= pageCount ? 0.3 : 1 }}>›</button>
+                  </div>
+                </>
               ) : (
                 <div style={{ height: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
                   <div style={{ fontSize: 48, opacity: 0.3 }}>🖥</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>Aucun diaporama chargé</div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>Importez un fichier PDF ou PowerPoint</div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.ppt,.pptx"
-                    onChange={handleFileUpload}
-                    style={{ display: "none" }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >
-                    📂 Importer un fichier
-                  </button>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>Importez un fichier PDF (max 15 Mo)</div>
                 </div>
               )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "20px" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Formats supportés</div>
-                {["PDF (.pdf)", "PowerPoint (.pptx)", "OpenDocument (.odp)"].map((f) => (
-                  <div key={f} style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                    {f}
-                  </div>
-                ))}
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 12, lineHeight: 1.5 }}>
-                  Le fichier reste local et n&apos;est pas envoyé au serveur. Il s&apos;affiche directement dans votre navigateur.
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Importer un PDF</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 12, lineHeight: 1.5 }}>
+                  Le PDF sera partagé en temps réel avec les participants. Max 15 Mo.
                 </div>
-              </div>
-              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "20px" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Conseils</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7 }}>
-                  Pour une présentation optimale, utilisez le mode plein écran de votre navigateur (F11). Vous pouvez également ouvrir votre diaporama en parallèle dans PowerPoint ou Keynote.
-                </div>
-              </div>
-              {uploadedFile && (
+                <input ref={fileInputRef} type="file" accept=".pdf" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadSlides(f); }} style={{ display: "none" }} />
                 <button
-                  onClick={() => setUploadedFile(null)}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={slidesUploading}
                   style={{
-                    background: "rgba(200,16,46,0.15)", color: "#C8102E", border: "1px solid rgba(200,16,46,0.3)",
+                    width: "100%", background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.15)",
                     borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    opacity: slidesUploading ? 0.5 : 1,
                   }}
                 >
-                  ✕ Retirer le fichier
+                  {slidesUploading ? "Upload en cours…" : "📂 Choisir un PDF"}
+                </button>
+              </div>
+              {hasSlides && (
+                <button
+                  onClick={async () => {
+                    await fetch(`/api/formateur/formations/${formation.id}/upload-slides`, { method: "DELETE" });
+                    setHasSlides(false);
+                  }}
+                  style={{ background: "rgba(200,16,46,0.15)", color: "#C8102E", border: "1px solid rgba(200,16,46,0.3)", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  ✕ Retirer le diaporama
                 </button>
               )}
+              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "16px" }}>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.6 }}>
+                  Les flèches ‹ › font avancer/reculer les slides pour <strong style={{ color: "rgba(255,255,255,0.6)" }}>tous les participants</strong> connectés simultanément.<br /><br />
+                  Le dessin est visible en temps réel par tous les participants.
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* QUESTIONS */}
+        {activeSection === "questions" && (
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>Questions des participants</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{unreadCount} non lue{unreadCount > 1 ? "s" : ""} · mise à jour toutes les 5s</div>
+            </div>
+            {questions.length === 0 ? (
+              <div style={{ padding: "48px 20px", textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>❓</div>
+                <div>Aucune question pour l&apos;instant</div>
+              </div>
+            ) : (
+              <div style={{ padding: "12px 20px" }}>
+                {questions.map((q) => (
+                  <div key={q.id} style={{ padding: "12px 14px", background: q.lue ? "rgba(255,255,255,0.02)" : "rgba(240,168,83,0.08)", border: `1px solid ${q.lue ? "rgba(255,255,255,0.06)" : "rgba(240,168,83,0.3)"}`, borderRadius: 10, marginBottom: 8, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>
+                        {q.participantName} · {new Date(q.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div style={{ fontSize: 13, color: q.lue ? "rgba(255,255,255,0.6)" : "white" }}>{q.texte}</div>
+                    </div>
+                    {!q.lue && (
+                      <button
+                        onClick={() => markQuestionRead(q.id)}
+                        style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                      >
+                        ✓ Lu
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

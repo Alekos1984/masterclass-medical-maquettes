@@ -44,7 +44,7 @@ function baseLayout(content: string) {
         ${content}
         <hr style="border:none;border-top:1px solid #f0f0f0;margin:24px 0;"/>
         <p style="font-size:12px;color:#999;margin:0;">Masterclass Médical · plateforme de formation médicale continue<br/>
-        <a href="https://masterclassmedical.fr" style="color:#C8102E;">masterclassmedical.fr</a></p>
+        <a href="https://masterclassmedicale.com" style="color:#C8102E;">masterclassmedicale.com</a></p>
       </div>
     </div>
   `;
@@ -71,7 +71,7 @@ export function emailBienvenueParticipant(data: { nom: string }) {
       <li>🎓 Vos attestations de formation</li>
       <li>⭐ Vos questionnaires de satisfaction</li>
     </ul>
-    ${ctaButton("https://masterclassmedical.fr/participant/dashboard", "Accéder à mon espace")}
+    ${ctaButton("https://masterclassmedicale.com/participant/dashboard", "Accéder à mon espace")}
     <p>À très bientôt,<br/><strong>L'équipe Masterclass Médical</strong></p>
   `);
 }
@@ -87,7 +87,7 @@ export function emailBienvenueFormateur(data: { nom: string }) {
       <li>👥 Gérez vos participants et émargements</li>
       <li>📄 Générez tous vos documents (PV, bilan, certificat…)</li>
     </ul>
-    ${ctaButton("https://masterclassmedical.fr/formateur/dashboard", "Accéder à mon tableau de bord")}
+    ${ctaButton("https://masterclassmedicale.com/formateur/dashboard", "Accéder à mon tableau de bord")}
     <p>À très bientôt,<br/><strong>L'équipe Masterclass Médical</strong></p>
   `);
 }
@@ -110,7 +110,7 @@ export function emailConfirmationInscription(data: {
       <p style="margin:4px 0;">💳 <strong>Montant réglé :</strong> ${data.montant} HT</p>
     </div>
     ${data.conventionUrl ? `<p>📄 <a href="${data.conventionUrl}" style="color:#C8102E;">Télécharger votre convention de formation</a></p>` : ""}
-    ${ctaButton("https://masterclassmedical.fr/participant/dashboard", "Voir mon espace")}
+    ${ctaButton("https://masterclassmedicale.com/participant/dashboard", "Voir mon espace")}
     <p>À très bientôt,<br/><strong>L'équipe Masterclass Médical</strong></p>
   `);
 }
@@ -130,7 +130,7 @@ export function emailNouvelleInscription(data: {
       <p style="margin:4px 0;font-weight:700;">${data.formationTitre}</p>
       <p style="margin:4px 0;color:#666;">📅 ${data.formationDate}</p>
     </div>
-    ${ctaButton(`https://masterclassmedical.fr/formateur/formations/${data.formationId}`, "Voir la formation")}
+    ${ctaButton(`https://masterclassmedicale.com/formateur/formations/${data.formationId}`, "Voir la formation")}
     <p>Cordialement,<br/><strong>L'équipe Masterclass Médical</strong></p>
   `);
 }
@@ -151,7 +151,7 @@ export function emailRappelFormation(data: {
       <p style="margin:4px 0;">📍 ${data.formationLieu}</p>
     </div>
     <p>Le jour J, vous recevrez un lien pour confirmer votre présence (émargement numérique).</p>
-    ${ctaButton("https://masterclassmedical.fr/participant/dashboard", "Mon espace")}
+    ${ctaButton("https://masterclassmedicale.com/participant/dashboard", "Mon espace")}
     <p>À demain,<br/><strong>L'équipe Masterclass Médical</strong></p>
   `);
 }
@@ -184,7 +184,7 @@ export function emailInscriptionAnnulee(data: {
     <p>Bonjour ${data.participantNom},</p>
     <p>Votre inscription à la formation <strong>${data.formationTitre}</strong> du ${data.formationDate} a été annulée.</p>
     ${data.motif ? `<p><strong>Motif :</strong> ${data.motif}</p>` : ""}
-    <p>Si vous pensez qu'il s'agit d'une erreur, contactez-nous à <a href="mailto:contact@masterclassmedical.fr" style="color:#C8102E;">contact@masterclassmedical.fr</a>.</p>
+    <p>Si vous pensez qu'il s'agit d'une erreur, contactez-nous à <a href="mailto:contact@masterclassmedicale.com" style="color:#C8102E;">contact@masterclassmedicale.com</a>.</p>
     <p>Cordialement,<br/><strong>L'équipe Masterclass Médical</strong></p>
   `);
 }

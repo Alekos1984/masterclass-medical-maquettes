@@ -226,9 +226,34 @@ model ParticipantProfile {
   signatureBase64 String? @db.Text
 
   inscriptions Inscription[]
+  questions    Question[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── CLASSE VIRTUELLE ─────────────────────────────────────────────────────────
+
+model Question {
+  id            String             @id @default(cuid())
+  formationId   String
+  formation     Formation          @relation(fields: [formationId], references: [id])
+  participantId String
+  participant   ParticipantProfile @relation(fields: [participantId], references: [id])
+  texte         String             @db.Text
+  lue           Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+}
+
+model Ressource {
+  id          String    @id @default(cuid())
+  formationId String
+  formation   Formation @relation(fields: [formationId], references: [id])
+  nom         String
+  fileBase64  String?   @db.Text
+  url         String?
+  taille      Int?
+  createdAt   DateTime  @default(now())
 }
 
 // ─── FORMATIONS ───────────────────────────────────────────────────────────────
@@ -305,12 +330,20 @@ model Formation {
   bilanContent           Json?            // { resume, recommandations, pointsForts }
   afficheParams          Json?            // { titre, description, infoPratiques, couleur }
 
+  // Classe virtuelle
+  modaliteSession      String?   // "PRESENTIEL" | "VIRTUEL" | "MIXTE"
+  sessionCurrentPage   Int?      @default(1)
+  sessionSlidesBase64  String?   @db.Text // PDF base64, max ~15MB
+  sessionDrawingData   String?   @db.Text // JSON: { page, strokes }
+
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
   paiements     Paiement[]
   virements     Virement[]
   emargements   Emargement[]
   satisfactions SatisfactionReponse[]
+  questions     Question[]
+  ressources    Ressource[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

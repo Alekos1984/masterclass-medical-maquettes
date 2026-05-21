@@ -219,23 +219,33 @@ export default async function ParticipantDashboardPage() {
                         </div>
                       </div>
                     </div>
-                    {(f.sessionStatus === "EN_COURS" || f.sessionStatus === "EN_PAUSE") && (
-                      <div style={{ padding: "10px 16px", background: "#C8102E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
-                          🔴 Session démarrée{f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}
-                        </span>
-                        {insc.emargements[0]?.token ? (
-                          <a
-                            href={`/emarger/${insc.emargements[0].token}`}
-                            style={{ background: "white", color: "#C8102E", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
-                          >
-                            ✍️ Émarger maintenant
-                          </a>
-                        ) : (
-                          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Lien d&apos;émargement en cours d&apos;envoi…</span>
-                        )}
-                      </div>
-                    )}
+                    {(f.sessionStatus === "EN_COURS" || f.sessionStatus === "EN_PAUSE") && (() => {
+                      const emg = insc.emargements[0];
+                      const alreadyEmarked = emg && (emg.presentMatin || emg.presentApresMidi);
+                      return (
+                        <div style={{ padding: "10px 16px", background: alreadyEmarked ? "#1b4332" : "#C8102E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>
+                            {alreadyEmarked ? "✅ Présence confirmée" : `🔴 Session démarrée${f.sessionStatus === "EN_PAUSE" ? " (pause)" : ""}`}
+                          </span>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <a
+                              href={`/participant/session/${f.id}`}
+                              style={{ background: "white", color: alreadyEmarked ? "#2e7d32" : "#C8102E", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" as const }}
+                            >
+                              🖥️ Rejoindre la session
+                            </a>
+                            {!alreadyEmarked && emg?.token && (
+                              <a
+                                href={`/emarger/${emg.token}`}
+                                style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" as const }}
+                              >
+                                ✍️ Émarger
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div style={{ padding: "8px 16px", background: "var(--off-white)", borderTop: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
                       {insc.conventionSignee && (insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && <span style={{ fontSize: 11, color: "#2e7d32" }}>✓ Convention co-signée</span>}
                       {insc.conventionSignee && !(insc as { conventionParticipantSigneeAt?: Date | null }).conventionParticipantSigneeAt && insc.statut === StatutInscription.CONFIRMEE && <span style={{ fontSize: 11, color: "#f57f17" }}>Convention en attente de votre signature</span>}
@@ -419,7 +429,7 @@ export default async function ParticipantDashboardPage() {
             <div style={{ fontSize: 12, color: "var(--gray)", marginBottom: 10, lineHeight: 1.5 }}>
               Pour toute question sur votre inscription, annulation ou vos documents.
             </div>
-            <a href="mailto:contact@masterclassmedical.fr" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>
+            <a href="mailto:contact@masterclassmedicale.com" style={{ fontSize: 12, fontWeight: 600, color: "var(--red)", textDecoration: "none" }}>
               ✉️ Contacter le support →
             </a>
           </div>

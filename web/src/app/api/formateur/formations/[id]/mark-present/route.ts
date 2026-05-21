@@ -37,7 +37,10 @@ export async function POST(
     return NextResponse.json({ error: "Inscription introuvable" }, { status: 404 });
   }
 
-  // Upsert emargement
+  const now = new Date();
+
+  // Upsert emargement — also set signatureMatin/signatureApresMidi so the
+  // timestamp survives a page reload (otherwise it shows "—")
   const emargement = await prisma.emargement.upsert({
     where: { formationId_inscriptionId: { formationId: id, inscriptionId } },
     create: {
@@ -46,16 +49,20 @@ export async function POST(
       tokenExpire: new Date(formation.date.getTime() + 48 * 60 * 60 * 1000),
       presentMatin,
       presentApresMidi,
+      signatureMatin: presentMatin ? now : null,
+      signatureApresMidi: presentApresMidi ? now : null,
       correctionPresence: true,
       correctionJustification: "Présence marquée manuellement par le formateur.",
     },
     update: {
       presentMatin,
       presentApresMidi,
+      signatureMatin: presentMatin ? now : undefined,
+      signatureApresMidi: presentApresMidi ? now : undefined,
       correctionPresence: true,
       correctionJustification: "Présence marquée manuellement par le formateur.",
     },
-    select: { id: true, presentMatin: true, presentApresMidi: true },
+    select: { id: true, presentMatin: true, presentApresMidi: true, signatureMatin: true, signatureApresMidi: true },
   });
 
   return NextResponse.json(emargement);

@@ -68,7 +68,7 @@ export async function POST(
 
   // If PV just signed, notify participants to co-sign
   if (list.includes("pv") && !formation.pvSigne) {
-    const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedical.fr";
+    const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
     const dateFormatted = formation.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
     const emargements = await prisma.emargement.findMany({
