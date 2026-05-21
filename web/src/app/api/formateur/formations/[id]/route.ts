@@ -55,6 +55,9 @@ export async function PATCH(
     if (statut === "PUBLIEE" && !PUBLISHABLE.includes(formation.statut)) {
       return NextResponse.json({ error: "Statut actuel ne permet pas la publication" }, { status: 400 });
     }
+    if (statut === "ANNULEE" && formation.statut === "ANNULEE") {
+      return NextResponse.json({ error: "Formation déjà annulée" }, { status: 400 });
+    }
 
     const updated = await prisma.formation.update({
       where: { id },
@@ -128,8 +131,8 @@ export async function DELETE(
   if (!formation || formation.formateurId !== profil.id)
     return NextResponse.json({ error: "Formation introuvable" }, { status: 404 });
 
-  if (formation._count.inscriptions > 0)
-    return NextResponse.json({ error: "Impossible de supprimer : des participants sont inscrits et confirmés." }, { status: 409 });
+  if (formation._count.inscriptions > 0 && formation.statut !== "ANNULEE")
+    return NextResponse.json({ error: "Impossible de supprimer : des participants sont confirmés. Annulez d'abord la formation." }, { status: 409 });
 
   await prisma.$transaction([
     prisma.emargement.deleteMany({ where: { formationId: id } }),
