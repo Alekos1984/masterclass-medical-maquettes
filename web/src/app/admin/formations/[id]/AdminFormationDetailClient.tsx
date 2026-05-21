@@ -31,6 +31,11 @@ type Formation = {
   formateurEmail: string;
   nbSatisfactions: number;
   nbEmargements: number;
+  pvSigne: boolean;
+  bilanSigne: boolean;
+  emargementSigne: boolean;
+  certificatSigne: boolean;
+  demandeSalle: { id: string; statut: string; hotelNom: string | null } | null;
   inscriptions: Inscription[];
 };
 
@@ -50,15 +55,6 @@ const INSCRIPTION_STATUT: Record<string, { label: string; pillClass: string }> =
   LISTE_ATTENTE: { label: "Liste d'attente", pillClass: "pill-blue" },
 };
 
-const PDF_BUTTONS: { label: string; icon: string; href: (id: string) => string; sub?: string }[] = [
-  { label: "Programme officiel", icon: "📄", href: (id) => `/api/pdf/programme/${id}`, sub: "Qualiopi" },
-  { label: "Affiche A4", icon: "🖼️", href: (id) => `/api/pdf/affiche/${id}?ai=true`, sub: "Accroche IA" },
-  { label: "Questionnaire", icon: "📝", href: (id) => `/api/pdf/questionnaire/${id}`, sub: "Papier — jour J" },
-  { label: "Feuille de présence", icon: "✅", href: (id) => `/api/pdf/feuille-presence/${id}` },
-  { label: "PV de formation", icon: "📋", href: (id) => `/api/pdf/pv-formation/${id}` },
-  { label: "Certificat de réalisation", icon: "📜", href: (id) => `/api/pdf/certificat-realisation/${id}`, sub: "Art. L6353-1 CDT" },
-  { label: "Bilan pédagogique", icon: "📊", href: (id) => `/api/pdf/bilan/${id}?ai=true`, sub: "Analyse IA J+3" },
-];
 
 const STATUT_TRANSITIONS: Record<string, { label: string; next: string; btnClass?: string }[]> = {
   BROUILLON: [{ label: "Publier la formation", next: "PUBLIEE", btnClass: "btn btn-red" }],
@@ -144,30 +140,57 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
           </div>
         </div>
 
+        {/* DOCUMENTS SIGNÉS PAR LE FORMATEUR */}
         <div className="card card-mb" style={{ marginBottom: 20 }}>
           <div className="card-header">
-            <div className="card-title">Documents à générer</div>
-            <span style={{ fontSize: 11, color: "var(--gray)" }}>Ouvre dans un nouvel onglet</span>
+            <div className="card-title">Documents signés par le formateur</div>
+            {formation.demandeSalle && (
+              <Link href={`/admin/demandes/${formation.demandeSalle.id}`} className="btn btn-ghost" style={{ fontSize: 11 }}>
+                🏨 Demande salle →
+              </Link>
+            )}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 4 }}>
-            {PDF_BUTTONS.map((btn) => (
-              <a
-                key={btn.label}
-                href={btn.href(formation.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
-                  border: "1.5px solid var(--light-gray)", borderRadius: 8, textDecoration: "none",
-                  color: "var(--black)", transition: "border-color 0.15s",
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{btn.icon}</span>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>{btn.label}</div>
-                  {btn.sub && <div style={{ fontSize: 10, color: "var(--gray)" }}>{btn.sub}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 8 }}>
+            {[
+              { label: "Émargement", signed: formation.emargementSigne, href: `/api/pdf/feuille-presence/${formation.id}`, icon: "✅" },
+              { label: "PV de formation", signed: formation.pvSigne, href: `/api/pdf/pv-formation/${formation.id}`, icon: "📋" },
+              { label: "Bilan pédagogique", signed: formation.bilanSigne, href: `/api/pdf/bilan/${formation.id}`, icon: "📊" },
+              { label: "Certificat", signed: formation.certificatSigne, href: `/api/pdf/certificat-realisation/${formation.id}`, icon: "📜" },
+            ].map((doc) => (
+              doc.signed ? (
+                <a
+                  key={doc.label}
+                  href={doc.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
+                    border: "1.5px solid #c8e6c9", borderRadius: 8, textDecoration: "none",
+                    color: "#2e7d32", background: "#f1f8e9",
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{doc.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600 }}>{doc.label}</div>
+                    <div style={{ fontSize: 10, color: "#388e3c" }}>Signé · Voir PDF</div>
+                  </div>
+                </a>
+              ) : (
+                <div
+                  key={doc.label}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
+                    border: "1.5px solid var(--light-gray)", borderRadius: 8,
+                    color: "var(--gray)", opacity: 0.5,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{doc.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600 }}>{doc.label}</div>
+                    <div style={{ fontSize: 10 }}>En attente</div>
+                  </div>
                 </div>
-              </a>
+              )
             ))}
           </div>
         </div>

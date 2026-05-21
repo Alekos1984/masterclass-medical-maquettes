@@ -34,6 +34,15 @@ export default async function ParticipantSessionPage({ params }: { params: Promi
     redirect("/participant/dashboard");
   }
 
+  const emargement = await prisma.emargement.findFirst({
+    where: { formationId: f.id, inscriptionId: inscription.id },
+    select: { token: true, presentMatin: true, presentApresMidi: true },
+  });
+
+  const emargementToken = emargement && !emargement.presentMatin && !emargement.presentApresMidi
+    ? emargement.token
+    : undefined;
+
   return (
     <SessionClient
       formationId={f.id}
@@ -46,6 +55,7 @@ export default async function ParticipantSessionPage({ params }: { params: Promi
       initialPage={f.sessionCurrentPage ?? 1}
       ressources={f.ressources}
       description={f.description ?? ""}
+      emargementToken={emargementToken}
     />
   );
 }

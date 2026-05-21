@@ -32,11 +32,21 @@ type Inscription = {
 };
 
 type ProgrammeSlot = {
-  time: string;
-  title: string;
-  description?: string;
-  type?: string;
+  heureDebut: string;
+  heureFin: string;
+  titre: string;
+  description: string;
+  type: string;
 };
+
+const SLOT_TYPES = [
+  { value: "cours", label: "Cours magistral" },
+  { value: "atelier", label: "Atelier pratique" },
+  { value: "cas_clinique", label: "Cas clinique" },
+  { value: "evaluation", label: "Évaluation" },
+  { value: "pause", label: "Pause" },
+  { value: "autre", label: "Autre" },
+];
 
 type FormationDetail = {
   id: string;
@@ -239,10 +249,16 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   // Modifier tab state
   const [descriptionText, setDescriptionText] = useState(formation.description ?? "");
   const [objectifsText, setObjectifsText] = useState((formation.objectifs ?? []).join("\n"));
-  const [programmeText, setProgrammeText] = useState(
-    (formation.programme ?? [])
-      .map((s) => `${s.time} | ${s.title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`)
-      .join("\n")
+  const [programmeSlots, setProgrammeSlots] = useState<ProgrammeSlot[]>(
+    (formation.programme ?? []).map((raw) => {
+      const s = raw as Record<string, string>;
+      // Backward compat: old format had { time: "HH:MM–HH:MM", title, description, type }
+      if (s.heureDebut && s.heureFin) {
+        return { heureDebut: s.heureDebut, heureFin: s.heureFin, titre: s.titre ?? "", description: s.description ?? "", type: s.type ?? "cours" };
+      }
+      const parts = (s.time ?? "").split("–");
+      return { heureDebut: parts[0]?.trim() ?? "", heureFin: parts[1]?.trim() ?? "", titre: s.title ?? s.titre ?? "", description: s.description ?? "", type: s.type ?? "cours" };
+    })
   );
   const [saving, setSaving] = useState<string | null>(null);
   const [savedState, setSavedState] = useState<string | null>(null);
@@ -305,19 +321,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   async function saveProgramme() {
     setSaving("programme");
     try {
-      const programme = programmeText
-        .split("\n")
-        .filter(Boolean)
-        .map((line) => {
-          const parts = line.split(" | ");
-          return {
-            time: parts[0]?.trim() ?? "",
-            title: parts[1]?.trim() ?? "",
-            description: parts[2]?.trim() ?? "",
-            type: parts[3]?.trim() ?? "Cours magistral",
-          };
-        });
-      await patchFormation({ programme });
+      await patchFormation({ programme: programmeSlots });
       setSavedState("programme");
       setTimeout(() => setSavedState((s) => s === "programme" ? null : s), 2500);
     } catch {
@@ -356,7 +360,7 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     }
   }
 
-  async function reformuler(type: "description" | "objectifs" | "programme", texte: string, setter: (v: string) => void) {
+  async function reformuler(type: "description" | "objectifs", texte: string, setter: (v: string) => void) {
     setReformulerLoading(type);
     try {
       const res = await fetch("/api/ai/reformuler", {
@@ -406,24 +410,18 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titre: formation.titre,
-          specialite: formation.specialite,
-          dureeHeures: formation.dureeHeures,
-          heureDebut: formation.heureDebut,
+          titre: infosState.titre,
+          specialite: infosState.specialite,
+          dureeHeures: infosState.dureeHeures,
+          heureDebut: infosState.heureDebut,
           description: descriptionText,
           objectifs,
         }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const slots: ProgrammeSlot[] = Array.isArray(data) ? data : Array.isArray(data.programme) ? data.programme : [];
-      const text = slots
-        .map((s) => {
-          const title = s.title ?? (s as unknown as Record<string, string>).titre ?? "";
-          return `${s.time} | ${title} | ${s.description ?? ""} | ${s.type ?? "Cours magistral"}`;
-        })
-        .join("\n");
-      setProgrammeText(text);
+      const slots: ProgrammeSlot[] = Array.isArray(data.programme) ? data.programme : Array.isArray(data) ? data : [];
+      setProgrammeSlots(slots);
     } catch {
       alert("Erreur lors de la génération IA.");
     } finally {
@@ -1933,40 +1931,86 @@ export default function FormateurDetailClient({ formation }: { formation: Format
               {/* Programme */}
               <div style={cardStyle}>
                 <div className="card-header">
-                  <span className="card-title">Programme</span>
+                  <span className="card-title">Programme ({programmeSlots.length} créneau{programmeSlots.length !== 1 ? "x" : ""})</span>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <VoiceInputButton onTranscript={(t) => setProgrammeText((prev) => prev ? prev + "\n" + t : t)} />
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => reformuler("programme", programmeText, setProgrammeText)}
-                      disabled={reformulerLoading === "programme" || !programmeText}
-                    >
-                      {reformulerLoading === "programme" ? "Reformulation…" : "✨ Reformuler avec l'IA"}
-                    </button>
                     <button
                       className="btn btn-ghost"
                       onClick={genererProgrammeIA}
                       disabled={aiLoading === "programme"}
                     >
-                      {aiLoading === "programme" ? "Génération…" : "✨ Générer le programme IA"}
+                      {aiLoading === "programme" ? "Génération…" : "✨ Générer avec l'IA"}
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => setProgrammeSlots((prev) => [...prev, { heureDebut: infosState.heureDebut, heureFin: "", titre: "", description: "", type: "cours" }])}
+                    >
+                      + Créneau
                     </button>
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 8 }}>
-                  Format : <code>HH:MM–HH:MM | Titre | Description | Type</code> — une ligne par créneau
+                <div style={{ border: "1.5px solid #E0E0E0", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
+                  {programmeSlots.length === 0 && (
+                    <div style={{ padding: "16px", fontSize: 13, color: "#6A6A6A", textAlign: "center" as const }}>
+                      Aucun créneau — générez avec l&apos;IA ou ajoutez manuellement.
+                    </div>
+                  )}
+                  {programmeSlots.map((slot, i) => (
+                    <div key={i} style={{ padding: "12px 14px", borderBottom: i < programmeSlots.length - 1 ? "1px solid #EBEBEB" : "none", background: "white" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr auto auto", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Début</div>
+                          <input
+                            type="time"
+                            value={slot.heureDebut}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, heureDebut: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "5px 7px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                          />
+                        </div>
+                        <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 12 }}>→</div>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Fin</div>
+                          <input
+                            type="time"
+                            value={slot.heureFin}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, heureFin: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "5px 7px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Type</div>
+                          <select
+                            value={slot.type}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, type: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "5px 7px", fontSize: 12, fontFamily: "inherit", outline: "none", background: "white" }}
+                          >
+                            {SLOT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setProgrammeSlots((prev) => prev.filter((_, j) => j !== i))}
+                          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: "#6A6A6A", padding: "0 2px", marginTop: 12 }}
+                          title="Supprimer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Titre du créneau"
+                        value={slot.titre}
+                        onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, titre: e.target.value } : s))}
+                        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 9px", fontSize: 13, fontFamily: "inherit", outline: "none", marginBottom: 4, boxSizing: "border-box" as const }}
+                      />
+                      <textarea
+                        placeholder="Description (optionnel)"
+                        value={slot.description}
+                        onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, description: e.target.value } : s))}
+                        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 9px", fontSize: 12, fontFamily: "inherit", outline: "none", resize: "vertical" as const, minHeight: 48, lineHeight: 1.5, color: "#444", boxSizing: "border-box" as const }}
+                      />
+                    </div>
+                  ))}
                 </div>
-                <textarea
-                  value={programmeText}
-                  onChange={(e) => setProgrammeText(e.target.value)}
-                  rows={8}
-                  style={{
-                    width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 8,
-                    padding: "10px 12px", fontSize: 12, fontFamily: "monospace",
-                    resize: "vertical", marginBottom: 10, boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                  placeholder="08:30–09:00 | Accueil et introduction | Présentation des participants | Cours magistral"
-                />
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
                     className="btn btn-red"
@@ -2137,21 +2181,10 @@ export default function FormateurDetailClient({ formation }: { formation: Format
             <div style={cardStyle}>
               <div className="card-header">
                 <span className="card-title">Informations générales</span>
-                {canPublish && (
-                  <button
-                    onClick={publierFormation}
-                    disabled={publishing}
-                    style={{
-                      background: "#C8102E", color: "white", border: "none", borderRadius: 8,
-                      padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                      fontFamily: "inherit", opacity: publishing ? 0.7 : 1,
-                    }}
-                  >
-                    {publishing ? "Publication…" : "🚀 Publier la formation"}
-                  </button>
-                )}
-                {isPubilee && (
+                {isPubilee ? (
                   <span className="pill pill-green" style={{ fontSize: 11 }}>✓ Publiée</span>
+                ) : (
+                  <span className="pill pill-orange" style={{ fontSize: 11 }}>En attente de validation admin</span>
                 )}
               </div>
               {[

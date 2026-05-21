@@ -1,9 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import VoiceInputButton from "@/components/VoiceInputButton";
 import { SPECIALITES_OPTIONS } from "@/lib/specialites";
+
+type ProgrammeSlot = {
+  heureDebut: string;
+  heureFin: string;
+  titre: string;
+  description: string;
+  type: string;
+};
+
+const SLOT_TYPES = [
+  { value: "cours", label: "Cours magistral" },
+  { value: "atelier", label: "Atelier pratique" },
+  { value: "cas_clinique", label: "Cas clinique" },
+  { value: "evaluation", label: "Évaluation" },
+  { value: "pause", label: "Pause" },
+  { value: "autre", label: "Autre" },
+];
 
 const STEPS = [
   { num: 1, label: "Étape 1", title: "Informations" },
@@ -55,9 +72,15 @@ export default function NouvelleFormationPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  type DemandeSalleItem = { id: string; statut: string; hotelNom: string | null; notes: string | null; devisHT: number | null; dateDevis: string | null; createdAt: string; formation: { titre: string; date: string } };
+  const [demandesSalle, setDemandesSalle] = useState<DemandeSalleItem[]>([]);
+  const [demandesSalleLoading, setDemandesSalleLoading] = useState(false);
+  const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
+  const [heureDebut, setHeureDebut] = useState("09:00");
+  const [heureFin, setHeureFin] = useState("17:00");
   const [objectifsAiLoading, setObjectifsAiLoading] = useState(false);
   const [programmeAiLoading, setProgrammeAiLoading] = useState(false);
-  const [programmeAi, setProgrammeAi] = useState<string[]>([]);
+  const [programmeSlots, setProgrammeSlots] = useState<ProgrammeSlot[]>([]);
   const [reformulerObjectifsLoading, setReformulerObjectifsLoading] = useState(false);
   const [reformulerDescLoading, setReformulerDescLoading] = useState(false);
 
@@ -110,6 +133,16 @@ export default function NouvelleFormationPage() {
   const [prix, setPrix] = useState("");
   const [objectives, setObjectives] = useState("");
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    if (locationMode !== "existing") return;
+    setDemandesSalleLoading(true);
+    fetch("/api/formateur/demandes-salle")
+      .then((r) => r.json())
+      .then((d) => setDemandesSalle(d.demandes ?? []))
+      .catch(() => {})
+      .finally(() => setDemandesSalleLoading(false));
+  }, [locationMode]);
 
   const goTo = (step: number) => {
     if (step >= 1 && step <= STEPS.length) setCurrentStep(step);
@@ -468,6 +501,30 @@ export default function NouvelleFormationPage() {
                     type="date"
                     value={dateFin}
                     onChange={(e) => setDateFin(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={labelStyle}>
+                    Heure de début <span style={{ color: "#C8102E" }}>*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={heureDebut}
+                    onChange={(e) => setHeureDebut(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    Heure de fin <span style={{ color: "#C8102E" }}>*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={heureFin}
+                    onChange={(e) => setHeureFin(e.target.value)}
                     style={inputStyle}
                   />
                 </div>
@@ -897,68 +954,62 @@ export default function NouvelleFormationPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: 1, color: "#6A6A6A", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid #EBEBEB" }}>
                   Vos demandes de salle en cours
                 </div>
-                {[
-                  { badge: "Devis reçu", badgeBg: "#e8f5e9", badgeColor: "#2e7d32", extra: "Expire dans 5 jours", title: "Marriott Lyon — Salle Rhône", meta: "Lyon · 10–25 personnes · Devis : 1 200 € HT · Soumis le 18 avril 2026", selected: true },
-                  { badge: "En attente de devis", badgeBg: "#fff3e0", badgeColor: "#e65100", extra: null, title: "Centre de Congrès de Bordeaux", meta: "Bordeaux · 25–50 personnes · Soumis le 22 avril 2026", selected: false },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      border: `1.5px solid ${item.selected ? "#C8102E" : "#E0E0E0"}`,
-                      background: item.selected ? "#fff5f6" : "white",
-                      borderRadius: 12,
-                      padding: "16px 18px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                      marginBottom: 10,
-                      transition: "border-color 0.15s",
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            textTransform: "uppercase" as const,
-                            letterSpacing: 0.8,
-                            padding: "3px 9px",
-                            borderRadius: 100,
-                            background: item.badgeBg,
-                            color: item.badgeColor,
-                          }}
-                        >
-                          {item.badge}
-                        </span>
-                        {item.extra && (
-                          <span style={{ fontSize: 11, fontWeight: 600, background: "#e3f2fd", color: "#1565c0", padding: "2px 8px", borderRadius: 100 }}>
-                            {item.extra}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F", marginTop: 4 }}>{item.title}</div>
-                      <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>{item.meta}</div>
-                    </div>
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: `2px solid ${item.selected ? "#C8102E" : "#E0E0E0"}`,
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {item.selected && (
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#C8102E" }} />
-                      )}
-                    </div>
+                {demandesSalleLoading ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "#6A6A6A", fontSize: 13 }}>Chargement…</div>
+                ) : demandesSalle.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: "#6A6A6A", fontSize: 13 }}>
+                    Aucune demande de salle existante.<br />Soumettez une nouvelle demande ci-dessous.
                   </div>
-                ))}
+                ) : (
+                  demandesSalle.map((item) => {
+                    const statutLabels: Record<string, { label: string; bg: string; color: string }> = {
+                      EN_ATTENTE: { label: "En attente", bg: "#fff3e0", color: "#e65100" },
+                      CONTACT_HOTEL: { label: "Hôtel contacté", bg: "#e3f2fd", color: "#1565c0" },
+                      DEVIS_RECU: { label: "Devis reçu", bg: "#e8f5e9", color: "#2e7d32" },
+                      VALIDE: { label: "Validé", bg: "#e8f5e9", color: "#2e7d32" },
+                      TRANSMIS_FORMATEUR: { label: "Transmis", bg: "#e8f5e9", color: "#2e7d32" },
+                      PAYE: { label: "Payé", bg: "#e8f5e9", color: "#2e7d32" },
+                    };
+                    const s = statutLabels[item.statut] ?? { label: item.statut, bg: "#f5f5f5", color: "#6A6A6A" };
+                    const isSelected = selectedDemande === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => setSelectedDemande(isSelected ? null : item.id)}
+                        style={{
+                          border: `1.5px solid ${isSelected ? "#C8102E" : "#E0E0E0"}`,
+                          background: isSelected ? "#fff5f6" : "white",
+                          borderRadius: 12,
+                          padding: "16px 18px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          cursor: "pointer",
+                          marginBottom: 10,
+                          transition: "border-color 0.15s",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: 0.8, padding: "3px 9px", borderRadius: 100, background: s.bg, color: s.color }}>
+                              {s.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F", marginTop: 4 }}>
+                            {item.hotelNom ?? "Salle sans nom"}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>
+                            {item.formation.titre} · {new Date(item.formation.date).toLocaleDateString("fr-FR")}
+                            {item.devisHT ? ` · Devis : ${item.devisHT.toLocaleString("fr-FR")} € HT` : ""}
+                          </div>
+                        </div>
+                        <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${isSelected ? "#C8102E" : "#E0E0E0"}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {isSelected && <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#C8102E" }} />}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #EBEBEB", fontSize: 13, color: "#6A6A6A" }}>
                   Vous ne voyez pas votre salle ?{" "}
                   <button
@@ -1112,7 +1163,6 @@ export default function NouvelleFormationPage() {
                       disabled={programmeAiLoading}
                       onClick={async () => {
                         setProgrammeAiLoading(true);
-                        setProgrammeAi([]);
                         try {
                           const dureeHeures = parseInt(duree.replace("h", "")) || 7;
                           const res = await fetch("/api/ai/programme", {
@@ -1122,14 +1172,14 @@ export default function NouvelleFormationPage() {
                               titre,
                               description,
                               dureeHeures,
-                              heureDebut: "08:30",
+                              heureDebut,
                               objectifs: objectives.split("\n").filter(Boolean),
                             }),
                           });
                           if (!res.ok) throw new Error("Erreur serveur");
                           const data = await res.json();
                           if (Array.isArray(data.programme)) {
-                            setProgrammeAi(data.programme);
+                            setProgrammeSlots(data.programme);
                           }
                         } catch {
                           alert("Erreur lors de la génération du programme.");
@@ -1155,34 +1205,82 @@ export default function NouvelleFormationPage() {
                     </button>
                   </div>
                 </div>
-                {programmeAi.length > 0 && (
-                  <div style={{ marginTop: 14, border: "1.5px solid #C8102E", borderRadius: 10, overflow: "hidden" }}>
-                    <div style={{ background: "#fff5f6", padding: "8px 14px", fontSize: 11, fontWeight: 700, color: "#C8102E", textTransform: "uppercase" as const, letterSpacing: 0.8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span>Programme généré par l&apos;IA</span>
-                      <button
-                        type="button"
-                        onClick={() => setProgrammeAi([])}
-                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#C8102E", fontFamily: "inherit" }}
-                      >
-                        ✕
-                      </button>
+                {/* Programme visual editor */}
+                <div style={{ marginTop: 20, border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ background: "#F9F7F4", padding: "10px 16px", fontSize: 12, fontWeight: 700, color: "#0F0F0F", textTransform: "uppercase" as const, letterSpacing: 0.8, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #E0E0E0" }}>
+                    <span>Programme ({programmeSlots.length} créneau{programmeSlots.length !== 1 ? "x" : ""})</span>
+                    <button
+                      type="button"
+                      onClick={() => setProgrammeSlots((prev) => [...prev, { heureDebut, heureFin: "", titre: "", description: "", type: "cours" }])}
+                      style={{ background: "#C8102E", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      + Ajouter un créneau
+                    </button>
+                  </div>
+                  {programmeSlots.length === 0 && (
+                    <div style={{ padding: "20px 16px", fontSize: 13, color: "#6A6A6A", textAlign: "center" as const }}>
+                      Générez le programme avec l&apos;IA ci-dessus, ou ajoutez des créneaux manuellement.
                     </div>
-                    <div style={{ padding: "10px 14px" }}>
-                      {programmeAi.map((item, i) => (
-                        <div key={i} style={{ fontSize: 13, color: "#0F0F0F", padding: "6px 0", borderBottom: i < programmeAi.length - 1 ? "1px solid #EBEBEB" : "none", lineHeight: 1.5 }}>
-                          {typeof item === "string" ? item : JSON.stringify(item)}
+                  )}
+                  {programmeSlots.map((slot, i) => (
+                    <div key={i} style={{ padding: "14px 16px", borderBottom: i < programmeSlots.length - 1 ? "1px solid #EBEBEB" : "none", background: "white" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr auto auto", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 3 }}>Début</div>
+                          <input
+                            type="time"
+                            value={slot.heureDebut}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, heureDebut: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+                          />
                         </div>
-                      ))}
-                    </div>
-                    <div style={{ background: "#F9F7F4", padding: "8px 14px", borderTop: "1px solid #E0E0E0" }}>
+                        <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 14 }}>→</div>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 3 }}>Fin</div>
+                          <input
+                            type="time"
+                            value={slot.heureFin}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, heureFin: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 3 }}>Type</div>
+                          <select
+                            value={slot.type}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, type: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontFamily: "inherit", outline: "none", background: "white" }}
+                          >
+                            {SLOT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setProgrammeSlots((prev) => prev.filter((_, j) => j !== i))}
+                          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#6A6A6A", padding: "0 4px", marginTop: 14, flexShrink: 0 }}
+                          title="Supprimer ce créneau"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div style={{ marginBottom: 6 }}>
+                        <input
+                          type="text"
+                          placeholder="Titre du créneau"
+                          value={slot.titre}
+                          onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, titre: e.target.value } : s))}
+                          style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const }}
+                        />
+                      </div>
                       <textarea
-                        readOnly
-                        value={JSON.stringify(programmeAi, null, 2)}
-                        style={{ width: "100%", border: "none", outline: "none", fontSize: 11, fontFamily: "monospace", background: "transparent", color: "#6A6A6A", resize: "none" as const, minHeight: 80, lineHeight: 1.5 }}
+                        placeholder="Description (optionnel)"
+                        value={slot.description}
+                        onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, description: e.target.value } : s))}
+                        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "7px 10px", fontSize: 12, fontFamily: "inherit", outline: "none", resize: "vertical" as const, minHeight: 52, lineHeight: 1.5, color: "#444", boxSizing: "border-box" as const }}
                       />
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -1357,6 +1455,8 @@ export default function NouvelleFormationPage() {
                         checkedEquip, restauration, checkedResto,
                         objectives, description, prixType, prix,
                         niveau, publicCible,
+                        heureDebut, heureFin,
+                        programme: programmeSlots,
                       }),
                     });
                     if (res.ok) {

@@ -18,6 +18,7 @@ interface Props {
   initialPage: number;
   ressources: Ressource[];
   description: string;
+  emargementToken?: string;
 }
 
 type Tab = "notes" | "ressources" | "questions";
@@ -25,7 +26,7 @@ type AiMessage = { role: "user" | "assistant"; content: string };
 
 export default function SessionClient({
   formationId, titre, specialite, heureDebut, heureFin,
-  modaliteSession, hasSlides, initialPage, ressources: initialRessources,
+  modaliteSession, hasSlides, initialPage, ressources: initialRessources, emargementToken,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("notes");
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -34,6 +35,12 @@ export default function SessionClient({
   const [drawingData, setDrawingData] = useState<DrawingData | null>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const pdfContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-emargement on session join
+  useEffect(() => {
+    if (!emargementToken) return;
+    fetch(`/api/emarger/${emargementToken}`, { method: "POST" }).catch(() => {});
+  }, [emargementToken]);
 
   // Notes (localStorage)
   const [notes, setNotes] = useState("");
