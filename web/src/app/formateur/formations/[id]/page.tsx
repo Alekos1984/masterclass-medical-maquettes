@@ -69,7 +69,7 @@ export default async function FormateurDetailFormationPage({
     statut: formation.statut,
     description: formation.description ?? "",
     objectifs: formation.objectifs as string[],
-    programme: formation.programme as { time: string; title: string; description?: string; type?: string }[],
+    programme: formation.programme as { heureDebut: string; heureFin: string; titre: string; description: string; type: string }[],
     satisfactionsCount: formation.satisfactions.length,
     emargementsCount: formation.emargements.length,
     emargements: formation.emargements.map((e) => ({

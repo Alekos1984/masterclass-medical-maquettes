@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
     prix,
     niveau = "intermediaire",
     publicCible,
+    heureDebut: heureDebutInput,
+    heureFin: heureFinInput,
+    programme: programmeInput,
   } = body;
 
   if (!titre || !dateDebut) {
@@ -79,10 +82,10 @@ export async function POST(req: NextRequest) {
       niveau: niveau as string,
       description: description ?? "",
       objectifs: objectives ? objectives.split("\n").filter(Boolean) : [],
-      programme: [],
+      programme: Array.isArray(programmeInput) ? programmeInput : [],
       date: new Date(dateDebut),
-      heureDebut: "09:00",
-      heureFin: dureeHeures >= 7 ? "17:00" : `${9 + dureeHeures}:00`,
+      heureDebut: heureDebutInput ?? "09:00",
+      heureFin: heureFinInput ?? (dureeHeures >= 7 ? "17:00" : `${9 + dureeHeures}:00`),
       dureeHeures,
       placesTotal: maxPart ?? 15,
       placesRestantes: maxPart ?? 15,

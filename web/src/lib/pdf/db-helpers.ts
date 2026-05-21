@@ -48,7 +48,12 @@ export async function getFormationData(formationId: string): Promise<{
       specialite: f.specialite,
       description: f.description,
       objectifs: (f.objectifs as unknown as string[]) ?? [],
-      programme: (f.programme as unknown as ProgrammeItem[]) ?? [],
+      programme: ((f.programme as unknown as Record<string, string>[]) ?? []).map((s) => ({
+        heure: s.heureDebut && s.heureFin ? `${s.heureDebut}–${s.heureFin}` : (s.heure ?? s.time ?? ""),
+        titre: s.titre ?? s.title ?? "",
+        description: s.description ?? "",
+        type: (s.type ?? "autre") as ProgrammeItem["type"],
+      })),
       date: f.date.toISOString(),
       heureDebut: f.heureDebut,
       heureFin: f.heureFin,

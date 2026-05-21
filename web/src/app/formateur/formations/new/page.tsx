@@ -5,6 +5,23 @@ import Link from "next/link";
 import VoiceInputButton from "@/components/VoiceInputButton";
 import { SPECIALITES_OPTIONS } from "@/lib/specialites";
 
+type ProgrammeSlot = {
+  heureDebut: string;
+  heureFin: string;
+  titre: string;
+  description: string;
+  type: string;
+};
+
+const SLOT_TYPES = [
+  { value: "cours", label: "Cours magistral" },
+  { value: "atelier", label: "Atelier pratique" },
+  { value: "cas_clinique", label: "Cas clinique" },
+  { value: "evaluation", label: "Évaluation" },
+  { value: "pause", label: "Pause" },
+  { value: "autre", label: "Autre" },
+];
+
 const STEPS = [
   { num: 1, label: "Étape 1", title: "Informations" },
   { num: 2, label: "Étape 2", title: "Lieu" },
@@ -59,9 +76,11 @@ export default function NouvelleFormationPage() {
   const [demandesSalle, setDemandesSalle] = useState<DemandeSalleItem[]>([]);
   const [demandesSalleLoading, setDemandesSalleLoading] = useState(false);
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
+  const [heureDebut, setHeureDebut] = useState("09:00");
+  const [heureFin, setHeureFin] = useState("17:00");
   const [objectifsAiLoading, setObjectifsAiLoading] = useState(false);
   const [programmeAiLoading, setProgrammeAiLoading] = useState(false);
-  const [programmeAi, setProgrammeAi] = useState<string[]>([]);
+  const [programmeSlots, setProgrammeSlots] = useState<ProgrammeSlot[]>([]);
   const [reformulerObjectifsLoading, setReformulerObjectifsLoading] = useState(false);
   const [reformulerDescLoading, setReformulerDescLoading] = useState(false);
 
@@ -482,6 +501,30 @@ export default function NouvelleFormationPage() {
                     type="date"
                     value={dateFin}
                     onChange={(e) => setDateFin(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={labelStyle}>
+                    Heure de début <span style={{ color: "#C8102E" }}>*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={heureDebut}
+                    onChange={(e) => setHeureDebut(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    Heure de fin <span style={{ color: "#C8102E" }}>*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={heureFin}
+                    onChange={(e) => setHeureFin(e.target.value)}
                     style={inputStyle}
                   />
                 </div>
@@ -1120,7 +1163,6 @@ export default function NouvelleFormationPage() {
                       disabled={programmeAiLoading}
                       onClick={async () => {
                         setProgrammeAiLoading(true);
-                        setProgrammeAi([]);
                         try {
                           const dureeHeures = parseInt(duree.replace("h", "")) || 7;
                           const res = await fetch("/api/ai/programme", {
@@ -1130,14 +1172,14 @@ export default function NouvelleFormationPage() {
                               titre,
                               description,
                               dureeHeures,
-                              heureDebut: "08:30",
+                              heureDebut,
                               objectifs: objectives.split("\n").filter(Boolean),
                             }),
                           });
                           if (!res.ok) throw new Error("Erreur serveur");
                           const data = await res.json();
                           if (Array.isArray(data.programme)) {
-                            setProgrammeAi(data.programme);
+                            setProgrammeSlots(data.programme);
                           }
                         } catch {
                           alert("Erreur lors de la génération du programme.");
@@ -1163,34 +1205,82 @@ export default function NouvelleFormationPage() {
                     </button>
                   </div>
                 </div>
-                {programmeAi.length > 0 && (
-                  <div style={{ marginTop: 14, border: "1.5px solid #C8102E", borderRadius: 10, overflow: "hidden" }}>
-                    <div style={{ background: "#fff5f6", padding: "8px 14px", fontSize: 11, fontWeight: 700, color: "#C8102E", textTransform: "uppercase" as const, letterSpacing: 0.8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span>Programme généré par l&apos;IA</span>
-                      <button
-                        type="button"
-                        onClick={() => setProgrammeAi([])}
-                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#C8102E", fontFamily: "inherit" }}
-                      >
-                        ✕
-                      </button>
+                {/* Programme visual editor */}
+                <div style={{ marginTop: 20, border: "1.5px solid #E0E0E0", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ background: "#F9F7F4", padding: "10px 16px", fontSize: 12, fontWeight: 700, color: "#0F0F0F", textTransform: "uppercase" as const, letterSpacing: 0.8, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #E0E0E0" }}>
+                    <span>Programme ({programmeSlots.length} créneau{programmeSlots.length !== 1 ? "x" : ""})</span>
+                    <button
+                      type="button"
+                      onClick={() => setProgrammeSlots((prev) => [...prev, { heureDebut, heureFin: "", titre: "", description: "", type: "cours" }])}
+                      style={{ background: "#C8102E", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      + Ajouter un créneau
+                    </button>
+                  </div>
+                  {programmeSlots.length === 0 && (
+                    <div style={{ padding: "20px 16px", fontSize: 13, color: "#6A6A6A", textAlign: "center" as const }}>
+                      Générez le programme avec l&apos;IA ci-dessus, ou ajoutez des créneaux manuellement.
                     </div>
-                    <div style={{ padding: "10px 14px" }}>
-                      {programmeAi.map((item, i) => (
-                        <div key={i} style={{ fontSize: 13, color: "#0F0F0F", padding: "6px 0", borderBottom: i < programmeAi.length - 1 ? "1px solid #EBEBEB" : "none", lineHeight: 1.5 }}>
-                          {typeof item === "string" ? item : JSON.stringify(item)}
+                  )}
+                  {programmeSlots.map((slot, i) => (
+                    <div key={i} style={{ padding: "14px 16px", borderBottom: i < programmeSlots.length - 1 ? "1px solid #EBEBEB" : "none", background: "white" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr auto auto", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 3 }}>Début</div>
+                          <input
+                            type="time"
+                            value={slot.heureDebut}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, heureDebut: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+                          />
                         </div>
-                      ))}
-                    </div>
-                    <div style={{ background: "#F9F7F4", padding: "8px 14px", borderTop: "1px solid #E0E0E0" }}>
+                        <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 14 }}>→</div>
+                        <div>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 3 }}>Fin</div>
+                          <input
+                            type="time"
+                            value={slot.heureFin}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, heureFin: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 3 }}>Type</div>
+                          <select
+                            value={slot.type}
+                            onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, type: e.target.value } : s))}
+                            style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontFamily: "inherit", outline: "none", background: "white" }}
+                          >
+                            {SLOT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setProgrammeSlots((prev) => prev.filter((_, j) => j !== i))}
+                          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#6A6A6A", padding: "0 4px", marginTop: 14, flexShrink: 0 }}
+                          title="Supprimer ce créneau"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div style={{ marginBottom: 6 }}>
+                        <input
+                          type="text"
+                          placeholder="Titre du créneau"
+                          value={slot.titre}
+                          onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, titre: e.target.value } : s))}
+                          style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "7px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const }}
+                        />
+                      </div>
                       <textarea
-                        readOnly
-                        value={JSON.stringify(programmeAi, null, 2)}
-                        style={{ width: "100%", border: "none", outline: "none", fontSize: 11, fontFamily: "monospace", background: "transparent", color: "#6A6A6A", resize: "none" as const, minHeight: 80, lineHeight: 1.5 }}
+                        placeholder="Description (optionnel)"
+                        value={slot.description}
+                        onChange={(e) => setProgrammeSlots((prev) => prev.map((s, j) => j === i ? { ...s, description: e.target.value } : s))}
+                        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "7px 10px", fontSize: 12, fontFamily: "inherit", outline: "none", resize: "vertical" as const, minHeight: 52, lineHeight: 1.5, color: "#444", boxSizing: "border-box" as const }}
                       />
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -1365,6 +1455,8 @@ export default function NouvelleFormationPage() {
                         checkedEquip, restauration, checkedResto,
                         objectives, description, prixType, prix,
                         niveau, publicCible,
+                        heureDebut, heureFin,
+                        programme: programmeSlots,
                       }),
                     });
                     if (res.ok) {
