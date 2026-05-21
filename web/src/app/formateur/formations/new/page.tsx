@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import VoiceInputButton from "@/components/VoiceInputButton";
+import { SPECIALITES_OPTIONS } from "@/lib/specialites";
 
 const STEPS = [
   { num: 1, label: "Étape 1", title: "Informations" },
@@ -310,16 +311,7 @@ export default function NouvelleFormationPage() {
                     onChange={(e) => setThematique(e.target.value)}
                     style={inputStyle}
                   >
-                    <option value="">Sélectionner une thématique</option>
-                    <option>Cardiologie</option>
-                    <option>Neurologie</option>
-                    <option>Oncologie</option>
-                    <option>Chirurgie</option>
-                    <option>Médecine interne</option>
-                    <option>Pédiatrie</option>
-                    <option>Psychiatrie</option>
-                    <option>Rhumatologie</option>
-                    <option>Autre</option>
+                    {SPECIALITES_OPTIONS}
                   </select>
                 </div>
                 <div>
