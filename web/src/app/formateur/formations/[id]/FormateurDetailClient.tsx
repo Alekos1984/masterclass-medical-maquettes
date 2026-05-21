@@ -126,6 +126,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   const [reopening, setReopening] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const sessionMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -428,6 +430,28 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       alert("Erreur lors de la génération IA.");
     } finally {
       setAiLoading(null);
+    }
+  }
+
+  async function cancelFormation() {
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statut: "ANNULEE" }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error ?? "Erreur lors de l'annulation");
+        return;
+      }
+      setStatut("ANNULEE");
+      setCancelConfirm(false);
+    } catch {
+      alert("Erreur réseau");
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -1072,6 +1096,14 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           )}
         </div>
         <div className="topbar-right">
+          {statut !== "ANNULEE" && (
+            <button
+              onClick={() => setCancelConfirm(true)}
+              style={{ background: "transparent", color: "#e65100", border: "1.5px solid #ffe0b2", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              ✕ Annuler la formation
+            </button>
+          )}
           <button
             onClick={() => setDeleteConfirm(true)}
             style={{ background: "transparent", color: "#c62828", border: "1.5px solid #ffcdd2", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
@@ -2320,6 +2352,33 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         onClose={() => setAfficheOverlayOpen(false)}
         onGenerated={() => setAfficheGenerated(true)}
       />
+
+      {cancelConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setCancelConfirm(false)}>
+          <div style={{ background: "white", borderRadius: 16, padding: "36px 32px", maxWidth: 440, width: "90%", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#0F0F0F", marginBottom: 8 }}>Annuler cette formation ?</div>
+            <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 24, lineHeight: 1.6 }}>
+              <strong>{formation.titre}</strong> passera en statut <strong>Annulée</strong>. Les participants inscrits devront être remboursés manuellement si nécessaire. Vous pourrez ensuite la supprimer définitivement.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => setCancelConfirm(false)}
+                style={{ background: "transparent", border: "1.5px solid #E0E0E0", borderRadius: 100, padding: "10px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "#444" }}
+              >
+                Retour
+              </button>
+              <button
+                onClick={cancelFormation}
+                disabled={cancelling}
+                style={{ background: cancelling ? "#999" : "#e65100", color: "white", border: "none", borderRadius: 100, padding: "10px 22px", fontSize: 14, fontWeight: 700, cursor: cancelling ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+              >
+                {cancelling ? "Annulation…" : "Confirmer l'annulation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setDeleteConfirm(false)}>
