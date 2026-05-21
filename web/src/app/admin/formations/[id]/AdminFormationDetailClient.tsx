@@ -69,6 +69,25 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
   const router = useRouter();
   const [changingStatut, setChangingStatut] = useState(false);
   const [currentStatut, setCurrentStatut] = useState(formation.statut);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteFormation() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/formations/${formation.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error ?? "Erreur lors de la suppression");
+        return;
+      }
+      router.push("/admin/formations");
+    } catch {
+      alert("Erreur réseau");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const statut = STATUT_DISPLAY[currentStatut] ?? { label: currentStatut, pillClass: "pill-gray" };
   const transitions = STATUT_TRANSITIONS[currentStatut] ?? [];
@@ -116,6 +135,12 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
             </button>
           ))}
           <span className={`pill ${statut.pillClass}`}>{statut.label}</span>
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            style={{ background: "transparent", color: "#c62828", border: "1.5px solid #ffcdd2", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            🗑 Supprimer
+          </button>
         </div>
       </div>
 
@@ -252,6 +277,33 @@ export default function AdminFormationDetailClient({ formation }: { formation: F
         </div>
 
       </div>
+
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setDeleteConfirm(false)}>
+          <div style={{ background: "white", borderRadius: 16, padding: "36px 32px", maxWidth: 440, width: "90%", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#0F0F0F", marginBottom: 8 }}>Supprimer cette formation ?</div>
+            <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 24, lineHeight: 1.6 }}>
+              <strong>{formation.titre}</strong> sera définitivement supprimée avec toutes ses données (inscriptions, émargements, documents). Cette action est irréversible.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                style={{ background: "transparent", border: "1.5px solid #E0E0E0", borderRadius: 100, padding: "10px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "#444" }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={deleteFormation}
+                disabled={deleting}
+                style={{ background: deleting ? "#999" : "#c62828", color: "white", border: "none", borderRadius: 100, padding: "10px 22px", fontSize: 14, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+              >
+                {deleting ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
