@@ -109,3 +109,37 @@ export async function PATCH(
 
   return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  const { id } = await params;
+  const profil = await prisma.formateurProfile.findUnique({ where: { userId: session.user.id } });
+  if (!profil) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+
+  const formation = await prisma.formation.findUnique({
+    where: { id },
+    select: { formateurId: true, statut: true, _count: { select: { inscriptions: { where: { statut: "CONFIRMEE" } } } } },
+  });
+  if (!formation || formation.formateurId !== profil.id)
+    return NextResponse.json({ error: "Formation introuvable" }, { status: 404 });
+
+  if (formation._count.inscriptions > 0)
+    return NextResponse.json({ error: "Impossible de supprimer : des participants sont inscrits et confirmés." }, { status: 409 });
+
+  await prisma.$transaction([
+    prisma.emargement.deleteMany({ where: { formationId: id } }),
+    prisma.satisfactionReponse.deleteMany({ where: { formationId: id } }),
+    prisma.question.deleteMany({ where: { formationId: id } }),
+    prisma.ressource.deleteMany({ where: { formationId: id } }),
+    prisma.inscription.deleteMany({ where: { formationId: id } }),
+    prisma.demandeSalle.deleteMany({ where: { formationId: id } }),
+    prisma.formation.delete({ where: { id } }),
+  ]);
+
+  return NextResponse.json({ ok: true });
+}

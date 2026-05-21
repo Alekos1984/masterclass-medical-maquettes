@@ -124,6 +124,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
   const [sessionStatus, setSessionStatus] = useState<string | null>(formation.sessionStatus);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [reopening, setReopening] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const sessionMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -426,6 +428,23 @@ export default function FormateurDetailClient({ formation }: { formation: Format
       alert("Erreur lors de la génération IA.");
     } finally {
       setAiLoading(null);
+    }
+  }
+
+  async function deleteFormation() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/formateur/formations/${formation.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error ?? "Erreur lors de la suppression");
+        return;
+      }
+      router.push("/formateur/formations");
+    } catch {
+      alert("Erreur réseau");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -1053,6 +1072,12 @@ export default function FormateurDetailClient({ formation }: { formation: Format
           )}
         </div>
         <div className="topbar-right">
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            style={{ background: "transparent", color: "#c62828", border: "1.5px solid #ffcdd2", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            🗑 Supprimer
+          </button>
           {statutPill(statut)}
           {isPubilee && (
             <>
@@ -2295,6 +2320,33 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         onClose={() => setAfficheOverlayOpen(false)}
         onGenerated={() => setAfficheGenerated(true)}
       />
+
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setDeleteConfirm(false)}>
+          <div style={{ background: "white", borderRadius: 16, padding: "36px 32px", maxWidth: 440, width: "90%", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#0F0F0F", marginBottom: 8 }}>Supprimer cette formation ?</div>
+            <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 24, lineHeight: 1.6 }}>
+              <strong>{formation.titre}</strong> sera définitivement supprimée avec toutes ses données (inscriptions, émargements, documents). Cette action est irréversible.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                style={{ background: "transparent", border: "1.5px solid #E0E0E0", borderRadius: 100, padding: "10px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", color: "#444" }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={deleteFormation}
+                disabled={deleting}
+                style={{ background: deleting ? "#999" : "#c62828", color: "white", border: "none", borderRadius: 100, padding: "10px 22px", fontSize: 14, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+              >
+                {deleting ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
