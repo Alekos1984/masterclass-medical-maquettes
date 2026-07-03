@@ -83,8 +83,9 @@ export default function CertificationHub() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setData((d) => (d ? { ...d, compte: updated } : d));
+        // Recharge tout : les actions du référentiel dépendent de la spécialité
+        const refreshed = await fetch("/api/certification").then((r) => r.json());
+        setData(refreshed);
       }
     } finally {
       setSavingCompte(false);
@@ -252,6 +253,12 @@ export default function CertificationHub() {
       {/* ═══ RÉFÉRENTIEL ═══ */}
       {activeTab === "referentiel" && (
         <div>
+          {data.compte.specialite && !data.blocs.some((b) => b.actions.some((a) => a.specialite)) && (
+            <div style={{ background: "#fff8e1", border: "1.5px solid #ffe082", borderRadius: 12, padding: "14px 18px", marginBottom: 18, fontSize: 13, color: "#5d4037", lineHeight: 1.6 }}>
+              ⚠️ Aucun référentiel spécifique trouvé pour « {data.compte.specialite} ». Re-sélectionnez votre
+              spécialité dans la liste ci-dessus pour charger les actions officielles de votre CNP.
+            </div>
+          )}
           <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 18, lineHeight: 1.6 }}>
             La certification périodique repose sur <strong>4 blocs</strong>. Sur chaque période, vous devez réaliser au moins{" "}
             <strong>2 actions par bloc</strong> — et les 2 actions d&apos;un même bloc doivent être{" "}
