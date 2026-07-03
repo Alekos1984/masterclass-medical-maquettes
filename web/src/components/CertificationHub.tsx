@@ -24,6 +24,11 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "infos", label: "💡 À savoir" },
 ];
 
+// Règle de l'arrêté : les actions comptées au sein d'un même bloc doivent être distinctes
+function nbActionsDistinctes(justifs: CertifJustificatif[]): number {
+  return new Set(justifs.map((j) => j.actionTitre.trim().toLowerCase())).size;
+}
+
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
@@ -163,7 +168,7 @@ export default function CertificationHub() {
 
   const totalActions = data.blocs.reduce((s, b) => s + b.actionsRequises, 0);
   const totalFaites = data.blocs.reduce(
-    (s, b) => s + Math.min((justifsParBloc[b.code] ?? []).length, b.actionsRequises),
+    (s, b) => s + Math.min(nbActionsDistinctes(justifsParBloc[b.code] ?? []), b.actionsRequises),
     0
   );
 
@@ -249,8 +254,10 @@ export default function CertificationHub() {
         <div>
           <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 18, lineHeight: 1.6 }}>
             La certification périodique repose sur <strong>4 blocs</strong>. Sur chaque période, vous devez réaliser au moins{" "}
-            <strong>2 actions par bloc</strong>. Le référentiel de base est commun à toutes les spécialités ; votre Conseil
-            National Professionnel (CNP) le décline pour {data.compte.specialite ? <strong>{data.compte.specialite}</strong> : "votre spécialité"}.
+            <strong>2 actions par bloc</strong> — et les 2 actions d&apos;un même bloc doivent être{" "}
+            <strong>différentes</strong> (arrêté du 26 février 2026). Le référentiel de base est commun à toutes les
+            spécialités ; votre Conseil National Professionnel (CNP) le décline pour{" "}
+            {data.compte.specialite ? <strong>{data.compte.specialite}</strong> : "votre spécialité"}.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16 }}>
             {data.blocs.map((bloc) => {
@@ -320,7 +327,7 @@ export default function CertificationHub() {
           </div>
           {data.blocs.map((bloc) => {
             const justifs = justifsParBloc[bloc.code] ?? [];
-            const nbValides = Math.min(justifs.length, bloc.actionsRequises);
+            const nbValides = Math.min(nbActionsDistinctes(justifs), bloc.actionsRequises);
             const complet = nbValides >= bloc.actionsRequises;
             return (
               <div key={bloc.code} style={{ background: "white", borderRadius: 16, border: "1px solid #E0E0E0", marginBottom: 16, overflow: "hidden" }}>
@@ -458,7 +465,7 @@ export default function CertificationHub() {
             <svg width="220" height="220" viewBox="0 0 220 220">
               {data.blocs.map((bloc, i) => {
                 const justifs = justifsParBloc[bloc.code] ?? [];
-                const completion = Math.min(justifs.length / bloc.actionsRequises, 1);
+                const completion = Math.min(nbActionsDistinctes(justifs) / bloc.actionsRequises, 1);
                 const start = i * 90 + 3;
                 const spanMax = 84;
                 return (
@@ -495,7 +502,7 @@ export default function CertificationHub() {
             <div style={{ minWidth: 260 }}>
               {data.blocs.map((bloc) => {
                 const justifs = justifsParBloc[bloc.code] ?? [];
-                const nb = Math.min(justifs.length, bloc.actionsRequises);
+                const nb = Math.min(nbActionsDistinctes(justifs), bloc.actionsRequises);
                 const complet = nb >= bloc.actionsRequises;
                 return (
                   <div key={bloc.code} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #F5F5F5" }}>
@@ -568,7 +575,7 @@ export default function CertificationHub() {
             },
             {
               emoji: "✅", titre: "Que faut-il valider ?",
-              texte: "Au moins 2 actions dans chacun des 4 blocs du référentiel au cours de la période : actualisation des connaissances, qualité des pratiques, relation patient et santé personnelle. Les actions sont définies par le référentiel de base et déclinées par votre Conseil National Professionnel (CNP).",
+              texte: "Au moins 2 actions dans chacun des 4 blocs du référentiel au cours de la période : actualisation des connaissances, qualité des pratiques, relation patient et santé personnelle. Les 2 actions d'un même bloc doivent être différentes. Les actions sont définies par l'arrêté du 26 février 2026, décliné par chaque Conseil National Professionnel (CNP).",
             },
             {
               emoji: "🗂️", titre: "Qui contrôle ?",
