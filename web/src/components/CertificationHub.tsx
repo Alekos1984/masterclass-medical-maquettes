@@ -275,26 +275,34 @@ export default function CertificationHub() {
                   </div>
                   <div style={{ fontSize: 13, color: "#6A6A6A", lineHeight: 1.6, marginBottom: 14 }}>{bloc.description}</div>
 
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#6A6A6A", marginBottom: 8 }}>
-                    Exemples d&apos;actions
-                  </div>
-                  <ul style={{ margin: "0 0 14px", paddingLeft: 0, listStyle: "none" }}>
-                    {(bloc.exemples as string[]).map((ex, i) => (
-                      <li key={i} style={{ fontSize: 13, color: "#0F0F0F", padding: "4px 0", display: "flex", gap: 8, lineHeight: 1.45 }}>
-                        <span style={{ color: bloc.couleur, flexShrink: 0 }}>✓</span> {ex}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {actionsSpe.length > 0 && (
+                  {actionsSpe.length > 0 ? (
                     <>
                       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: bloc.couleur, marginBottom: 8 }}>
-                        Spécifique — {data.compte.specialite}
+                        Actions validantes — {data.compte.specialite} ({actionsSpe.length})
+                      </div>
+                      <ul style={{ margin: "0 0 14px", paddingLeft: 0, listStyle: "none", maxHeight: 300, overflowY: "auto", border: "1px solid #F0EDE8", borderRadius: 10, padding: "6px 12px" }}>
+                        {actionsSpe.map((a) => (
+                          <li key={a.id} style={{ fontSize: 13, color: "#0F0F0F", padding: "6px 0", display: "flex", gap: 8, lineHeight: 1.45, borderBottom: "1px solid #F5F5F5" }}>
+                            <span style={{ color: bloc.couleur, flexShrink: 0 }}>✓</span>
+                            <span>
+                              {a.titre}
+                              {a.typeJustificatif && (
+                                <span style={{ display: "block", fontSize: 11, color: "#9A9A9A", marginTop: 1 }}>📄 {a.typeJustificatif}</span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#6A6A6A", marginBottom: 8 }}>
+                        Exemples d&apos;actions (base commune)
                       </div>
                       <ul style={{ margin: "0 0 14px", paddingLeft: 0, listStyle: "none" }}>
-                        {actionsSpe.map((a) => (
-                          <li key={a.id} style={{ fontSize: 13, color: "#0F0F0F", padding: "4px 0", display: "flex", gap: 8, lineHeight: 1.45 }}>
-                            <span style={{ flexShrink: 0 }}>★</span> {a.titre}
+                        {(bloc.exemples as string[]).map((ex, i) => (
+                          <li key={i} style={{ fontSize: 13, color: "#0F0F0F", padding: "4px 0", display: "flex", gap: 8, lineHeight: 1.45 }}>
+                            <span style={{ color: bloc.couleur, flexShrink: 0 }}>✓</span> {ex}
                           </li>
                         ))}
                       </ul>
