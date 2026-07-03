@@ -10,6 +10,7 @@ const navItems = [
   { href: "/formateur/participants", icon: "👥", label: "Participants" },
   { href: "/formateur/paiements", icon: "💶", label: "Paiements" },
   { href: "/formateur/portfolio", icon: "🏆", label: "Portfolio" },
+  { href: "/formateur/certification", icon: "🎖️", label: "Certification" },
   { href: "/formateur/profil", icon: "⚙️", label: "Profil" },
 ];
 

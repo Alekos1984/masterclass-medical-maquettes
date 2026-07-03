@@ -50,6 +50,8 @@ export async function PATCH(
   if (body.heureDebut !== undefined) contentFields.heureDebut = body.heureDebut;
   if (body.heureFin !== undefined) contentFields.heureFin = body.heureFin;
   if (body.placesTotal !== undefined) contentFields.placesTotal = Number(body.placesTotal);
+  if (body.certifBlocCode !== undefined) contentFields.certifBlocCode = body.certifBlocCode || null;
+  if (body.certifActionTitre !== undefined) contentFields.certifActionTitre = body.certifActionTitre || null;
 
   if (statut) {
     if (statut === "PUBLIEE" && !PUBLISHABLE.includes(formation.statut)) {

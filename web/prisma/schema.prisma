@@ -336,6 +336,10 @@ model Formation {
   sessionSlidesBase64  String?   @db.Text // PDF base64, max ~15MB
   sessionDrawingData   String?   @db.Text // JSON: { page, strokes }
 
+  // Certification périodique (rattachement optionnel à une action validante)
+  certifBlocCode    String? // "COGNITIF" | "QUALITE" | "RELATION" | "SANTE"
+  certifActionTitre String?
+
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
   paiements     Paiement[]
@@ -572,4 +576,65 @@ model Emargement {
   updatedAt DateTime @updatedAt
 
   @@unique([formationId, inscriptionId])
+}
+
+// ─── CERTIFICATION PÉRIODIQUE ─────────────────────────────────────────────────
+
+model CertificationBloc {
+  code  String @id // "COGNITIF" | "QUALITE" | "RELATION" | "SANTE"
+  ordre Int
+  titre String
+  description String @db.Text
+  emoji   String
+  couleur String
+  actionsRequises Int  @default(2)
+  exemples        Json // string[] — exemples d'actions (base commune)
+  justificatifs   Json // string[] — types de justificatifs attendus
+
+  actions CertificationActionRef[]
+}
+
+model CertificationActionRef {
+  id         String  @id @default(cuid())
+  blocCode   String
+  bloc       CertificationBloc @relation(fields: [blocCode], references: [code], onDelete: Cascade)
+  specialite String? // null = base commune, sinon déclinaison spécifique à la spécialité
+  titre      String
+  description      String? @db.Text
+  typeJustificatif String?
+
+  @@index([blocCode, specialite])
+}
+
+model CertificationCompte {
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  specialite String?
+  anneeDES   Int? // année de validation du DES / d'entrée en exercice
+
+  justificatifs CertificationJustificatif[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CertificationJustificatif {
+  id       String @id @default(cuid())
+  compteId String
+  compte   CertificationCompte @relation(fields: [compteId], references: [id], onDelete: Cascade)
+
+  blocCode     String // référence CertificationBloc.code
+  actionTitre  String
+  typeDocument String?
+  fichierNom    String?
+  fichierBase64 String? @db.Text
+  url           String? // lien direct (ex: attestation PDF plateforme)
+  source      String    @default("UPLOAD") // "UPLOAD" | "PLATEFORME"
+  formationId String? // si généré automatiquement depuis une formation plateforme
+  dateAction  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([compteId, formationId])
+  @@index([compteId, blocCode])
 }

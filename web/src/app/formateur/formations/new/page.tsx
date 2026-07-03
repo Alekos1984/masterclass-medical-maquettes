@@ -78,6 +78,11 @@ export default function NouvelleFormationPage() {
   const [selectedDemande, setSelectedDemande] = useState<string | null>(null);
   const [heureDebut, setHeureDebut] = useState("09:00");
   const [heureFin, setHeureFin] = useState("17:00");
+  type CertifBlocOption = { code: string; ordre: number; titre: string; emoji: string; couleur: string; exemples: string[]; actions: { id: string; titre: string; specialite: string | null }[] };
+  const [certifBlocs, setCertifBlocs] = useState<CertifBlocOption[]>([]);
+  const [certifBloc, setCertifBloc] = useState("");
+  const [certifAction, setCertifAction] = useState("");
+  const [certifActionAutre, setCertifActionAutre] = useState("");
   const [objectifsAiLoading, setObjectifsAiLoading] = useState(false);
   const [programmeAiLoading, setProgrammeAiLoading] = useState(false);
   const [programmeSlots, setProgrammeSlots] = useState<ProgrammeSlot[]>([]);
@@ -143,6 +148,14 @@ export default function NouvelleFormationPage() {
       .catch(() => {})
       .finally(() => setDemandesSalleLoading(false));
   }, [locationMode]);
+
+  useEffect(() => {
+    if (currentStep !== 3 || certifBlocs.length > 0) return;
+    fetch("/api/certification/referentiel")
+      .then((r) => r.json())
+      .then((d) => setCertifBlocs(d.blocs ?? []))
+      .catch(() => {});
+  }, [currentStep, certifBlocs.length]);
 
   const goTo = (step: number) => {
     if (step >= 1 && step <= STEPS.length) setCurrentStep(step);
@@ -1283,6 +1296,72 @@ export default function NouvelleFormationPage() {
                 </div>
               </div>
             </div>
+
+            {/* CERTIFICATION PÉRIODIQUE */}
+            <div style={{ background: "white", borderRadius: 16, padding: "28px 32px", marginBottom: 80, border: "1px solid #E0E0E0" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: 1, color: "#6A6A6A", marginBottom: 8, paddingBottom: 12, borderBottom: "1px solid #EBEBEB" }}>
+                🎖️ Certification périodique{" "}
+                <span style={{ color: "#9A9A9A", fontWeight: 400, textTransform: "none" as const, letterSpacing: 0 }}>(optionnel)</span>
+              </div>
+              <div style={{ fontSize: 13, color: "#6A6A6A", lineHeight: 1.6, marginBottom: 18 }}>
+                Rattachez cette formation à une action du référentiel de certification périodique. Les participants
+                qui la suivront recevront <strong>automatiquement</strong> leur justificatif dans leur espace certification.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Bloc du référentiel</label>
+                  <select
+                    value={certifBloc}
+                    onChange={(e) => { setCertifBloc(e.target.value); setCertifAction(""); }}
+                    style={inputStyle}
+                  >
+                    <option value="">— Non rattachée —</option>
+                    {certifBlocs.map((b) => (
+                      <option key={b.code} value={b.code}>{b.emoji} Bloc {b.ordre} — {b.titre}</option>
+                    ))}
+                  </select>
+                </div>
+                {certifBloc && (
+                  <div>
+                    <label style={labelStyle}>Type d&apos;action validante</label>
+                    <select
+                      value={certifAction}
+                      onChange={(e) => setCertifAction(e.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Sélectionner…</option>
+                      {(certifBlocs.find((b) => b.code === certifBloc)?.exemples ?? []).map((ex, i) => (
+                        <option key={i} value={ex}>{ex}</option>
+                      ))}
+                      {certifBlocs
+                        .find((b) => b.code === certifBloc)
+                        ?.actions.filter((a) => !a.specialite || a.specialite === thematique)
+                        .map((a) => (
+                          <option key={a.id} value={a.titre}>{a.specialite ? `★ ${a.titre}` : a.titre}</option>
+                        ))}
+                      <option value="__autre__">Autre (préciser)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              {certifBloc && certifAction === "__autre__" && (
+                <div style={{ marginTop: 14 }}>
+                  <label style={labelStyle}>Intitulé de l&apos;action</label>
+                  <input
+                    type="text"
+                    placeholder="Ex : Atelier de simulation en échographie cardiaque"
+                    value={certifActionAutre}
+                    onChange={(e) => setCertifActionAutre(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {certifBloc && (
+                <div style={{ marginTop: 14, background: "#e8f5e9", borderRadius: 10, padding: "10px 16px", fontSize: 12, color: "#1b5e20", lineHeight: 1.5 }}>
+                  ✨ Cette formation validera une action du bloc sélectionné pour chaque participant présent.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1457,6 +1536,10 @@ export default function NouvelleFormationPage() {
                         niveau, publicCible,
                         heureDebut, heureFin,
                         programme: programmeSlots,
+                        certifBlocCode: certifBloc || undefined,
+                        certifActionTitre: certifBloc
+                          ? (certifAction === "__autre__" ? certifActionAutre : certifAction) || undefined
+                          : undefined,
                       }),
                     });
                     if (res.ok) {
