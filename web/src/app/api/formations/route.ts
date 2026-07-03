@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
     heureDebut: heureDebutInput,
     heureFin: heureFinInput,
     programme: programmeInput,
+    certifBlocCode,
+    certifActionTitre,
   } = body;
 
   if (!titre || !dateDebut) {
@@ -99,6 +101,8 @@ export async function POST(req: NextRequest) {
       equipements: checkedEquip ?? [],
       restauration: restauration && checkedResto?.length ? (checkedResto as string[]).join(" + ") : null,
       publicCible: publicCible ?? null,
+      certifBlocCode: certifBlocCode || null,
+      certifActionTitre: certifBlocCode ? (certifActionTitre || null) : null,
     },
   });
 

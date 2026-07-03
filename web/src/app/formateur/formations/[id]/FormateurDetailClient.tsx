@@ -98,7 +98,16 @@ type FormationDetail = {
   emargementSigne?: boolean;
   emargementSigneAt?: string | null;
   afficheParams?: Record<string, string> | null;
+  certifBlocCode?: string | null;
+  certifActionTitre?: string | null;
 };
+
+const CERTIF_BLOCS_EDIT = [
+  { code: "COGNITIF", label: "📚 Bloc 1 — Actualiser ses connaissances et compétences" },
+  { code: "QUALITE", label: "🎯 Bloc 2 — Renforcer la qualité de ses pratiques" },
+  { code: "RELATION", label: "🤝 Bloc 3 — Améliorer la relation avec ses patients" },
+  { code: "SANTE", label: "🩺 Bloc 4 — Mieux prendre en compte sa santé personnelle" },
+];
 
 function PillStatus({ status }: { status: string }) {
   if (status === "CONFIRMEE" || status === "Payé" || status === "Signée" || status === "Confirmé")
@@ -284,6 +293,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
     restauration: formation.restauration,
     publicCible: formation.publicCible,
     equipements: formation.equipements,
+    certifBlocCode: formation.certifBlocCode ?? "",
+    certifActionTitre: formation.certifActionTitre ?? "",
   });
 
   async function patchFormation(payload: Record<string, unknown>) {
@@ -354,6 +365,8 @@ export default function FormateurDetailClient({ formation }: { formation: Format
         restauration: infosState.restauration,
         publicCible: infosState.publicCible,
         equipements: infosState.equipements,
+        certifBlocCode: infosState.certifBlocCode || null,
+        certifActionTitre: infosState.certifBlocCode ? (infosState.certifActionTitre || null) : null,
       });
       setSavedState("infos");
       setTimeout(() => setSavedState((s) => s === "infos" ? null : s), 2500);
@@ -2214,6 +2227,25 @@ export default function FormateurDetailClient({ formation }: { formation: Format
                           </label>
                         ))}
                       </div>
+
+                      <label style={labelStyle}>🎖️ Certification périodique</label>
+                      <select
+                        value={infosState.certifBlocCode}
+                        onChange={e => setInfosState(s => ({ ...s, certifBlocCode: e.target.value }))}
+                        style={inputStyle}
+                      >
+                        <option value="">— Non rattachée —</option>
+                        {CERTIF_BLOCS_EDIT.map(b => <option key={b.code} value={b.code}>{b.label}</option>)}
+                      </select>
+                      {infosState.certifBlocCode && (
+                        <input
+                          type="text"
+                          placeholder="Intitulé de l'action validante (ex : Formation continue DPC)"
+                          value={infosState.certifActionTitre}
+                          onChange={e => setInfosState(s => ({ ...s, certifActionTitre: e.target.value }))}
+                          style={{ ...inputStyle, marginTop: 8 }}
+                        />
+                      )}
 
                       <button
                         className="btn btn-red"

@@ -25,6 +25,7 @@ export default function ParticipantLayout({ children }: { children: React.ReactN
         <div className="participant-nav-right">
           <Link href="/formations" className="participant-nav-link">Formations</Link>
           <Link href="/participant/dashboard" className="participant-nav-link">Mes inscriptions</Link>
+          <Link href="/participant/certification" className="participant-nav-link">🎖️ Certification</Link>
           <Link href="/participant/profil" className="participant-nav-link">Mon profil</Link>
           <div className="participant-nav-avatar">{initials}</div>
           <button
