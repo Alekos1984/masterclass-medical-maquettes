@@ -8,6 +8,7 @@ const navItems = [
   { href: "/formateur/dashboard", icon: "📊", label: "Dashboard" },
   { href: "/formateur/formations", icon: "🎓", label: "Mes formations" },
   { href: "/formateur/participants", icon: "👥", label: "Participants" },
+  { href: "/formateur/coordination", icon: "🧑‍🏫", label: "Coordinateur d'enseignement" },
   { href: "/formateur/paiements", icon: "💶", label: "Paiements" },
   { href: "/formateur/portfolio", icon: "🏆", label: "Portfolio" },
   { href: "/formateur/certification", icon: "🎖️", label: "Certification" },

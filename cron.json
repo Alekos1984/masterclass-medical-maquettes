@@ -1,0 +1,8 @@
+{
+  "jobs": [
+    {
+      "command": "0 * * * * curl -fsS -H \"Authorization: Bearer $CRON_SECRET\" \"$NEXTAUTH_URL/api/cron/rappels\"",
+      "size": "S"
+    }
+  ]
+}

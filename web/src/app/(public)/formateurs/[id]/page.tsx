@@ -13,7 +13,7 @@ export default async function FormateurPublicPage({ params }: { params: Promise<
       user: { select: { name: true, email: true } },
       publicationsList: { orderBy: [{ annee: "desc" }, { createdAt: "desc" }] },
       formations: {
-        where: { statut: "PUBLIEE" },
+        where: { statut: "PUBLIEE", cursusId: null },
         orderBy: { date: "asc" },
         select: {
           id: true, slug: true, titre: true, specialite: true, niveau: true,

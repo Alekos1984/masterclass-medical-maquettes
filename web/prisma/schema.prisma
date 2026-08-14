@@ -175,6 +175,7 @@ model FormateurProfile {
   formations       Formation[]
   virements        Virement[]
   publicationsList Publication[]
+  cursusCoordonnes Cursus[]    @relation("CursusCoordonnes")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -253,6 +254,7 @@ model Ressource {
   fileBase64  String?   @db.Text
   url         String?
   taille      Int?
+  slotId      String? // support de cours rattaché à un créneau (cursus/DU)
   createdAt   DateTime  @default(now())
 }
 
@@ -339,6 +341,11 @@ model Formation {
   // Certification périodique (rattachement optionnel à une action validante)
   certifBlocCode    String? // "COGNITIF" | "QUALITE" | "RELATION" | "SANTE"
   certifActionTitre String?
+
+  // Journée d'un cursus coordonné (DU) — null pour une formation classique
+  cursusId String?
+  cursus   Cursus? @relation(fields: [cursusId], references: [id])
+  visioUrl String? // lien visio externe (Zoom/Teams) pour les journées en distanciel
 
   inscriptions  Inscription[]
   demandeSalle  DemandeSalle?
@@ -637,4 +644,95 @@ model CertificationJustificatif {
 
   @@unique([compteId, formationId])
   @@index([compteId, blocCode])
+}
+
+// ─── COORDINATION D'ENSEIGNEMENT (DU / cursus multi-journées) ─────────────────
+
+model Cursus {
+  id     String @id @default(cuid())
+  slug   String @unique
+  titre  String
+  description String  @db.Text
+  specialite  String
+  annee       String? // ex : "2026-2027"
+  publique    Boolean @default(false)
+  statut      String  @default("BROUILLON") // BROUILLON | PUBLIE | ARCHIVE
+  inscriptionMode String   @default("IMPORT") // IMPORT | PAYANT
+  prixHT          Decimal? @db.Decimal(10, 2)
+
+  // Lieu par défaut (pré-rempli sur les journées présentiel)
+  lieuNom     String?
+  lieuAdresse String?
+  lieuVille   String?
+
+  // Certification périodique
+  certifBlocCode    String?
+  certifActionTitre String?
+
+  coordinateurId String
+  coordinateur   FormateurProfile @relation("CursusCoordonnes", fields: [coordinateurId], references: [id])
+
+  enseignants CursusEnseignant[]
+  journees    Formation[]
+  messages    CursusMessage[]
+  echanges    CursusEchange[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CursusEnseignant {
+  id       String @id @default(cuid())
+  cursusId String
+  cursus   Cursus @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+
+  email       String
+  nom         String?
+  formateurId String? // rattaché quand le compte formateur existe / a accepté
+  statut      String  @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTE
+  inviteToken String  @unique @default(cuid())
+  coCoordinateur Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([cursusId, email])
+}
+
+model CursusMessage {
+  id       String @id @default(cuid())
+  cursusId String
+  cursus   Cursus @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+
+  auteurEmail String
+  auteurNom   String
+  texte       String @db.Text
+
+  createdAt DateTime @default(now())
+}
+
+model CursusEchange {
+  id       String @id @default(cuid())
+  cursusId String
+  cursus   Cursus @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+
+  deEnseignantId   String // CursusEnseignant.id du proposant
+  versEnseignantId String
+  journeeAId       String // Formation.id
+  slotIdA          String
+  journeeBId       String
+  slotIdB          String
+  statut   String    @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTE | REFUSE
+  decideAt DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+model CursusRappel {
+  id          String   @id @default(cuid())
+  formationId String
+  email       String
+  type        String // J15 | J7 | H48 | MATIN
+  sentAt      DateTime @default(now())
+
+  @@unique([formationId, email, type])
 }
