@@ -135,3 +135,70 @@ export async function computeAlertes(cursusId: string) {
     invitationsEnAttente: cursus.enseignants.filter((e) => e.statut === "EN_ATTENTE"),
   };
 }
+
+// ─── Inscription d'un étudiant à toutes les journées d'un cursus ──────────────
+
+import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
+import { sendEmail, emailCompteEtudiantCursus } from "@/lib/brevo";
+
+export async function inscrireEtudiantCursus(
+  cursus: { id: string; titre: string; journees: { id: string }[] },
+  etudiant: { email: string; nom?: string | null; prenom?: string | null }
+): Promise<{ ok: boolean; cree: boolean; inscrits: number }> {
+  const email = (etudiant.email ?? "").trim().toLowerCase();
+  if (!email.includes("@")) return { ok: false, cree: false, inscrits: 0 };
+  const nomComplet = [etudiant.prenom?.trim(), etudiant.nom?.trim()].filter(Boolean).join(" ") || email.split("@")[0];
+
+  let user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, participantProfile: { select: { id: true } } },
+  });
+
+  let motDePasse: string | null = null;
+  if (!user) {
+    motDePasse = randomBytes(6).toString("base64url");
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: nomComplet,
+        password: await bcrypt.hash(motDePasse, 12),
+        role: "PARTICIPANT",
+        participantProfile: { create: {} },
+      },
+      select: { id: true, participantProfile: { select: { id: true } } },
+    });
+  } else if (!user.participantProfile) {
+    const profil = await prisma.participantProfile.create({ data: { userId: user.id }, select: { id: true } });
+    user = { ...user, participantProfile: profil };
+  }
+
+  const result = await prisma.inscription.createMany({
+    data: cursus.journees.map((j) => ({
+      participantId: user!.participantProfile!.id,
+      formationId: j.id,
+      statut: "CONFIRMEE" as const,
+      montantHT: 0,
+      commission: 0,
+      netFormateur: 0,
+    })),
+    skipDuplicates: true,
+  });
+
+  if (motDePasse) {
+    const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
+    sendEmail({
+      to: [{ email, name: nomComplet }],
+      subject: `Votre accès — ${cursus.titre}`,
+      htmlContent: emailCompteEtudiantCursus({
+        nom: nomComplet,
+        cursusTitre: cursus.titre,
+        email,
+        motDePasse,
+        loginUrl: `${baseUrl}/auth/login`,
+      }),
+    }).catch(() => {});
+  }
+
+  return { ok: true, cree: !!motDePasse, inscrits: result.count };
+}

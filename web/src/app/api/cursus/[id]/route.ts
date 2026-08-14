@@ -14,7 +14,7 @@ export async function GET(
   const { cursus, role, enseignant } = await getCursusAccess(id, session.user.id);
   if (!cursus || !role) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
 
-  const [alertes, ressources, messages, echanges, inscriptionsCount] = await Promise.all([
+  const [alertes, ressources, messages, echanges, inscriptionsCount, prospects] = await Promise.all([
     computeAlertes(id),
     prisma.ressource.findMany({
       where: { formationId: { in: cursus.journees.map((j) => j.id) }, slotId: { not: null } },
@@ -26,6 +26,9 @@ export async function GET(
       by: ["participantId"],
       where: { formationId: { in: cursus.journees.map((j) => j.id) }, statut: "CONFIRMEE" },
     }),
+    role === "COORDINATEUR"
+      ? prisma.cursusProspect.findMany({ where: { cursusId: id }, orderBy: [{ statut: "asc" }, { createdAt: "desc" }] })
+      : Promise.resolve([]),
   ]);
 
   return NextResponse.json({
@@ -47,11 +50,13 @@ export async function GET(
       slots: parseSlots(j.programme),
     })),
     enseignants: cursus.enseignants.map((e) => ({
-      id: e.id, email: e.email, nom: e.nom, statut: e.statut, coCoordinateur: e.coCoordinateur,
+      id: e.id, email: e.email, nom: e.nom, phone: e.phone, fonction: e.fonction,
+      statut: e.statut, coCoordinateur: e.coCoordinateur,
     })),
     supports: ressources,
     messages,
     echanges,
+    prospects,
     nbEtudiants: inscriptionsCount.length,
     alertes,
   });

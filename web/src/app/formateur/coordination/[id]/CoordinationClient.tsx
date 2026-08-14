@@ -15,7 +15,8 @@ type Journee = {
   modaliteSession: string; visioUrl: string | null; lieuNom: string | null; lieuVille: string | null;
   sessionStatus: string | null; slots: Slot[];
 };
-type Enseignant = { id: string; email: string; nom: string | null; statut: string; coCoordinateur: boolean };
+type Enseignant = { id: string; email: string; nom: string | null; phone: string | null; fonction: string | null; statut: string; coCoordinateur: boolean };
+type Prospect = { id: string; email: string; nom: string | null; prenom: string | null; phone: string | null; fonction: string | null; statut: string; createdAt: string };
 type Support = { id: string; formationId: string; slotId: string | null; nom: string; taille: number | null };
 type Message = { id: string; auteurEmail: string; auteurNom: string; texte: string; createdAt: string };
 type Echange = {
@@ -42,6 +43,7 @@ type ApiData = {
   supports: Support[];
   messages: Message[];
   echanges: Echange[];
+  prospects: Prospect[];
   nbEtudiants: number;
   alertes: Alertes | null;
 };
@@ -68,6 +70,83 @@ function fdate(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
+// ─── Parseur intelligent de contacts (CSV, liste collée, texte libre) ─────────
+// Détecte par ligne : email, téléphone, nom/prénom (NOM en majuscules détecté), le reste = fonction.
+
+export type ParsedContact = { email: string; nom: string; prenom: string; phone: string; fonction: string };
+
+function parseContacts(text: string): ParsedContact[] {
+  const results: ParsedContact[] = [];
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const emailMatch = line.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
+    if (!emailMatch) continue; // pas d'email → ligne ignorée (affichée comme erreur côté UI via diff)
+    const email = emailMatch[0].toLowerCase();
+
+    let rest = line.replace(emailMatch[0], " ");
+    const phoneMatch = rest.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?0\)?[\s.-]?)?[1-9](?:[\s.-]?\d{2}){4}/);
+    const phone = phoneMatch ? phoneMatch[0].replace(/[\s.-]+/g, " ").trim() : "";
+    if (phoneMatch) rest = rest.replace(phoneMatch[0], " ");
+
+    // Découpage : séparateurs explicites (;, tabulation, virgule) sinon espaces
+    const hasSep = /[;\t]|,/.test(rest);
+    const tokens = rest
+      .split(hasSep ? /[;,\t]/ : /\s+/)
+      .map((t) => t.trim())
+      .filter((t) => t && t !== "-");
+
+    let nom = "", prenom = "";
+    const fonctionParts: string[] = [];
+    for (const tok of tokens) {
+      const words = tok.split(/\s+/).filter(Boolean);
+      for (const w of words) {
+        const isUpper = w.length > 1 && w === w.toUpperCase() && /[A-ZÀ-Ý]/.test(w);
+        if (!nom && isUpper) { nom = w; continue; }
+        if (!prenom && /^[A-ZÀ-Ý][a-zà-ÿ'-]+$/.test(w)) { prenom = w; continue; }
+        if (!nom && /^[A-ZÀ-Ý][a-zà-ÿ'-]+$/.test(w)) { nom = w; continue; }
+        fonctionParts.push(w);
+      }
+    }
+    // Si on n'a qu'un prénom détecté et pas de nom, on inverse (usage courant : "Nom Prénom")
+    if (prenom && !nom) { nom = prenom; prenom = ""; }
+
+    results.push({ email, nom, prenom, phone, fonction: fonctionParts.join(" ").trim() });
+  }
+  // Dédoublonnage par email
+  const seen = new Set<string>();
+  return results.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
+}
+
+function PreviewTable({ contacts }: { contacts: ParsedContact[] }) {
+  if (contacts.length === 0) return null;
+  return (
+    <div style={{ overflowX: "auto", border: "1px solid #EBEBEB", borderRadius: 10, marginTop: 10 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <thead>
+          <tr style={{ background: "#F9F7F4", borderBottom: "1px solid #E0E0E0" }}>
+            {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note"].map((h) => (
+              <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#6A6A6A", fontWeight: 600 }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {contacts.map((c, i) => (
+            <tr key={i} style={{ borderBottom: "1px solid #F5F5F5" }}>
+              <td style={{ padding: "7px 12px" }}>{c.prenom || <span style={{ color: "#CCC" }}>—</span>}</td>
+              <td style={{ padding: "7px 12px", fontWeight: 600 }}>{c.nom || <span style={{ color: "#CCC" }}>—</span>}</td>
+              <td style={{ padding: "7px 12px", color: "#C8102E" }}>{c.email}</td>
+              <td style={{ padding: "7px 12px" }}>{c.phone || <span style={{ color: "#CCC" }}>—</span>}</td>
+              <td style={{ padding: "7px 12px", color: "#6A6A6A" }}>{c.fonction || <span style={{ color: "#CCC" }}>—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 export default function CoordinationClient({ cursusId }: { cursusId: string }) {
@@ -90,8 +169,12 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [newJournee, setNewJournee] = useState({ date: "", heureDebut: "09:00", heureFin: "17:00", modaliteSession: "PRESENTIEL", visioUrl: "" });
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteNom, setInviteNom] = useState("");
-  const [importText, setImportText] = useState("");
-  const [importResult, setImportResult] = useState("");
+  const [equipeText, setEquipeText] = useState("");
+  const [equipeResult, setEquipeResult] = useState("");
+  const [prospectText, setProspectText] = useState("");
+  const [prospectResult, setProspectResult] = useState("");
+  const [prospectSel, setProspectSel] = useState<string[]>([]);
+  const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
   const [etudiants, setEtudiants] = useState<Etudiant[] | null>(null);
   const [etudiantsJournees, setEtudiantsJournees] = useState<{ id: string; date: string }[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -492,28 +575,71 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         {tab === "equipe" && (
           <div>
             {isCoord && (
-              <div style={{ ...cardStyle, padding: "16px 22px", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Email de l&apos;enseignant</div>
-                  <input type="email" placeholder="prenom.nom@chu.fr" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+              <>
+                <div style={{ ...cardStyle, padding: "16px 22px", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Email de l&apos;enseignant</div>
+                    <input type="email" placeholder="prenom.nom@chu.fr" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Nom (optionnel)</div>
+                    <input type="text" placeholder="Dr Jeanne Martin" value={inviteNom} onChange={(e) => setInviteNom(e.target.value)} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+                  </div>
+                  <button
+                    style={btnRed}
+                    disabled={!inviteEmail || busy === "invite"}
+                    onClick={async () => {
+                      setBusy("invite");
+                      const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { email: inviteEmail, nom: inviteNom });
+                      if (ok) { setInviteEmail(""); setInviteNom(""); await reload(); }
+                      setBusy(null);
+                    }}
+                  >
+                    ✉️ Inviter
+                  </button>
                 </div>
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Nom (optionnel)</div>
-                  <input type="text" placeholder="Dr Jeanne Martin" value={inviteNom} onChange={(e) => setInviteNom(e.target.value)} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+
+                {/* Import en masse */}
+                <div style={{ ...cardStyle, padding: "16px 22px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Importer toute l&apos;équipe d&apos;un coup</div>
+                  <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
+                    Collez votre liste (CSV, export Excel, ou simple texte) — une ligne par enseignant.
+                    Les emails, noms, prénoms, téléphones et fonctions sont <strong>détectés automatiquement</strong>. Vérifiez l&apos;aperçu avant d&apos;envoyer les invitations.
+                  </div>
+                  <textarea
+                    placeholder={"MARTIN Jeanne jeanne.martin@chu.fr 06 12 34 56 78 PU-PH cardiologie\ndupont@aphp.fr;Dupont;Paul;Praticien hospitalier"}
+                    value={equipeText}
+                    onChange={(e) => setEquipeText(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 100, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+                  />
+                  <PreviewTable contacts={parseContacts(equipeText)} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+                    <button
+                      style={btnRed}
+                      disabled={parseContacts(equipeText).length === 0 || busy === "equipeImport"}
+                      onClick={async () => {
+                        setBusy("equipeImport");
+                        const contacts = parseContacts(equipeText).map((c) => ({
+                          email: c.email,
+                          nom: [c.prenom, c.nom].filter(Boolean).join(" ") || undefined,
+                          phone: c.phone || undefined,
+                          fonction: c.fonction || undefined,
+                        }));
+                        const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts });
+                        if (r) {
+                          setEquipeResult(`✅ ${r.invites} invitation(s) envoyée(s), ${r.doublons} déjà dans l'équipe, ${r.erreurs} ligne(s) sans email valide.`);
+                          setEquipeText("");
+                          await reload();
+                        }
+                        setBusy(null);
+                      }}
+                    >
+                      {busy === "equipeImport" ? "Envoi…" : `✉️ Inviter les ${parseContacts(equipeText).length} enseignant(s)`}
+                    </button>
+                    {equipeResult && <span style={{ fontSize: 12, color: "#2e7d32" }}>{equipeResult}</span>}
+                  </div>
                 </div>
-                <button
-                  style={btnRed}
-                  disabled={!inviteEmail || busy === "invite"}
-                  onClick={async () => {
-                    setBusy("invite");
-                    const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { email: inviteEmail, nom: inviteNom });
-                    if (ok) { setInviteEmail(""); setInviteNom(""); await reload(); }
-                    setBusy(null);
-                  }}
-                >
-                  ✉️ Inviter
-                </button>
-              </div>
+              </>
             )}
 
             <div style={cardStyle}>
@@ -525,9 +651,12 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                     <div style={{ flex: 1, minWidth: 200 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0F0F" }}>
                         {e.nom ?? e.email}
+                        {e.fonction && <span style={{ fontSize: 11, fontWeight: 500, color: "#6A6A6A", marginLeft: 8 }}>· {e.fonction}</span>}
                         {e.coCoordinateur && <span style={{ fontSize: 10, fontWeight: 700, background: "#e3f2fd", color: "#1565c0", padding: "2px 8px", borderRadius: 100, marginLeft: 8 }}>Co-coordinateur</span>}
                       </div>
-                      <div style={{ fontSize: 12, color: "#6A6A6A" }}>{e.email} · {nbCreneaux} créneau{nbCreneaux > 1 ? "x" : ""}</div>
+                      <div style={{ fontSize: 12, color: "#6A6A6A" }}>
+                        {e.email}{e.phone ? ` · 📞 ${e.phone}` : ""} · {nbCreneaux} créneau{nbCreneaux > 1 ? "x" : ""}
+                      </div>
                     </div>
                     {e.statut === "ACCEPTE"
                       ? <span className="pill pill-green">Actif</span>
@@ -567,42 +696,168 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         {/* ═══ ÉTUDIANTS ═══ */}
         {tab === "etudiants" && isCoord && (
           <div>
+            {/* ── Liste d'attente ── */}
             <div style={{ ...cardStyle, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Importer la liste des étudiants</div>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>📋 Liste d&apos;attente</div>
               <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
-                Une ligne par étudiant : <code>email;nom;prénom</code> (le nom et le prénom sont optionnels).
-                Les comptes sont créés, inscrits à toutes les journées, et chaque étudiant reçoit ses identifiants par email.
+                Collez votre liste (CSV, export Excel, texte libre) — emails, noms, prénoms, téléphones et
+                mentions libres (fonction, statut…) sont <strong>détectés automatiquement</strong>. Les étudiants restent
+                « en attente » jusqu&apos;à ce que vous les acceptiez : l&apos;acceptation crée le compte, inscrit à toutes
+                les journées et envoie les identifiants.
               </div>
               <textarea
-                placeholder={"marie.dupont@chu.fr;Dupont;Marie\njean.martin@aphp.fr;Martin;Jean"}
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 120, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+                placeholder={"DUPONT Marie marie.dupont@chu.fr 06 11 22 33 44 Interne DES cardiologie\njean.martin@aphp.fr;Martin;Jean;CCA"}
+                value={prospectText}
+                onChange={(e) => setProspectText(e.target.value)}
+                style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 100, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
               />
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
+              <PreviewTable contacts={parseContacts(prospectText)} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                 <button
                   style={btnRed}
-                  disabled={!importText.trim() || busy === "import"}
+                  disabled={parseContacts(prospectText).length === 0 || busy === "prospects"}
                   onClick={async () => {
-                    setBusy("import");
-                    const rows = importText.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
-                      const [email, nom, prenom] = l.split(/[;,\t]/).map((x) => x?.trim());
-                      return { email, nom, prenom };
-                    });
-                    const r = await api(`/api/cursus/${cursusId}/etudiants`, "POST", { etudiants: rows });
+                    setBusy("prospects");
+                    const r = await api(`/api/cursus/${cursusId}/prospects`, "POST", { prospects: parseContacts(prospectText) });
                     if (r) {
-                      setImportResult(`✅ ${r.crees} compte(s) créé(s), ${r.existants} existant(s), ${r.inscrits} inscription(s), ${r.erreurs} erreur(s).`);
-                      setImportText("");
-                      setEtudiants(null);
+                      setProspectResult(`✅ ${r.ajoutes} ajouté(s) à la liste d'attente, ${r.doublons} déjà présent(s), ${r.erreurs} erreur(s).`);
+                      setProspectText("");
                       await reload();
                     }
                     setBusy(null);
                   }}
                 >
-                  {busy === "import" ? "Import en cours…" : "📥 Importer et inscrire"}
+                  {busy === "prospects" ? "Ajout…" : `📥 Ajouter les ${parseContacts(prospectText).length} à la liste d'attente`}
                 </button>
-                {importResult && <span style={{ fontSize: 12, color: "#2e7d32" }}>{importResult}</span>}
+                {prospectResult && <span style={{ fontSize: 12, color: "#2e7d32" }}>{prospectResult}</span>}
               </div>
+
+              {/* Ajout un par un */}
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 16, paddingTop: 14, borderTop: "1px solid #EBEBEB" }}>
+                <input type="email" placeholder="Email *" value={oneProspect.email} onChange={(e) => setOneProspect((s) => ({ ...s, email: e.target.value }))} style={{ ...inputStyle, flex: 1, minWidth: 160 }} />
+                <input type="text" placeholder="Prénom" value={oneProspect.prenom} onChange={(e) => setOneProspect((s) => ({ ...s, prenom: e.target.value }))} style={{ ...inputStyle, width: 110 }} />
+                <input type="text" placeholder="Nom" value={oneProspect.nom} onChange={(e) => setOneProspect((s) => ({ ...s, nom: e.target.value }))} style={{ ...inputStyle, width: 110 }} />
+                <input type="text" placeholder="Fonction / note" value={oneProspect.fonction} onChange={(e) => setOneProspect((s) => ({ ...s, fonction: e.target.value }))} style={{ ...inputStyle, flex: 1, minWidth: 130 }} />
+                <button
+                  style={btnGhost}
+                  disabled={!oneProspect.email.includes("@") || busy === "oneProspect"}
+                  onClick={async () => {
+                    setBusy("oneProspect");
+                    const ok = await api(`/api/cursus/${cursusId}/prospects`, "POST", { prospects: [oneProspect] });
+                    if (ok) { setOneProspect({ email: "", prenom: "", nom: "", fonction: "" }); await reload(); }
+                    setBusy(null);
+                  }}
+                >
+                  + Ajouter
+                </button>
+              </div>
+
+              {/* Table des prospects */}
+              {data.prospects.length > 0 && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 8px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0F0F" }}>
+                      {data.prospects.filter((p) => p.statut === "ATTENTE").length} en attente · {data.prospects.filter((p) => p.statut === "ACCEPTE").length} accepté(s) · {data.prospects.filter((p) => p.statut === "REFUSE").length} refusé(s)
+                    </span>
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button
+                        style={{ ...btnRed, padding: "6px 12px", fontSize: 12 }}
+                        disabled={prospectSel.length === 0 || busy === "accepter"}
+                        onClick={async () => {
+                          setBusy("accepter");
+                          const r = await api(`/api/cursus/${cursusId}/prospects`, "PATCH", { ids: prospectSel, action: "ACCEPTER" });
+                          if (r) {
+                            alert(`✅ ${r.acceptes} étudiant(s) accepté(s) et inscrit(s) (${r.comptesCrees} compte(s) créé(s)).`);
+                            setProspectSel([]);
+                            setEtudiants(null);
+                            await reload();
+                          }
+                          setBusy(null);
+                        }}
+                      >
+                        {busy === "accepter" ? "Inscription…" : `✓ Accepter (${prospectSel.length})`}
+                      </button>
+                      <button
+                        style={{ ...btnGhost, padding: "6px 12px", fontSize: 12 }}
+                        disabled={prospectSel.length === 0}
+                        onClick={async () => {
+                          await api(`/api/cursus/${cursusId}/prospects`, "PATCH", { ids: prospectSel, action: "REFUSER" });
+                          setProspectSel([]);
+                          await reload();
+                        }}
+                      >
+                        ✗ Refuser
+                      </button>
+                      <button
+                        style={{ ...btnGhost, padding: "6px 12px", fontSize: 12 }}
+                        disabled={prospectSel.length === 0}
+                        onClick={async () => {
+                          await api(`/api/cursus/${cursusId}/prospects`, "PATCH", { ids: prospectSel, action: "ATTENTE" });
+                          setProspectSel([]);
+                          await reload();
+                        }}
+                      >
+                        ↺ En attente
+                      </button>
+                      <button
+                        style={{ ...btnGhost, padding: "6px 12px", fontSize: 12, color: "#c62828", borderColor: "#ffcdd2" }}
+                        disabled={prospectSel.length === 0}
+                        onClick={async () => {
+                          if (!confirm(`Retirer ${prospectSel.length} ligne(s) de la liste d'attente ?`)) return;
+                          await api(`/api/cursus/${cursusId}/prospects`, "DELETE", { ids: prospectSel });
+                          setProspectSel([]);
+                          await reload();
+                        }}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ overflowX: "auto", border: "1px solid #EBEBEB", borderRadius: 10 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: "#F9F7F4", borderBottom: "1px solid #E0E0E0" }}>
+                          <th style={{ padding: "8px 12px" }}>
+                            <input
+                              type="checkbox"
+                              checked={prospectSel.length === data.prospects.length && data.prospects.length > 0}
+                              onChange={(e) => setProspectSel(e.target.checked ? data.prospects.map((p) => p.id) : [])}
+                            />
+                          </th>
+                          {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note", "Statut"].map((h) => (
+                            <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#6A6A6A", fontWeight: 600 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.prospects.map((p) => (
+                          <tr key={p.id} style={{ borderBottom: "1px solid #F5F5F5", background: prospectSel.includes(p.id) ? "#fff5f6" : "white" }}>
+                            <td style={{ padding: "7px 12px" }}>
+                              <input
+                                type="checkbox"
+                                checked={prospectSel.includes(p.id)}
+                                onChange={(e) => setProspectSel((s) => e.target.checked ? [...s, p.id] : s.filter((x) => x !== p.id))}
+                              />
+                            </td>
+                            <td style={{ padding: "7px 12px" }}>{p.prenom ?? "—"}</td>
+                            <td style={{ padding: "7px 12px", fontWeight: 600 }}>{p.nom ?? "—"}</td>
+                            <td style={{ padding: "7px 12px" }}>{p.email}</td>
+                            <td style={{ padding: "7px 12px" }}>{p.phone ?? "—"}</td>
+                            <td style={{ padding: "7px 12px", color: "#6A6A6A" }}>{p.fonction ?? "—"}</td>
+                            <td style={{ padding: "7px 12px" }}>
+                              {p.statut === "ACCEPTE"
+                                ? <span className="pill pill-green">Accepté</span>
+                                : p.statut === "REFUSE"
+                                ? <span className="pill pill-gray">Refusé</span>
+                                : <span className="pill pill-orange">En attente</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={cardStyle}>

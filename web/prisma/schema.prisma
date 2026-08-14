@@ -676,6 +676,7 @@ model Cursus {
   journees    Formation[]
   messages    CursusMessage[]
   echanges    CursusEchange[]
+  prospects   CursusProspect[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -688,6 +689,8 @@ model CursusEnseignant {
 
   email       String
   nom         String?
+  phone       String?
+  fonction    String? // ex : "PU-PH", "MCU-PH", "Praticien hospitalier"
   formateurId String? // rattaché quand le compte formateur existe / a accepté
   statut      String  @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTE
   inviteToken String  @unique @default(cuid())
@@ -735,4 +738,21 @@ model CursusRappel {
   sentAt      DateTime @default(now())
 
   @@unique([formationId, email, type])
+}
+
+model CursusProspect {
+  id       String @id @default(cuid())
+  cursusId String
+  cursus   Cursus @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+
+  email    String
+  nom      String?
+  prenom   String?
+  phone    String?
+  fonction String? // texte libre détecté ou saisi (ex : "Interne DES cardio", "PU-PH")
+  statut   String  @default("ATTENTE") // ATTENTE | ACCEPTE | REFUSE
+
+  createdAt DateTime @default(now())
+
+  @@unique([cursusId, email])
 }
