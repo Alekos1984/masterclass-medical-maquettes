@@ -5,6 +5,7 @@ interface SendEmailParams {
   subject: string;
   htmlContent: string;
   replyTo?: { email: string; name?: string };
+  attachment?: { name: string; content: string }[]; // content = base64
 }
 
 export async function sendEmail(params: SendEmailParams) {
@@ -219,5 +220,109 @@ export function emailVirementEffectue(data: {
       <p style="margin:4px 0;">🏦 <strong>IBAN :</strong> ${data.iban}</p>
     </div>
     <p>Merci pour votre confiance,<br/><strong>L'équipe Masterclass Médical</strong></p>
+  `);
+}
+
+// ─── Coordination d'enseignement (DU) ─────────────────────────────────────────
+
+export function emailInvitationEnseignant(data: {
+  nom: string; cursusTitre: string; coordinateurNom: string; inviteUrl: string; dejaInscrit: boolean;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Vous êtes invité·e comme enseignant·e 🧑‍🏫</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      <strong>${data.coordinateurNom}</strong> vous a ajouté·e à l'équipe pédagogique de
+      « <strong>${data.cursusTitre}</strong> » sur Masterclass Médical.</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      ${data.dejaInscrit
+        ? "Connectez-vous pour consulter vos enseignements, charger vos supports et échanger avec les autres intervenants."
+        : "Créez votre compte formateur (gratuit) pour consulter vos enseignements, charger vos supports et échanger avec les autres intervenants."}</p>
+    ${ctaButton(data.inviteUrl, data.dejaInscrit ? "Voir mes enseignements" : "Accepter l'invitation")}
+  `);
+}
+
+export function emailRappelEnseignement(data: {
+  nom: string; cursusTitre: string; delaiLabel: string; dateStr: string; creneaux: string; lieu: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Rappel : enseignement ${data.delaiLabel} ⏰</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      Vous intervenez <strong>${data.dateStr}</strong> dans le cadre de « <strong>${data.cursusTitre}</strong> ».</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;line-height:1.7;">
+      ${data.creneaux}<br/>📍 ${data.lieu}
+    </div>
+    <p style="font-size:13px;color:#999;line-height:1.6;margin-top:14px;">
+      L'invitation agenda (.ics) est jointe à ce message. Pensez à vérifier que votre support de cours est bien chargé.</p>
+  `);
+}
+
+export function emailEchangeCours(data: {
+  nom: string; cursusTitre: string; proposantNom: string; slotA: string; slotB: string; actionUrl: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Proposition d'échange de cours 🔄</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      <strong>${data.proposantNom}</strong> vous propose un échange dans « <strong>${data.cursusTitre}</strong> » :</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;line-height:1.7;">
+      Il/elle reprend : <strong>${data.slotB}</strong><br/>Vous reprenez : <strong>${data.slotA}</strong>
+    </div>
+    ${ctaButton(data.actionUrl, "Accepter ou refuser")}
+  `);
+}
+
+export function emailEchangeDecide(data: {
+  nom: string; cursusTitre: string; accepte: boolean; slotA: string; slotB: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Échange ${data.accepte ? "accepté ✅" : "refusé ❌"}</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      L'échange proposé dans « <strong>${data.cursusTitre}</strong> » (${data.slotA} ⇄ ${data.slotB})
+      a été <strong>${data.accepte ? "accepté — le programme a été mis à jour automatiquement" : "refusé"}</strong>.</p>
+  `);
+}
+
+export function emailNouveauMessageCursus(data: {
+  nom: string; cursusTitre: string; auteurNom: string; extrait: string; url: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Nouveau message — ${data.cursusTitre} 💬</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;"><strong>${data.auteurNom}</strong> a écrit :</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;font-style:italic;">« ${data.extrait} »</div>
+    ${ctaButton(data.url, "Répondre")}
+  `);
+}
+
+export function emailProgrammeCursus(data: {
+  nom: string; cursusTitre: string; programmeHtml: string; pdfUrl: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Programme — ${data.cursusTitre} 📅</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Voici le programme complet :</p>
+    ${data.programmeHtml}
+    ${ctaButton(data.pdfUrl, "Télécharger le programme PDF")}
+  `);
+}
+
+export function emailCompteEtudiantCursus(data: {
+  nom: string; cursusTitre: string; email: string; motDePasse: string; loginUrl: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Bienvenue — ${data.cursusTitre} 🎓</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      Vous avez été inscrit·e à « <strong>${data.cursusTitre}</strong> » sur Masterclass Médical.
+      Votre compte donne accès aux supports, aux sessions en direct, à l'émargement et à vos attestations.</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;line-height:1.8;">
+      Identifiant : <strong>${data.email}</strong><br/>
+      Mot de passe provisoire : <strong>${data.motDePasse}</strong>
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:10px;">Modifiez ce mot de passe dès votre première connexion (Mon profil).</p>
+    ${ctaButton(data.loginUrl, "Me connecter")}
   `);
 }

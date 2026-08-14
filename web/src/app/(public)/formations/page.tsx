@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CataloguePage() {
   const formations = await prisma.formation.findMany({
-    where: { statut: "PUBLIEE" },
+    where: { statut: "PUBLIEE", cursusId: null },
     include: { formateur: { include: { user: true } } },
     orderBy: { date: "asc" },
   });
