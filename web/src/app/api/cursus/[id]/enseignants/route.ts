@@ -16,38 +16,50 @@ export async function POST(
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
   if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
 
-  const { email, nom } = await req.json();
-  const cleanEmail = (email ?? "").trim().toLowerCase();
-  if (!cleanEmail || !cleanEmail.includes("@")) return NextResponse.json({ error: "Email invalide" }, { status: 400 });
-
-  const existing = await prisma.cursusEnseignant.findUnique({
-    where: { cursusId_email: { cursusId: id, email: cleanEmail } },
-  });
-  if (existing) return NextResponse.json({ error: "Cet enseignant est déjà dans l'équipe" }, { status: 409 });
-
-  // Rattacher directement si un compte formateur existe déjà
-  const user = await prisma.user.findUnique({
-    where: { email: cleanEmail },
-    select: { name: true, formateurProfile: { select: { id: true } } },
-  });
-
-  const enseignant = await prisma.cursusEnseignant.create({
-    data: {
-      cursusId: id,
-      email: cleanEmail,
-      nom: nom?.trim() || user?.name || null,
-      formateurId: user?.formateurProfile?.id ?? null,
-      statut: user?.formateurProfile ? "ACCEPTE" : "EN_ATTENTE",
-    },
-  });
+  const body = await req.json();
+  // Accepte une invitation unique { email, nom, phone, fonction }
+  // ou un import en masse { enseignants: [{ email, nom, phone, fonction }] }
+  const rows: { email?: string; nom?: string; phone?: string; fonction?: string }[] =
+    Array.isArray(body.enseignants) ? body.enseignants : [body];
+  if (rows.length === 0) return NextResponse.json({ error: "Liste vide" }, { status: 400 });
+  if (rows.length > 200) return NextResponse.json({ error: "Maximum 200 enseignants par import" }, { status: 400 });
 
   const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
-  const inviteUrl = user?.formateurProfile
-    ? `${baseUrl}/formateur/coordination/${id}`
-    : `${baseUrl}/cursus/invitation/${enseignant.inviteToken}`;
+  let invites = 0, doublons = 0, erreurs = 0;
 
-  try {
-    await sendEmail({
+  for (const row of rows) {
+    const cleanEmail = (row.email ?? "").trim().toLowerCase();
+    if (!cleanEmail.includes("@")) { erreurs++; continue; }
+
+    const existing = await prisma.cursusEnseignant.findUnique({
+      where: { cursusId_email: { cursusId: id, email: cleanEmail } },
+    });
+    if (existing) { doublons++; continue; }
+
+    // Rattacher directement si un compte formateur existe déjà
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      select: { name: true, formateurProfile: { select: { id: true } } },
+    });
+
+    const enseignant = await prisma.cursusEnseignant.create({
+      data: {
+        cursusId: id,
+        email: cleanEmail,
+        nom: row.nom?.trim() || user?.name || null,
+        phone: row.phone?.trim() || null,
+        fonction: row.fonction?.trim() || null,
+        formateurId: user?.formateurProfile?.id ?? null,
+        statut: user?.formateurProfile ? "ACCEPTE" : "EN_ATTENTE",
+      },
+    });
+    invites++;
+
+    const inviteUrl = user?.formateurProfile
+      ? `${baseUrl}/formateur/coordination/${id}`
+      : `${baseUrl}/cursus/invitation/${enseignant.inviteToken}`;
+
+    sendEmail({
       to: [{ email: cleanEmail, name: enseignant.nom ?? undefined }],
       subject: `Vous êtes invité·e à enseigner — ${cursus.titre}`,
       htmlContent: emailInvitationEnseignant({
@@ -57,10 +69,10 @@ export async function POST(
         inviteUrl,
         dejaInscrit: !!user?.formateurProfile,
       }),
+    }).catch(() => {
+      // L'invitation reste valable même si l'email échoue (relance possible)
     });
-  } catch {
-    // L'invitation reste valable même si l'email échoue (relance possible)
   }
 
-  return NextResponse.json({ id: enseignant.id, statut: enseignant.statut }, { status: 201 });
+  return NextResponse.json({ invites, doublons, erreurs }, { status: 201 });
 }
