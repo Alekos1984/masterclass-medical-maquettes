@@ -213,15 +213,18 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [prospectSel, setProspectSel] = useState<string[]>([]);
   const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
 
-  // Génération IA du calendrier
+  // Génération IA du calendrier (consigne libre et/ou digitalisation d'un programme existant)
   type JourneeProposee = {
     date: string; heureDebut: string; heureFin: string; modaliteSession: string; commentaire: string;
-    slots: { heureDebut: string; heureFin: string; titre: string; type: string }[];
+    slots: { heureDebut: string; heureFin: string; titre: string; type: string; enseignantId?: string | null; description?: string; intervenant?: string | null }[];
     chevauchement?: string; // autres DU du coordinateur le même jour (info, non bloquant)
+    journeeId?: string | null; // digitalisation : journée existante à remplir
   };
   const [iaOpen, setIaOpen] = useState(false);
   const [iaConsigne, setIaConsigne] = useState("");
   const [iaPropositions, setIaPropositions] = useState<JourneeProposee[]>([]);
+  const [iaFichier, setIaFichier] = useState<{ nom: string; base64: string } | null>(null);
+  const [iaIntervenants, setIaIntervenants] = useState<{ reconnus: number; inconnus: number } | null>(null);
 
   // Drag & drop des créneaux
   const [dragSlot, setDragSlot] = useState<{ journeeId: string; index: number } | null>(null);
@@ -284,6 +287,25 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
       return null;
     }
     return res.json().catch(() => ({}));
+  }
+
+  // Valide une proposition IA : remplit la journée existante ciblée, sinon crée une journée
+  async function validerIaProposition(p: {
+    journeeId?: string | null; date: string; heureDebut: string; heureFin: string; modaliteSession: string;
+    slots: { heureDebut: string; heureFin: string; titre: string; type: string; enseignantId?: string | null; description?: string }[];
+  }): Promise<boolean> {
+    if (p.journeeId) {
+      const slots = p.slots.map((s, i) => ({
+        slotId: `slot-${Date.now()}-${i}`,
+        heureDebut: s.heureDebut, heureFin: s.heureFin, titre: s.titre,
+        description: s.description ?? "", type: s.type, enseignantId: s.enseignantId ?? null,
+      }));
+      return !!(await api(`/api/cursus/${cursusId}/journees/${p.journeeId}`, "PATCH", { slots }));
+    }
+    return !!(await api(`/api/cursus/${cursusId}/journees`, "POST", {
+      date: p.date, heureDebut: p.heureDebut, heureFin: p.heureFin,
+      modaliteSession: p.modaliteSession, slots: p.slots,
+    }));
   }
 
   async function uploadSupport(journeeId: string, slotId: string, file: File) {
@@ -467,48 +489,88 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       onChange={(e) => setIaConsigne(e.target.value)}
                       style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 90, resize: "vertical", lineHeight: 1.5 }}
                     />
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+                    {/* Fichier programme (digitalisation) */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap", padding: "10px 12px", background: "#F9F7F4", borderRadius: 10 }}>
+                      <span style={{ fontSize: 12, color: "#444", fontWeight: 600 }}>📂 Programme existant (optionnel) :</span>
+                      {iaFichier ? (
+                        <>
+                          <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ {iaFichier.nom}</span>
+                          <button
+                            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#6A6A6A", textDecoration: "underline", fontFamily: "inherit" }}
+                            onClick={() => setIaFichier(null)}
+                          >
+                            retirer
+                          </button>
+                        </>
+                      ) : (
+                        <label style={{ fontSize: 12, color: "#C8102E", fontWeight: 700, cursor: "pointer" }}>
+                          Charger un fichier (PDF, Word, Excel, CSV…)
+                          <input
+                            type="file"
+                            accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt,.tsv,.md"
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              if (f.size > 10 * 1024 * 1024) { alert("Fichier trop volumineux (max 10 Mo)"); return; }
+                              const reader = new FileReader();
+                              reader.onload = () => setIaFichier({ nom: f.name, base64: (reader.result as string).split(",")[1] ?? "" });
+                              reader.readAsDataURL(f);
+                            }}
+                          />
+                        </label>
+                      )}
+                      <span style={{ fontSize: 11, color: "#9A9A9A", flexBasis: "100%" }}>
+                        Ex : le programme de l&apos;année dernière — l&apos;IA détecte les créneaux, durées et intervenants,
+                        et les positionne sur vos journées {data.journees.length > 0 ? "déjà planifiées" : "(ou propose des dates transposées à l'année suivante)"}.
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                       <button
                         style={btnRed}
-                        disabled={!iaConsigne.trim() || busy === "ia"}
+                        disabled={(!iaConsigne.trim() && !iaFichier) || busy === "ia"}
                         onClick={async () => {
                           setBusy("ia");
                           setIaPropositions([]);
-                          const r = await api(`/api/cursus/${cursusId}/journees/generer`, "POST", { consigne: iaConsigne });
+                          setIaIntervenants(null);
+                          const r = await api(`/api/cursus/${cursusId}/journees/generer`, "POST", {
+                            consigne: iaConsigne,
+                            fichierNom: iaFichier?.nom,
+                            fichierBase64: iaFichier?.base64,
+                          });
                           if (r && Array.isArray(r.journees)) {
                             setIaPropositions(r.journees as JourneeProposee[]);
-                            if ((r.journees as JourneeProposee[]).length === 0) alert("Aucune date générée — reformulez la consigne.");
+                            if (r.intervenants) setIaIntervenants(r.intervenants as { reconnus: number; inconnus: number });
+                            if ((r.journees as JourneeProposee[]).length === 0) alert("Aucune journée générée — reformulez la consigne ou vérifiez le fichier.");
                           }
                           setBusy(null);
                         }}
                       >
-                        {busy === "ia" ? "Génération…" : "✨ Générer les dates"}
+                        {busy === "ia" ? "Analyse…" : iaFichier ? "✨ Digitaliser le programme" : "✨ Générer les dates"}
                       </button>
                       {iaPropositions.length > 0 && (
                         <>
                           <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>
-                            {iaPropositions.length} journée(s) proposée(s) — vérifiez et validez
+                            {iaPropositions.length} journée(s) proposée(s)
+                            {iaIntervenants && ` · intervenants : ${iaIntervenants.reconnus} reconnu(s)${iaIntervenants.inconnus > 0 ? `, ${iaIntervenants.inconnus} à rattacher` : ""}`}
                           </span>
                           <button
                             style={{ ...btnGhost, marginLeft: "auto" }}
                             disabled={busy === "iaAll"}
                             onClick={async () => {
                               setBusy("iaAll");
-                              let crees = 0;
+                              let valides = 0;
                               for (const p of iaPropositions) {
-                                const ok = await api(`/api/cursus/${cursusId}/journees`, "POST", {
-                                  date: p.date, heureDebut: p.heureDebut, heureFin: p.heureFin,
-                                  modaliteSession: p.modaliteSession, slots: p.slots,
-                                });
-                                if (ok) crees++;
+                                if (await validerIaProposition(p)) valides++;
                               }
                               setIaPropositions([]);
                               setBusy(null);
-                              alert(`✅ ${crees} journée(s) créée(s).`);
+                              alert(`✅ ${valides} journée(s) validée(s).`);
                               await reload();
                             }}
                           >
-                            {busy === "iaAll" ? "Création…" : "✓ Tout valider"}
+                            {busy === "iaAll" ? "Validation…" : "✓ Tout valider"}
                           </button>
                         </>
                       )}
@@ -521,32 +583,47 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0F0F" }}>
                                 📅 {new Date(p.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                                 <span style={{ fontWeight: 500, color: "#6A6A6A" }}> · {p.heureDebut}–{p.heureFin}</span>
+                                {p.journeeId && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, background: "#e3f2fd", color: "#1565c0", padding: "2px 8px", borderRadius: 100, marginLeft: 8 }}>
+                                    → remplit la journée existante
+                                  </span>
+                                )}
                               </div>
-                              <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2 }}>
-                                {p.commentaire}
-                                {p.slots.length > 0 && ` · ${p.slots.map((s) => `${s.heureDebut}-${s.heureFin}${s.type === "pause" ? " ☕" : ""}`).join(" / ")}`}
-                              </div>
+                              <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2 }}>{p.commentaire}</div>
+                              {p.slots.length > 0 && (
+                                <div style={{ fontSize: 11, color: "#444", marginTop: 3, lineHeight: 1.6 }}>
+                                  {p.slots.map((s, k) => (
+                                    <div key={k}>
+                                      {s.heureDebut}–{s.heureFin} · {s.type === "pause" ? "☕ " : ""}{s.titre}
+                                      {s.intervenant && s.type !== "pause" && (
+                                        <span style={{ color: s.enseignantId ? "#2e7d32" : "#e65100", fontWeight: 600 }}>
+                                          {" — "}{s.intervenant} {s.enseignantId ? "✓" : "(à rattacher)"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                               {p.chevauchement && (
                                 <div style={{ fontSize: 11, color: "#1565c0", marginTop: 3 }}>
                                   ℹ️ Même jour qu&apos;un autre de vos cursus : {p.chevauchement} — c&apos;est permis, à vous de voir.
                                 </div>
                               )}
                             </div>
-                            <input
-                              type="date"
-                              value={p.date}
-                              onChange={(e) => setIaPropositions((arr) => arr.map((x, k) => k === i ? { ...x, date: e.target.value } : x))}
-                              style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }}
-                            />
+                            {!p.journeeId && (
+                              <input
+                                type="date"
+                                value={p.date}
+                                onChange={(e) => setIaPropositions((arr) => arr.map((x, k) => k === i ? { ...x, date: e.target.value } : x))}
+                                style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }}
+                              />
+                            )}
                             <button
                               style={{ ...btnRed, padding: "6px 12px", fontSize: 12 }}
                               disabled={busy === `iaCreate-${i}`}
                               onClick={async () => {
                                 setBusy(`iaCreate-${i}`);
-                                const ok = await api(`/api/cursus/${cursusId}/journees`, "POST", {
-                                  date: p.date, heureDebut: p.heureDebut, heureFin: p.heureFin,
-                                  modaliteSession: p.modaliteSession, slots: p.slots,
-                                });
+                                const ok = await validerIaProposition(p);
                                 if (ok) {
                                   setIaPropositions((arr) => arr.filter((_, k) => k !== i));
                                   await reload();
@@ -554,7 +631,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 setBusy(null);
                               }}
                             >
-                              ✓ Créer
+                              {p.journeeId ? "✓ Appliquer" : "✓ Créer"}
                             </button>
                             <button
                               style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
