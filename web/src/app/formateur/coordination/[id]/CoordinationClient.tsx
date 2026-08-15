@@ -175,6 +175,15 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [prospectResult, setProspectResult] = useState("");
   const [prospectSel, setProspectSel] = useState<string[]>([]);
   const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
+
+  // Génération IA du calendrier
+  type JourneeProposee = {
+    date: string; heureDebut: string; heureFin: string; modaliteSession: string; commentaire: string;
+    slots: { heureDebut: string; heureFin: string; titre: string; type: string }[];
+  };
+  const [iaOpen, setIaOpen] = useState(false);
+  const [iaConsigne, setIaConsigne] = useState("");
+  const [iaPropositions, setIaPropositions] = useState<JourneeProposee[]>([]);
   const [etudiants, setEtudiants] = useState<Etudiant[] | null>(null);
   const [etudiantsJournees, setEtudiantsJournees] = useState<{ id: string; date: string }[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -378,6 +387,130 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         {/* ═══ JOURNÉES ═══ */}
         {tab === "journees" && (
           <div>
+            {/* Génération IA du calendrier */}
+            {isCoord && (
+              <div style={{ ...cardStyle, padding: "16px 22px", border: iaOpen ? "1.5px solid #C8102E" : "1px solid #E0E0E0" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>✨ Générer le calendrier avec l&apos;IA</div>
+                    <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 2 }}>
+                      Décrivez vos contraintes en langage naturel, l&apos;IA propose les dates — vous validez ligne par ligne.
+                    </div>
+                  </div>
+                  <button style={iaOpen ? btnGhost : btnRed} onClick={() => setIaOpen((v) => !v)}>
+                    {iaOpen ? "Fermer" : "✨ Ouvrir"}
+                  </button>
+                </div>
+                {iaOpen && (
+                  <div style={{ marginTop: 14 }}>
+                    <textarea
+                      placeholder={"Ex : donne-moi 2 jours par mois (des jeudis et vendredis à la suite, de la même semaine), plutôt vers la fin du mois, mais en dehors des vacances scolaires (région parisienne). Il me faut 7 couples, à partir de novembre 2026, de 9h à 18h avec une pause de 13h à 14h."}
+                      value={iaConsigne}
+                      onChange={(e) => setIaConsigne(e.target.value)}
+                      style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 90, resize: "vertical", lineHeight: 1.5 }}
+                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+                      <button
+                        style={btnRed}
+                        disabled={!iaConsigne.trim() || busy === "ia"}
+                        onClick={async () => {
+                          setBusy("ia");
+                          setIaPropositions([]);
+                          const r = await api(`/api/cursus/${cursusId}/journees/generer`, "POST", { consigne: iaConsigne });
+                          if (r && Array.isArray(r.journees)) {
+                            setIaPropositions(r.journees as JourneeProposee[]);
+                            if ((r.journees as JourneeProposee[]).length === 0) alert("Aucune date générée — reformulez la consigne.");
+                          }
+                          setBusy(null);
+                        }}
+                      >
+                        {busy === "ia" ? "Génération…" : "✨ Générer les dates"}
+                      </button>
+                      {iaPropositions.length > 0 && (
+                        <>
+                          <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>
+                            {iaPropositions.length} journée(s) proposée(s) — vérifiez et validez
+                          </span>
+                          <button
+                            style={{ ...btnGhost, marginLeft: "auto" }}
+                            disabled={busy === "iaAll"}
+                            onClick={async () => {
+                              setBusy("iaAll");
+                              let crees = 0;
+                              for (const p of iaPropositions) {
+                                const ok = await api(`/api/cursus/${cursusId}/journees`, "POST", {
+                                  date: p.date, heureDebut: p.heureDebut, heureFin: p.heureFin,
+                                  modaliteSession: p.modaliteSession, slots: p.slots,
+                                });
+                                if (ok) crees++;
+                              }
+                              setIaPropositions([]);
+                              setBusy(null);
+                              alert(`✅ ${crees} journée(s) créée(s).`);
+                              await reload();
+                            }}
+                          >
+                            {busy === "iaAll" ? "Création…" : "✓ Tout valider"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {iaPropositions.length > 0 && (
+                      <div style={{ marginTop: 12, border: "1px solid #EBEBEB", borderRadius: 10, overflow: "hidden" }}>
+                        {iaPropositions.map((p, i) => (
+                          <div key={i} style={{ padding: "11px 16px", borderBottom: i < iaPropositions.length - 1 ? "1px solid #F5F5F5" : "none", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                            <div style={{ flex: 1, minWidth: 240 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0F0F" }}>
+                                📅 {new Date(p.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                                <span style={{ fontWeight: 500, color: "#6A6A6A" }}> · {p.heureDebut}–{p.heureFin}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 2 }}>
+                                {p.commentaire}
+                                {p.slots.length > 0 && ` · ${p.slots.map((s) => `${s.heureDebut}-${s.heureFin}${s.type === "pause" ? " ☕" : ""}`).join(" / ")}`}
+                              </div>
+                            </div>
+                            <input
+                              type="date"
+                              value={p.date}
+                              onChange={(e) => setIaPropositions((arr) => arr.map((x, k) => k === i ? { ...x, date: e.target.value } : x))}
+                              style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }}
+                            />
+                            <button
+                              style={{ ...btnRed, padding: "6px 12px", fontSize: 12 }}
+                              disabled={busy === `iaCreate-${i}`}
+                              onClick={async () => {
+                                setBusy(`iaCreate-${i}`);
+                                const ok = await api(`/api/cursus/${cursusId}/journees`, "POST", {
+                                  date: p.date, heureDebut: p.heureDebut, heureFin: p.heureFin,
+                                  modaliteSession: p.modaliteSession, slots: p.slots,
+                                });
+                                if (ok) {
+                                  setIaPropositions((arr) => arr.filter((_, k) => k !== i));
+                                  await reload();
+                                }
+                                setBusy(null);
+                              }}
+                            >
+                              ✓ Créer
+                            </button>
+                            <button
+                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
+                              onClick={() => setIaPropositions((arr) => arr.filter((_, k) => k !== i))}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <div style={{ padding: "8px 16px", background: "#fff8e1", fontSize: 11, color: "#5d4037" }}>
+                          ⚠️ Vérifiez les dates par rapport au calendrier officiel des vacances scolaires avant de valider — l&apos;IA peut se tromper sur les zones.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {isCoord && (
               <div style={{ ...cardStyle, padding: "16px 22px", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                 <div>

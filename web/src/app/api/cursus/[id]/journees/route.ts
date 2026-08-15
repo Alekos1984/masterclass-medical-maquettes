@@ -25,8 +25,20 @@ export async function POST(
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
   if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
 
-  const { date, heureDebut, heureFin, modaliteSession, visioUrl, lieuNom, lieuAdresse, lieuVille, titre } = await req.json();
+  const { date, heureDebut, heureFin, modaliteSession, visioUrl, lieuNom, lieuAdresse, lieuVille, titre, slots } = await req.json();
   if (!date) return NextResponse.json({ error: "Date obligatoire" }, { status: 400 });
+
+  const programme = Array.isArray(slots)
+    ? (slots as { heureDebut?: string; heureFin?: string; titre?: string; type?: string }[]).map((s, i) => ({
+        slotId: `slot-${Date.now()}-${i}`,
+        heureDebut: s.heureDebut ?? "",
+        heureFin: s.heureFin ?? "",
+        titre: s.titre ?? "",
+        description: "",
+        type: s.type ?? "cours",
+        enseignantId: null,
+      }))
+    : [];
 
   const numero = cursus.journees.length + 1;
   const jTitre = titre?.trim() || `${cursus.titre} — Journée ${numero}`;
@@ -49,7 +61,7 @@ export async function POST(
       niveau: "tous",
       description: cursus.description,
       objectifs: [],
-      programme: [],
+      programme,
       date: new Date(date),
       heureDebut: debut,
       heureFin: fin,
