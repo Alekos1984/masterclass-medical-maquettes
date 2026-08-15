@@ -66,3 +66,89 @@ Consigne : ${consigne}`,
       slots: Array.isArray(j.slots) ? j.slots : [],
     }));
 }
+
+// ─── Digitalisation d'un programme existant (PDF/Word/Excel de l'année passée) ─
+
+export type JourneeDigitalisee = {
+  journeeExistante: number | null; // index 1-based dans les journées existantes fournies
+  date: string | null;
+  heureDebut: string;
+  heureFin: string;
+  commentaire: string;
+  slots: { heureDebut: string; heureFin: string; titre: string; type: string; intervenant: string | null }[];
+};
+
+export async function digitaliserProgramme(
+  texteDoc: string,
+  consigne: string,
+  contexte: {
+    cursusTitre: string;
+    annee: string | null;
+    journeesExistantes: { index: number; date: string; heureDebut: string; heureFin: string; nbSlots: number }[];
+    enseignants: string[];
+    datesExistantes: string[];
+  }
+): Promise<JourneeDigitalisee[]> {
+  const openai = getOpenAI();
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const aJournees = contexte.journeesExistantes.length > 0;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    temperature: 0.2,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `Tu es l'assistant d'un coordinateur d'enseignement universitaire médical (DU/DIU) en France.
+On te fournit le PROGRAMME D'UNE ANNÉE PRÉCÉDENTE (extrait d'un PDF, Word ou Excel, mise en forme dégradée possible).
+Ta mission : le DIGITALISER pour l'édition ${contexte.annee ?? "suivante"} du cursus "${contexte.cursusTitre}".
+
+ANALYSE DU DOCUMENT :
+- Repère chaque journée/module d'enseignement et ses créneaux : horaires (début-fin), titre du cours, intervenant (nom de l'enseignant, avec ou sans titre Dr/Pr), pauses.
+- Si les horaires d'un créneau sont absents, déduis-les de la durée ou répartis équitablement dans la journée.
+- Déduplique les en-têtes/pieds de page répétés.
+- Types : "cours" | "atelier" | "cas_clinique" | "evaluation" | "pause" | "autre".
+
+${aJournees
+  ? `POSITIONNEMENT — le cursus a DÉJÀ des journées planifiées, tu dois y répartir le contenu :
+${contexte.journeesExistantes.map((j) => `  ${j.index}. ${j.date} (${j.heureDebut}-${j.heureFin})${j.nbSlots > 0 ? ` — contient déjà ${j.nbSlots} créneau(x) qui seront REMPLACÉS` : ""}`).join("\n")}
+- Associe les journées du document aux journées existantes DANS L'ORDRE CHRONOLOGIQUE (journée 1 du document → journée existante 1, etc.).
+- Renseigne "journeeExistante" avec l'index correspondant, "date" à null.
+- Adapte les horaires des créneaux à la plage horaire de la journée cible.
+- S'il y a PLUS de journées dans le document que de journées existantes, ajoute les surplus avec "journeeExistante": null et une "date" future plausible (même jour de semaine, à la suite).`
+  : `POSITIONNEMENT — aucune journée n'est encore planifiée :
+- Propose des dates FUTURES (après ${aujourdhui}) en transposant le calendrier du document à l'année ${contexte.annee ?? "suivante"} : mêmes mois, mêmes jours de semaine, hors dates déjà prises (${contexte.datesExistantes.join(", ") || "aucune"}).
+- Renseigne "date" (YYYY-MM-DD) et "journeeExistante": null.`}
+
+INTERVENANTS :
+- Recopie le nom de l'intervenant de chaque créneau dans "intervenant" (null si absent ou si pause).
+- Équipe pédagogique actuelle pour référence : ${contexte.enseignants.join(", ") || "aucune"}.
+
+Retourne UNIQUEMENT un JSON :
+{ "journees": [{ "journeeExistante": 1|null, "date": "YYYY-MM-DD"|null, "heureDebut": "HH:MM", "heureFin": "HH:MM", "commentaire": "…", "slots": [{ "heureDebut": "HH:MM", "heureFin": "HH:MM", "titre": "…", "type": "…", "intervenant": "…"|null }] }] }`,
+      },
+      {
+        role: "user",
+        content: `${consigne ? `Consignes complémentaires : ${consigne}\n\n` : ""}DOCUMENT :\n${texteDoc}`,
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content ?? "{}";
+  const parsed = JSON.parse(content) as { journees?: JourneeDigitalisee[] };
+  return (parsed.journees ?? []).slice(0, 40).map((j) => ({
+    journeeExistante: typeof j.journeeExistante === "number" ? j.journeeExistante : null,
+    date: j.date && /^\d{4}-\d{2}-\d{2}$/.test(j.date) ? j.date : null,
+    heureDebut: j.heureDebut || "09:00",
+    heureFin: j.heureFin || "17:00",
+    commentaire: j.commentaire ?? "",
+    slots: (Array.isArray(j.slots) ? j.slots : []).map((s) => ({
+      heureDebut: s.heureDebut || "",
+      heureFin: s.heureFin || "",
+      titre: s.titre || "",
+      type: s.type || "cours",
+      intervenant: s.intervenant || null,
+    })),
+  }));
+}
