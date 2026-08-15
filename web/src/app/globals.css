@@ -198,9 +198,9 @@ footer { background: #060606; padding: 72px 48px 36px; }
 
 /* TOPBAR */
 .main { margin-left: 220px; min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
-.topbar { background: white; border-bottom: 1px solid var(--border, #E0E0E0); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
-.topbar-title { font-size: 15px; font-weight: 700; color: var(--black); }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar { background: white; border-bottom: 1px solid var(--border, #E0E0E0); padding: 8px 28px; min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; z-index: 50; flex-wrap: wrap; }
+.topbar-title { font-size: 15px; font-weight: 700; color: var(--black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .topbar-date { font-size: 12px; color: var(--gray); }
 .topbar-notif { position: relative; width: 34px; height: 34px; border-radius: 7px; border: 1.5px solid var(--border, #E0E0E0); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; transition: border-color 0.15s; }
 .topbar-notif:hover { border-color: #ccc; }

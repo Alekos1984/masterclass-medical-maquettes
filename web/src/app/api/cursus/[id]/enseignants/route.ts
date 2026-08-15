@@ -17,10 +17,11 @@ export async function POST(
   if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
 
   const body = await req.json();
-  // Accepte une invitation unique { email, nom, phone, fonction }
-  // ou un import en masse { enseignants: [{ email, nom, phone, fonction }] }
-  const rows: { email?: string; nom?: string; phone?: string; fonction?: string }[] =
+  // Accepte une invitation unique { email, nom, phone, fonction, sansInviter? }
+  // ou un import en masse { enseignants: [...], sansInviter? }
+  const rows: { email?: string; nom?: string; phone?: string; fonction?: string; prenom?: string }[] =
     Array.isArray(body.enseignants) ? body.enseignants : [body];
+  const sansInviter: boolean = !!body.sansInviter;
   if (rows.length === 0) return NextResponse.json({ error: "Liste vide" }, { status: 400 });
   if (rows.length > 200) return NextResponse.json({ error: "Maximum 200 enseignants par import" }, { status: 400 });
 
@@ -42,36 +43,47 @@ export async function POST(
       select: { name: true, formateurProfile: { select: { id: true } } },
     });
 
+    // Nom complet : combine prénom + nom si les deux sont fournis
+    const nomComplet = [row.prenom?.trim(), row.nom?.trim()].filter(Boolean).join(" ") || user?.name || null;
+
+    // Statut : compte formateur existant → ACCEPTE ; sinon selon "sansInviter"
+    const statut = user?.formateurProfile
+      ? "ACCEPTE"
+      : sansInviter ? "NON_INVITE" : "EN_ATTENTE";
+
     const enseignant = await prisma.cursusEnseignant.create({
       data: {
         cursusId: id,
         email: cleanEmail,
-        nom: row.nom?.trim() || user?.name || null,
+        nom: nomComplet,
         phone: row.phone?.trim() || null,
         fonction: row.fonction?.trim() || null,
         formateurId: user?.formateurProfile?.id ?? null,
-        statut: user?.formateurProfile ? "ACCEPTE" : "EN_ATTENTE",
+        statut,
       },
     });
     invites++;
 
-    const inviteUrl = user?.formateurProfile
-      ? `${baseUrl}/formateur/coordination/${id}`
-      : `${baseUrl}/cursus/invitation/${enseignant.inviteToken}`;
+    // On n'envoie pas d'email si "sansInviter" ET pas de compte formateur existant
+    if (statut !== "NON_INVITE") {
+      const inviteUrl = user?.formateurProfile
+        ? `${baseUrl}/formateur/coordination/${id}`
+        : `${baseUrl}/cursus/invitation/${enseignant.inviteToken}`;
 
-    sendEmail({
-      to: [{ email: cleanEmail, name: enseignant.nom ?? undefined }],
-      subject: `Vous êtes invité·e à enseigner — ${cursus.titre}`,
-      htmlContent: emailInvitationEnseignant({
-        nom: enseignant.nom ?? "cher·e collègue",
-        cursusTitre: cursus.titre,
-        coordinateurNom: cursus.coordinateur.user?.name ?? "Le coordinateur",
-        inviteUrl,
-        dejaInscrit: !!user?.formateurProfile,
-      }),
-    }).catch(() => {
-      // L'invitation reste valable même si l'email échoue (relance possible)
-    });
+      sendEmail({
+        to: [{ email: cleanEmail, name: enseignant.nom ?? undefined }],
+        subject: `Vous êtes invité·e à enseigner — ${cursus.titre}`,
+        htmlContent: emailInvitationEnseignant({
+          nom: enseignant.nom ?? "cher·e collègue",
+          cursusTitre: cursus.titre,
+          coordinateurNom: cursus.coordinateur.user?.name ?? "Le coordinateur",
+          inviteUrl,
+          dejaInscrit: !!user?.formateurProfile,
+        }),
+      }).catch(() => {
+        // L'invitation reste valable même si l'email échoue (relance possible)
+      });
+    }
   }
 
   // Auto-rattachement : les intervenants détectés (digitalisation) qui matchent
