@@ -70,6 +70,43 @@ function fdate(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
+// Fine ligne d'insertion entre deux créneaux (+ au survol, cible de drop)
+function InsertLine({ onInsert, onDropSlot, isDropTarget }: {
+  onInsert: () => void;
+  onDropSlot: () => void;
+  isDropTarget: boolean;
+}) {
+  const [hover, setHover] = useState(false);
+  const [over, setOver] = useState(false);
+  const actif = hover || over || isDropTarget;
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => { e.preventDefault(); setOver(false); onDropSlot(); }}
+      style={{ position: "relative", height: actif ? 22 : 8, transition: "height 0.12s", display: "flex", alignItems: "center", padding: "0 22px", cursor: "pointer" }}
+      onClick={onInsert}
+      title="Insérer un créneau ici"
+    >
+      <div style={{ flex: 1, height: over ? 3 : 1, background: actif ? "#C8102E" : "#F0F0F0", borderRadius: 2, transition: "background 0.12s" }} />
+      <div
+        style={{
+          position: "absolute", left: "50%", transform: "translateX(-50%)",
+          width: 18, height: 18, borderRadius: "50%",
+          background: actif ? "#C8102E" : "#E8E8E8", color: "white",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 13, fontWeight: 700, lineHeight: 1,
+          opacity: actif ? 1 : 0.55, transition: "opacity 0.12s, background 0.12s",
+        }}
+      >
+        +
+      </div>
+    </div>
+  );
+}
+
 // ─── Parseur intelligent de contacts (CSV, liste collée, texte libre) ─────────
 // Détecte par ligne : email, téléphone, nom/prénom (NOM en majuscules détecté), le reste = fonction.
 
@@ -185,6 +222,9 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [iaOpen, setIaOpen] = useState(false);
   const [iaConsigne, setIaConsigne] = useState("");
   const [iaPropositions, setIaPropositions] = useState<JourneeProposee[]>([]);
+
+  // Drag & drop des créneaux
+  const [dragSlot, setDragSlot] = useState<{ journeeId: string; index: number } | null>(null);
   const [etudiants, setEtudiants] = useState<Etudiant[] | null>(null);
   const [etudiantsJournees, setEtudiantsJournees] = useState<{ id: string; date: string }[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -569,6 +609,30 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             {data.journees.map((j, idx) => {
               const slots = getSlots(j);
               const edited = !!slotsEdit[j.id];
+              const insertAt = (index: number) => {
+                const prev = slots[index - 1];
+                const next = slots[index];
+                setSlotsEdit((s) => ({
+                  ...s,
+                  [j.id]: [
+                    ...slots.slice(0, index),
+                    { slotId: `slot-${Date.now()}`, heureDebut: prev?.heureFin || j.heureDebut, heureFin: next?.heureDebut || "", titre: "", description: "", type: "cours", enseignantId: null },
+                    ...slots.slice(index),
+                  ],
+                }));
+              };
+              const dropAt = (index: number) => {
+                if (!dragSlot || dragSlot.journeeId !== j.id) return;
+                const from = dragSlot.index;
+                let to = index;
+                if (from < to) to -= 1;
+                setDragSlot(null);
+                if (to === from) return;
+                const arr = [...slots];
+                const [moved] = arr.splice(from, 1);
+                arr.splice(to, 0, moved);
+                setSlotsEdit((s) => ({ ...s, [j.id]: arr }));
+              };
               return (
                 <div key={j.id} style={cardStyle}>
                   <div style={{ padding: "14px 22px", borderBottom: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -606,11 +670,29 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       const support = supportByKey.get(`${j.id}:${slot.slotId}`);
                       const estMonSlot = slot.enseignantId === data.monEnseignantId;
                       const peutEditer = isCoord;
+                      const enCoursDeDrag = dragSlot?.journeeId === j.id && dragSlot.index === si;
                       return (
-                        <div key={slot.slotId} style={{ padding: "12px 22px", borderBottom: "1px solid #F5F5F5", background: estMonSlot ? "#fff5f6" : "white" }}>
+                        <div key={slot.slotId}>
+                          {isCoord && (
+                            <InsertLine
+                              onInsert={() => insertAt(si)}
+                              onDropSlot={() => dropAt(si)}
+                              isDropTarget={!!dragSlot && dragSlot.journeeId === j.id}
+                            />
+                          )}
+                        <div style={{ padding: "12px 22px", borderBottom: "1px solid #F5F5F5", background: estMonSlot ? "#fff5f6" : "white", opacity: enCoursDeDrag ? 0.4 : 1 }}>
                           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: peutEditer ? 6 : 0 }}>
                             {peutEditer ? (
                               <>
+                                <span
+                                  draggable
+                                  onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDragSlot({ journeeId: j.id, index: si }); }}
+                                  onDragEnd={() => setDragSlot(null)}
+                                  title="Glisser pour réordonner"
+                                  style={{ cursor: "grab", color: "#B0B0B0", fontSize: 15, padding: "2px 4px", userSelect: "none", flexShrink: 0 }}
+                                >
+                                  ⠿
+                                </span>
                                 <input type="time" value={slot.heureDebut} onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, heureDebut: e.target.value } : x) }))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
                                 <span style={{ fontSize: 11, color: "#6A6A6A" }}>→</span>
                                 <input type="time" value={slot.heureFin} onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, heureFin: e.target.value } : x) }))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
@@ -683,8 +765,16 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                             </div>
                           )}
                         </div>
+                        </div>
                       );
                     })}
+                    {isCoord && slots.length > 0 && (
+                      <InsertLine
+                        onInsert={() => insertAt(slots.length)}
+                        onDropSlot={() => dropAt(slots.length)}
+                        isDropTarget={!!dragSlot && dragSlot.journeeId === j.id}
+                      />
+                    )}
                     {isCoord && (
                       <div style={{ padding: "12px 22px", display: "flex", gap: 10, alignItems: "center" }}>
                         <button
