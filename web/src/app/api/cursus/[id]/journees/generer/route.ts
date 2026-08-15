@@ -1,43 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, matchEnseignantByName } from "@/lib/cursus";
 import { genererJournees, digitaliserProgramme } from "@/lib/ai/journees";
 import { extractText } from "@/lib/extract-text";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-
-function normaliser(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\b(dr|pr|docteur|professeur|mme|mr|m)\b\.?/g, " ")
-    .replace(/[^a-z]+/g, " ")
-    .trim();
-}
-
-/** Rattache un nom d'intervenant détecté à un enseignant de l'équipe (matching tolérant). */
-function matchEnseignant(
-  intervenant: string,
-  enseignants: { id: string; nom: string | null; email: string }[]
-): string | null {
-  const tokens = normaliser(intervenant).split(" ").filter((t) => t.length > 2);
-  if (tokens.length === 0) return null;
-
-  let best: { id: string; score: number } | null = null;
-  for (const e of enseignants) {
-    const cible = new Set(
-      [...normaliser(e.nom ?? "").split(" "), ...normaliser(e.email.split("@")[0]).split(" ")].filter((t) => t.length > 2)
-    );
-    const score = tokens.filter((t) => cible.has(t)).length;
-    if (score > 0 && (!best || score > best.score)) best = { id: e.id, score };
-  }
-  // Exige au moins un token commun ; deux si le nom détecté en contient plusieurs (évite les faux positifs sur prénom seul)
-  if (!best) return null;
-  if (tokens.length >= 2 && best.score < 1) return null;
-  return best.id;
-}
 
 export async function POST(
   req: NextRequest,
@@ -99,7 +67,7 @@ export async function POST(
           commentaire: p.commentaire,
           slots: p.slots.map((s) => {
             const enseignantId = s.intervenant && s.type !== "pause"
-              ? matchEnseignant(s.intervenant, cursus.enseignants)
+              ? matchEnseignantByName(s.intervenant, cursus.enseignants)
               : null;
             if (s.intervenant && s.type !== "pause") {
               if (enseignantId) reconnus++; else inconnus++;
@@ -110,8 +78,9 @@ export async function POST(
               titre: s.titre,
               type: s.type,
               enseignantId,
-              description: s.intervenant && !enseignantId ? `Intervenant (année précédente) : ${s.intervenant}` : "",
-              intervenant: s.intervenant,
+              description: "",
+              intervenantRaw: s.intervenant && !enseignantId ? s.intervenant : null,
+              intervenant: s.intervenant, // pour l'affichage dans la liste de propositions (côté client)
             };
           }),
         };

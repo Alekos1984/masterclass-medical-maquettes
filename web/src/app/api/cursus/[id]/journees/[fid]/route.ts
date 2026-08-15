@@ -38,6 +38,8 @@ export async function PATCH(
       description: s.description ?? "",
       type: s.type ?? "cours",
       enseignantId: s.enseignantId ?? null,
+      // Un enseignant affecté vide toujours l'intervenantRaw (nom brut de digitalisation)
+      intervenantRaw: s.enseignantId ? null : (s.intervenantRaw ?? null),
     }));
     data.programme = slots;
   }

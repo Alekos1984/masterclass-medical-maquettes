@@ -29,7 +29,7 @@ export async function POST(
   if (!date) return NextResponse.json({ error: "Date obligatoire" }, { status: 400 });
 
   const programme = Array.isArray(slots)
-    ? (slots as { heureDebut?: string; heureFin?: string; titre?: string; type?: string; description?: string; enseignantId?: string | null }[]).map((s, i) => ({
+    ? (slots as { heureDebut?: string; heureFin?: string; titre?: string; type?: string; description?: string; enseignantId?: string | null; intervenantRaw?: string | null }[]).map((s, i) => ({
         slotId: `slot-${Date.now()}-${i}`,
         heureDebut: s.heureDebut ?? "",
         heureFin: s.heureFin ?? "",
@@ -37,6 +37,7 @@ export async function POST(
         description: s.description ?? "",
         type: s.type ?? "cours",
         enseignantId: s.enseignantId ?? null,
+        intervenantRaw: s.enseignantId ? null : (s.intervenantRaw ?? null),
       }))
     : [];
 

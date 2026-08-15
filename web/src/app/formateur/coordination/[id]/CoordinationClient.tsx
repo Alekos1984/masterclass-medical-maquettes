@@ -9,6 +9,7 @@ import Link from "next/link";
 type Slot = {
   slotId: string; heureDebut: string; heureFin: string;
   titre: string; description: string; type: string; enseignantId: string | null;
+  intervenantRaw?: string | null;
 };
 type Journee = {
   id: string; date: string; heureDebut: string; heureFin: string;
@@ -26,6 +27,7 @@ type Echange = {
 type Alertes = {
   creneauxSansEnseignant: { journeeId: string; date: string; slot: Slot }[];
   supportsManquants: { journeeId: string; date: string; slot: Slot }[];
+  intervenantsNonRattaches: { journeeId: string; date: string; slot: Slot }[];
   conflits: { enseignantId: string; date: string; titres: string[] }[];
   invitationsEnAttente: Enseignant[];
 };
@@ -108,9 +110,46 @@ function InsertLine({ onInsert, onDropSlot, isDropTarget }: {
 }
 
 // ─── Parseur intelligent de contacts (CSV, liste collée, texte libre) ─────────
-// Détecte par ligne : email, téléphone, nom/prénom (NOM en majuscules détecté), le reste = fonction.
+// Détecte par ligne : email, téléphone, civilité (Dr, Pr, Mme…), initiales (S., M.V., J-M.),
+// NOM en majuscules, Prénom capitalisé (Marie-Claire…), le reste = fonction/note.
+// Enrichissement depuis l'email quand un champ manque (marie.dupont@… → Marie DUPONT).
 
 export type ParsedContact = { email: string; nom: string; prenom: string; phone: string; fonction: string };
+
+const TITLES = new Set([
+  "dr", "dr.", "pr", "pr.", "prof", "prof.",
+  "docteur", "docteure", "professeur", "professeure",
+  "mme", "mlle", "monsieur", "madame", "mademoiselle",
+  "mr", "mr.", "ms", "ms.",
+]);
+
+function isTitle(w: string) { return TITLES.has(w.toLowerCase()); }
+function isInitial(w: string) {
+  // "S.", "M.V.", "J-M.", "A.B." — courte séquence d'initiales, doit contenir un point
+  if (w.length > 6 || !w.includes(".")) return false;
+  return /^(?:[A-ZÀ-Ý][.\-]?)+$/.test(w);
+}
+function isAllUpper(w: string) {
+  if (isInitial(w) || w.length < 2) return false;
+  return w === w.toUpperCase() && /[A-ZÀ-Ý]/.test(w);
+}
+function isCapitalized(w: string) {
+  if (isInitial(w) || isTitle(w)) return false;
+  return /^[A-ZÀ-Ý][a-zà-ÿ']*(?:-[A-ZÀ-Ý][a-zà-ÿ']*)*$/.test(w);
+}
+function capitalizeName(s: string): string {
+  return s.toLowerCase().replace(/(^|-)([a-zà-ÿ])/g, (_, sep, c: string) => sep + c.toUpperCase());
+}
+function namesFromEmail(email: string): { prenom: string; nom: string } {
+  const local = email.split("@")[0];
+  const parts = local.split(/[._]+/).filter((p) => p.length > 1);
+  if (parts.length === 0) return { prenom: "", nom: "" };
+  if (parts.length === 1) return { prenom: capitalizeName(parts[0]), nom: "" };
+  return {
+    prenom: capitalizeName(parts[0]),
+    nom: parts.slice(1).map((p) => p.toUpperCase()).join(" "),
+  };
+}
 
 function parseContacts(text: string): ParsedContact[] {
   const results: ParsedContact[] = [];
@@ -119,7 +158,7 @@ function parseContacts(text: string): ParsedContact[] {
     if (!line) continue;
 
     const emailMatch = line.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
-    if (!emailMatch) continue; // pas d'email → ligne ignorée (affichée comme erreur côté UI via diff)
+    if (!emailMatch) continue;
     const email = emailMatch[0].toLowerCase();
 
     let rest = line.replace(emailMatch[0], " ");
@@ -127,31 +166,44 @@ function parseContacts(text: string): ParsedContact[] {
     const phone = phoneMatch ? phoneMatch[0].replace(/[\s.-]+/g, " ").trim() : "";
     if (phoneMatch) rest = rest.replace(phoneMatch[0], " ");
 
-    // Découpage : séparateurs explicites (;, tabulation, virgule) sinon espaces
-    const hasSep = /[;\t]|,/.test(rest);
+    // Tokenisation : sépare sur ;/, tab puis sur espaces, retire ponctuation traînante
     const tokens = rest
-      .split(hasSep ? /[;,\t]/ : /\s+/)
-      .map((t) => t.trim())
-      .filter((t) => t && t !== "-");
+      .split(/[;,\t]/)
+      .flatMap((t) => t.split(/\s+/))
+      .map((t) => t.trim().replace(/[,;]$/, ""))
+      .filter((t) => t && t !== "-" && t !== "&");
 
-    let nom = "", prenom = "";
+    let nom = "";
+    let prenom = "";
+    const titles: string[] = [];
     const fonctionParts: string[] = [];
-    for (const tok of tokens) {
-      const words = tok.split(/\s+/).filter(Boolean);
-      for (const w of words) {
-        const isUpper = w.length > 1 && w === w.toUpperCase() && /[A-ZÀ-Ý]/.test(w);
-        if (!nom && isUpper) { nom = w; continue; }
-        if (!prenom && /^[A-ZÀ-Ý][a-zà-ÿ'-]+$/.test(w)) { prenom = w; continue; }
-        if (!nom && /^[A-ZÀ-Ý][a-zà-ÿ'-]+$/.test(w)) { nom = w; continue; }
-        fonctionParts.push(w);
-      }
-    }
-    // Si on n'a qu'un prénom détecté et pas de nom, on inverse (usage courant : "Nom Prénom")
-    if (prenom && !nom) { nom = prenom; prenom = ""; }
 
-    results.push({ email, nom, prenom, phone, fonction: fonctionParts.join(" ").trim() });
+    for (const tok of tokens) {
+      if (isTitle(tok)) { titles.push(tok); continue; }
+      if (isInitial(tok)) continue; // ignoré — l'email fournira le prénom complet
+      if (isAllUpper(tok)) {
+        if (!nom) nom = tok; else fonctionParts.push(tok);
+        continue;
+      }
+      if (isCapitalized(tok)) {
+        if (!prenom) prenom = tok;
+        else if (!nom) nom = tok.toUpperCase();
+        else fonctionParts.push(tok);
+        continue;
+      }
+      if (tok.toLowerCase() !== "x") fonctionParts.push(tok);
+    }
+
+    // Enrichissement depuis l'email quand un champ manque
+    if (!prenom || !nom) {
+      const fromEmail = namesFromEmail(email);
+      if (!prenom && fromEmail.prenom) prenom = fromEmail.prenom;
+      if (!nom && fromEmail.nom) nom = fromEmail.nom;
+    }
+
+    const fonction = [...titles, ...fonctionParts].join(" ").replace(/\s+/g, " ").trim();
+    results.push({ email, nom, prenom, phone, fonction });
   }
-  // Dédoublonnage par email
   const seen = new Set<string>();
   return results.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
 }
@@ -340,7 +392,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
   const alertes = data.alertes;
   const nbAlertes = isCoord && alertes
-    ? alertes.creneauxSansEnseignant.length + alertes.conflits.length + alertes.invitationsEnAttente.length + alertes.supportsManquants.length
+    ? alertes.creneauxSansEnseignant.length + alertes.conflits.length + alertes.invitationsEnAttente.length + alertes.supportsManquants.length + (alertes.intervenantsNonRattaches?.length ?? 0)
     : 0;
 
   return (
@@ -417,6 +469,24 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             {alertes.creneauxSansEnseignant.length > 0 && <div>• {alertes.creneauxSansEnseignant.length} créneau(x) sans enseignant affecté</div>}
             {alertes.invitationsEnAttente.length > 0 && <div>• {alertes.invitationsEnAttente.length} invitation(s) enseignant en attente (onglet Équipe → relancer)</div>}
             {alertes.supportsManquants.length > 0 && <div>• {alertes.supportsManquants.length} support(s) de cours non chargé(s)</div>}
+            {(alertes.intervenantsNonRattaches?.length ?? 0) > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 2 }}>
+                <span>🔗 {alertes.intervenantsNonRattaches.length} intervenant(s) détecté(s) à l&apos;import mais non rattaché(s) à l&apos;équipe</span>
+                <button
+                  onClick={async () => {
+                    setBusy("rematch");
+                    const r = await api(`/api/cursus/${cursusId}/rematch-intervenants`, "POST");
+                    if (r) alert(`✅ ${r.rattaches ?? 0} intervenant(s) rattaché(s).`);
+                    await reload();
+                    setBusy(null);
+                  }}
+                  disabled={busy === "rematch"}
+                  style={{ background: "#5d4037", color: "white", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  {busy === "rematch" ? "Rattachement…" : "🔄 Réessayer le rattachement"}
+                </button>
+              </div>
+            )}
             {alertes.conflits.map((c, i) => (
               <div key={i} style={{ color: "#c62828" }}>
                 • Conflit : {enseignantsById.get(c.enseignantId)?.nom ?? "un enseignant"} affecté à 2 créneaux qui se chevauchent le {new Date(c.date).toLocaleDateString("fr-FR")} ({c.titres.join(" / ")})
@@ -792,7 +862,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 </select>
                                 <select
                                   value={slot.enseignantId ?? ""}
-                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null } : x))}
+                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null, intervenantRaw: e.target.value ? null : x.intervenantRaw } : x))}
                                   style={{ ...inputStyle, padding: "5px 7px", fontSize: 12, borderColor: slot.enseignantId || slot.type === "pause" ? "#E0E0E0" : "#e65100" }}
                                 >
                                   <option value="">— Enseignant —</option>
@@ -816,6 +886,13 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               </>
                             )}
                           </div>
+                          {/* Intervenant détecté à l'import mais non rattaché */}
+                          {slot.intervenantRaw && !slot.enseignantId && slot.type !== "pause" && (
+                            <div style={{ marginTop: 4, fontSize: 11, color: "#e65100", fontWeight: 600 }}>
+                              🔗 Intervenant détecté à l&apos;import : <em>{slot.intervenantRaw}</em>
+                              <span style={{ fontWeight: 400, color: "#8d5b32" }}> — invitez-le dans l&apos;équipe pour rattacher automatiquement</span>
+                            </div>
+                          )}
                           {/* Support + échange */}
                           {slot.type !== "pause" && (
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
@@ -909,7 +986,10 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                     onClick={async () => {
                       setBusy("invite");
                       const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { email: inviteEmail, nom: inviteNom });
-                      if (ok) { setInviteEmail(""); setInviteNom(""); await reload(); }
+                      if (ok) {
+                        if ((ok.rattaches ?? 0) > 0) alert(`🔗 ${ok.rattaches} intervenant(s) détecté(s) à l'import ont été rattaché(s) à cet enseignant.`);
+                        setInviteEmail(""); setInviteNom(""); await reload();
+                      }
                       setBusy(null);
                     }}
                   >
@@ -945,7 +1025,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                         }));
                         const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts });
                         if (r) {
-                          setEquipeResult(`✅ ${r.invites} invitation(s) envoyée(s), ${r.doublons} déjà dans l'équipe, ${r.erreurs} ligne(s) sans email valide.`);
+                          const suffix = (r.rattaches ?? 0) > 0 ? ` · 🔗 ${r.rattaches} intervenant(s) auto-rattaché(s) aux créneaux` : "";
+                          setEquipeResult(`✅ ${r.invites} invitation(s) envoyée(s), ${r.doublons} déjà dans l'équipe, ${r.erreurs} ligne(s) sans email valide.${suffix}`);
                           setEquipeText("");
                           await reload();
                         }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess } from "@/lib/cursus";
+import { getCursusAccess, rematchIntervenants } from "@/lib/cursus";
 import { sendEmail, emailInvitationEnseignant } from "@/lib/brevo";
 
 export async function POST(
@@ -74,5 +74,12 @@ export async function POST(
     });
   }
 
-  return NextResponse.json({ invites, doublons, erreurs }, { status: 201 });
+  // Auto-rattachement : les intervenants détectés (digitalisation) qui matchent
+  // maintenant l'un des nouveaux enseignants sont affectés à leurs créneaux.
+  let rattaches = 0;
+  if (invites > 0) {
+    try { ({ rattaches } = await rematchIntervenants(id)); } catch { /* non bloquant */ }
+  }
+
+  return NextResponse.json({ invites, doublons, erreurs, rattaches }, { status: 201 });
 }

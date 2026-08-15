@@ -8,6 +8,7 @@ export type CursusSlot = {
   description: string;
   type: string;
   enseignantId: string | null; // CursusEnseignant.id
+  intervenantRaw?: string | null; // nom brut détecté (digitalisation), en attente de rattachement à un enseignant
 };
 
 export type CursusRole = "COORDINATEUR" | "ENSEIGNANT" | null;
@@ -47,15 +48,94 @@ export async function getCursusAccess(cursusId: string, userId: string) {
 
 export function parseSlots(programme: unknown): CursusSlot[] {
   if (!Array.isArray(programme)) return [];
-  return (programme as Record<string, string | null>[]).map((s, i) => ({
-    slotId: (s.slotId as string) ?? `slot-${i}`,
-    heureDebut: (s.heureDebut as string) ?? "",
-    heureFin: (s.heureFin as string) ?? "",
-    titre: (s.titre as string) ?? "",
-    description: (s.description as string) ?? "",
-    type: (s.type as string) ?? "cours",
-    enseignantId: (s.enseignantId as string) ?? null,
-  }));
+  return (programme as Record<string, string | null>[]).map((s, i) => {
+    const rawDescription = (s.description as string) ?? "";
+    // Rétrocompat : anciens créneaux qui stockaient l'intervenant dans la description
+    let intervenantRaw: string | null = (s.intervenantRaw as string) ?? null;
+    let description = rawDescription;
+    if (!intervenantRaw) {
+      const m = rawDescription.match(/Intervenant\s*\(année précédente\)\s*:\s*(.+)$/i);
+      if (m) {
+        intervenantRaw = m[1].trim();
+        description = rawDescription.replace(m[0], "").trim();
+      }
+    }
+    return {
+      slotId: (s.slotId as string) ?? `slot-${i}`,
+      heureDebut: (s.heureDebut as string) ?? "",
+      heureFin: (s.heureFin as string) ?? "",
+      titre: (s.titre as string) ?? "",
+      description,
+      type: (s.type as string) ?? "cours",
+      enseignantId: (s.enseignantId as string) ?? null,
+      intervenantRaw,
+    };
+  });
+}
+
+// ─── Rattachement d'un nom d'intervenant à un enseignant de l'équipe ──────────
+// Matching tolérant : insensible aux accents, aux titres (Dr/Pr/Mme…), utilise
+// aussi le préfixe email en fallback.
+
+function normaliserNom(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\b(dr|pr|docteur|professeur|mme|mlle|mr|ms|monsieur|madame)\b\.?/g, " ")
+    .replace(/[^a-z]+/g, " ")
+    .trim();
+}
+
+export function matchEnseignantByName(
+  intervenant: string,
+  enseignants: { id: string; nom: string | null; email: string }[]
+): string | null {
+  const tokens = normaliserNom(intervenant).split(" ").filter((t) => t.length > 2);
+  if (tokens.length === 0) return null;
+
+  let best: { id: string; score: number } | null = null;
+  for (const e of enseignants) {
+    const cible = new Set(
+      [...normaliserNom(e.nom ?? "").split(" "), ...normaliserNom(e.email.split("@")[0]).split(" ")]
+        .filter((t) => t.length > 2)
+    );
+    const score = tokens.filter((t) => cible.has(t)).length;
+    if (score > 0 && (!best || score > best.score)) best = { id: e.id, score };
+  }
+  return best?.id ?? null;
+}
+
+/** Parcourt tous les créneaux du cursus et rattache ceux dont l'intervenantRaw matche un enseignant actuel. */
+export async function rematchIntervenants(cursusId: string): Promise<{ rattaches: number }> {
+  const cursus = await prisma.cursus.findUnique({
+    where: { id: cursusId },
+    include: { enseignants: true, journees: true },
+  });
+  if (!cursus) return { rattaches: 0 };
+
+  let rattaches = 0;
+  for (const j of cursus.journees) {
+    const slots = parseSlots(j.programme);
+    let dirty = false;
+    const newSlots = slots.map((s) => {
+      if (s.enseignantId || !s.intervenantRaw || s.type === "pause") return s;
+      const matchId = matchEnseignantByName(s.intervenantRaw, cursus.enseignants);
+      if (matchId) {
+        dirty = true;
+        rattaches++;
+        return { ...s, enseignantId: matchId, intervenantRaw: null };
+      }
+      return s;
+    });
+    if (dirty) {
+      await prisma.formation.update({
+        where: { id: j.id },
+        data: { programme: newSlots as unknown as object[] },
+      });
+    }
+  }
+  return { rattaches };
 }
 
 export function cursusSlugify(str: string): string {
@@ -94,6 +174,7 @@ export async function computeAlertes(cursusId: string) {
 
   const creneauxSansEnseignant: { journeeId: string; date: Date; slot: CursusSlot }[] = [];
   const supportsManquants: { journeeId: string; date: Date; slot: CursusSlot }[] = [];
+  const intervenantsNonRattaches: { journeeId: string; date: Date; slot: CursusSlot }[] = [];
   const affectations: { enseignantId: string; date: string; debut: string; fin: string; titre: string }[] = [];
 
   for (const j of cursus.journees) {
@@ -101,6 +182,7 @@ export async function computeAlertes(cursusId: string) {
       if (slot.type === "pause") continue;
       if (!slot.enseignantId) {
         creneauxSansEnseignant.push({ journeeId: j.id, date: j.date, slot });
+        if (slot.intervenantRaw) intervenantsNonRattaches.push({ journeeId: j.id, date: j.date, slot });
       } else {
         affectations.push({
           enseignantId: slot.enseignantId,
@@ -131,6 +213,7 @@ export async function computeAlertes(cursusId: string) {
   return {
     creneauxSansEnseignant,
     supportsManquants,
+    intervenantsNonRattaches,
     conflits,
     invitationsEnAttente: cursus.enseignants.filter((e) => e.statut === "EN_ATTENTE"),
   };
