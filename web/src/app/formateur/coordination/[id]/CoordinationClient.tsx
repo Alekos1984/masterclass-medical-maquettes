@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -225,6 +225,30 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
   // Drag & drop des créneaux
   const [dragSlot, setDragSlot] = useState<{ journeeId: string; index: number } | null>(null);
+
+  // Sauvegarde automatique des créneaux (débounce ~1s par journée)
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [saveStatus, setSaveStatus] = useState<Record<string, "saving" | "saved" | "error">>({});
+
+  const persistSlots = useCallback(async (journeeId: string, slots: Slot[]) => {
+    setSaveStatus((s) => ({ ...s, [journeeId]: "saving" }));
+    try {
+      const res = await fetch(`/api/cursus/${cursusId}/journees/${journeeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slots }),
+      });
+      setSaveStatus((s) => ({ ...s, [journeeId]: res.ok ? "saved" : "error" }));
+    } catch {
+      setSaveStatus((s) => ({ ...s, [journeeId]: "error" }));
+    }
+  }, [cursusId]);
+
+  const updateSlots = useCallback((journeeId: string, newSlots: Slot[]) => {
+    setSlotsEdit((s) => ({ ...s, [journeeId]: newSlots }));
+    if (saveTimers.current[journeeId]) clearTimeout(saveTimers.current[journeeId]);
+    saveTimers.current[journeeId] = setTimeout(() => persistSlots(journeeId, newSlots), 1000);
+  }, [persistSlots]);
   const [etudiants, setEtudiants] = useState<Etudiant[] | null>(null);
   const [etudiantsJournees, setEtudiantsJournees] = useState<{ id: string; date: string }[]>([]);
   const [messageText, setMessageText] = useState("");
@@ -260,13 +284,6 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
       return null;
     }
     return res.json().catch(() => ({}));
-  }
-
-  async function saveSlots(journeeId: string) {
-    setBusy(`slots-${journeeId}`);
-    const ok = await api(`/api/cursus/${cursusId}/journees/${journeeId}`, "PATCH", { slots: slotsEdit[journeeId] });
-    if (ok) { setSlotsEdit((s) => { const n = { ...s }; delete n[journeeId]; return n; }); await reload(); }
-    setBusy(null);
   }
 
   async function uploadSupport(journeeId: string, slotId: string, file: File) {
@@ -608,18 +625,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
             {data.journees.map((j, idx) => {
               const slots = getSlots(j);
-              const edited = !!slotsEdit[j.id];
               const insertAt = (index: number) => {
                 const prev = slots[index - 1];
                 const next = slots[index];
-                setSlotsEdit((s) => ({
-                  ...s,
-                  [j.id]: [
-                    ...slots.slice(0, index),
-                    { slotId: `slot-${Date.now()}`, heureDebut: prev?.heureFin || j.heureDebut, heureFin: next?.heureDebut || "", titre: "", description: "", type: "cours", enseignantId: null },
-                    ...slots.slice(index),
-                  ],
-                }));
+                updateSlots(j.id, [
+                  ...slots.slice(0, index),
+                  { slotId: `slot-${Date.now()}`, heureDebut: prev?.heureFin || j.heureDebut, heureFin: next?.heureDebut || "", titre: "", description: "", type: "cours", enseignantId: null },
+                  ...slots.slice(index),
+                ]);
               };
               const dropAt = (index: number) => {
                 if (!dragSlot || dragSlot.journeeId !== j.id) return;
@@ -631,7 +644,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 const arr = [...slots];
                 const [moved] = arr.splice(from, 1);
                 arr.splice(to, 0, moved);
-                setSlotsEdit((s) => ({ ...s, [j.id]: arr }));
+                updateSlots(j.id, arr);
               };
               return (
                 <div key={j.id} style={cardStyle}>
@@ -693,16 +706,16 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 >
                                   ⠿
                                 </span>
-                                <input type="time" value={slot.heureDebut} onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, heureDebut: e.target.value } : x) }))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
+                                <input type="time" value={slot.heureDebut} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureDebut: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
                                 <span style={{ fontSize: 11, color: "#6A6A6A" }}>→</span>
-                                <input type="time" value={slot.heureFin} onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, heureFin: e.target.value } : x) }))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
-                                <input type="text" placeholder="Titre du cours" value={slot.titre} onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, titre: e.target.value } : x) }))} style={{ ...inputStyle, padding: "5px 9px", fontSize: 12, flex: 1, minWidth: 160 }} />
-                                <select value={slot.type} onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, type: e.target.value } : x) }))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }}>
+                                <input type="time" value={slot.heureFin} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureFin: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
+                                <input type="text" placeholder="Titre du cours" value={slot.titre} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, titre: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 9px", fontSize: 12, flex: 1, minWidth: 160 }} />
+                                <select value={slot.type} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, type: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }}>
                                   {SLOT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
                                 <select
                                   value={slot.enseignantId ?? ""}
-                                  onChange={(e) => setSlotsEdit((s) => ({ ...s, [j.id]: slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null } : x) }))}
+                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null } : x))}
                                   style={{ ...inputStyle, padding: "5px 7px", fontSize: 12, borderColor: slot.enseignantId || slot.type === "pause" ? "#E0E0E0" : "#e65100" }}
                                 >
                                   <option value="">— Enseignant —</option>
@@ -710,7 +723,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 </select>
                                 <button
                                   style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
-                                  onClick={() => setSlotsEdit((s) => ({ ...s, [j.id]: slots.filter((_, k) => k !== si) }))}
+                                  onClick={() => updateSlots(j.id, slots.filter((_, k) => k !== si))}
                                 >
                                   ✕
                                 </button>
@@ -779,16 +792,15 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       <div style={{ padding: "12px 22px", display: "flex", gap: 10, alignItems: "center" }}>
                         <button
                           style={btnGhost}
-                          onClick={() => setSlotsEdit((s) => ({
-                            ...s,
-                            [j.id]: [...slots, { slotId: `slot-${Date.now()}`, heureDebut: j.heureDebut, heureFin: "", titre: "", description: "", type: "cours", enseignantId: null }],
-                          }))}
+                          onClick={() => updateSlots(j.id, [...slots, { slotId: `slot-${Date.now()}`, heureDebut: j.heureDebut, heureFin: "", titre: "", description: "", type: "cours", enseignantId: null }])}
                         >
                           + Créneau
                         </button>
-                        {edited && (
-                          <button style={btnRed} disabled={busy === `slots-${j.id}`} onClick={() => saveSlots(j.id)}>
-                            {busy === `slots-${j.id}` ? "Sauvegarde…" : "💾 Sauvegarder les créneaux"}
+                        {saveStatus[j.id] === "saving" && <span style={{ fontSize: 12, color: "#6A6A6A" }}>💾 Enregistrement…</span>}
+                        {saveStatus[j.id] === "saved" && <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>✓ Enregistré</span>}
+                        {saveStatus[j.id] === "error" && (
+                          <button style={{ ...btnGhost, color: "#c62828", borderColor: "#ffcdd2" }} onClick={() => persistSlots(j.id, slots)}>
+                            ⚠️ Non enregistré — réessayer
                           </button>
                         )}
                       </div>
