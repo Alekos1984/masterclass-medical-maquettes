@@ -180,6 +180,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   type JourneeProposee = {
     date: string; heureDebut: string; heureFin: string; modaliteSession: string; commentaire: string;
     slots: { heureDebut: string; heureFin: string; titre: string; type: string }[];
+    chevauchement?: string; // autres DU du coordinateur le même jour (info, non bloquant)
   };
   const [iaOpen, setIaOpen] = useState(false);
   const [iaConsigne, setIaConsigne] = useState("");
@@ -468,6 +469,11 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 {p.commentaire}
                                 {p.slots.length > 0 && ` · ${p.slots.map((s) => `${s.heureDebut}-${s.heureFin}${s.type === "pause" ? " ☕" : ""}`).join(" / ")}`}
                               </div>
+                              {p.chevauchement && (
+                                <div style={{ fontSize: 11, color: "#1565c0", marginTop: 3 }}>
+                                  ℹ️ Même jour qu&apos;un autre de vos cursus : {p.chevauchement} — c&apos;est permis, à vous de voir.
+                                </div>
+                              )}
                             </div>
                             <input
                               type="date"
