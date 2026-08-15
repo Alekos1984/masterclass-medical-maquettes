@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getCursusAccess } from "@/lib/cursus";
 import { genererJournees } from "@/lib/ai/journees";
 
@@ -25,6 +26,33 @@ export async function POST(
       cursusTitre: cursus.titre,
       datesExistantes: cursus.journees.map((j) => j.date.toISOString().slice(0, 10)),
     });
+
+    // Info non bloquante : dates qui tombent le même jour qu'un AUTRE cursus
+    // du même coordinateur (avoir plusieurs DU le même jour est permis —
+    // le coordinateur n'est pas forcément présent partout).
+    if (journees.length > 0) {
+      const dates = journees.map((j) => new Date(j.date + "T00:00:00Z"));
+      const min = new Date(Math.min(...dates.map((d) => d.getTime())));
+      const max = new Date(Math.max(...dates.map((d) => d.getTime())) + 24 * 3600 * 1000);
+      const autres = await prisma.formation.findMany({
+        where: {
+          cursusId: { not: id },
+          cursus: { coordinateurId: cursus.coordinateurId },
+          date: { gte: min, lte: max },
+        },
+        select: { date: true, cursus: { select: { titre: true } } },
+      });
+      const parDate = new Map<string, string[]>();
+      for (const f of autres) {
+        const k = f.date.toISOString().slice(0, 10);
+        (parDate.get(k) ?? parDate.set(k, []).get(k)!).push(f.cursus?.titre ?? "autre cursus");
+      }
+      for (const j of journees as (typeof journees[number] & { chevauchement?: string })[]) {
+        const c = parDate.get(j.date);
+        if (c?.length) j.chevauchement = c.join(", ");
+      }
+    }
+
     return NextResponse.json({ journees });
   } catch {
     return NextResponse.json({ error: "Erreur lors de la génération. Réessayez." }, { status: 502 });
