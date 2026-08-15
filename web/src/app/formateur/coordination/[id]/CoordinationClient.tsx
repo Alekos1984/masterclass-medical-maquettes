@@ -208,8 +208,23 @@ function parseContacts(text: string): ParsedContact[] {
   return results.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
 }
 
-function PreviewTable({ contacts }: { contacts: ParsedContact[] }) {
-  if (contacts.length === 0) return null;
+function PreviewTable({ contacts, editable, onChange }: {
+  contacts: ParsedContact[];
+  editable?: boolean;
+  onChange?: (next: ParsedContact[]) => void;
+}) {
+  if (contacts.length === 0 && !editable) return null;
+  const cellInputStyle: React.CSSProperties = {
+    width: "100%", border: "1px solid #E0E0E0", borderRadius: 5, padding: "4px 7px",
+    fontSize: 12, fontFamily: "inherit", outline: "none", background: "white", boxSizing: "border-box",
+  };
+  const update = (i: number, patch: Partial<ParsedContact>) => {
+    if (!onChange) return;
+    onChange(contacts.map((c, k) => k === i ? { ...c, ...patch } : c));
+  };
+  const remove = (i: number) => onChange && onChange(contacts.filter((_, k) => k !== i));
+  const add = () => onChange && onChange([...contacts, { prenom: "", nom: "", email: "", phone: "", fonction: "" }]);
+
   return (
     <div style={{ overflowX: "auto", border: "1px solid #EBEBEB", borderRadius: 10, marginTop: 10 }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -218,20 +233,43 @@ function PreviewTable({ contacts }: { contacts: ParsedContact[] }) {
             {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note"].map((h) => (
               <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#6A6A6A", fontWeight: 600 }}>{h}</th>
             ))}
+            {editable && <th style={{ padding: "8px 6px", width: 32 }}></th>}
           </tr>
         </thead>
         <tbody>
           {contacts.map((c, i) => (
             <tr key={i} style={{ borderBottom: "1px solid #F5F5F5" }}>
-              <td style={{ padding: "7px 12px" }}>{c.prenom || <span style={{ color: "#CCC" }}>—</span>}</td>
-              <td style={{ padding: "7px 12px", fontWeight: 600 }}>{c.nom || <span style={{ color: "#CCC" }}>—</span>}</td>
-              <td style={{ padding: "7px 12px", color: "#C8102E" }}>{c.email}</td>
-              <td style={{ padding: "7px 12px" }}>{c.phone || <span style={{ color: "#CCC" }}>—</span>}</td>
-              <td style={{ padding: "7px 12px", color: "#6A6A6A" }}>{c.fonction || <span style={{ color: "#CCC" }}>—</span>}</td>
+              {editable ? (
+                <>
+                  <td style={{ padding: "5px 8px" }}><input value={c.prenom} onChange={(e) => update(i, { prenom: e.target.value })} style={cellInputStyle} /></td>
+                  <td style={{ padding: "5px 8px" }}><input value={c.nom} onChange={(e) => update(i, { nom: e.target.value })} style={{ ...cellInputStyle, fontWeight: 600 }} /></td>
+                  <td style={{ padding: "5px 8px" }}><input type="email" value={c.email} onChange={(e) => update(i, { email: e.target.value })} style={{ ...cellInputStyle, color: "#C8102E" }} /></td>
+                  <td style={{ padding: "5px 8px" }}><input value={c.phone} onChange={(e) => update(i, { phone: e.target.value })} style={cellInputStyle} /></td>
+                  <td style={{ padding: "5px 8px" }}><input value={c.fonction} onChange={(e) => update(i, { fonction: e.target.value })} style={cellInputStyle} /></td>
+                  <td style={{ padding: "5px 4px", textAlign: "center" }}>
+                    <button onClick={() => remove(i)} title="Supprimer la ligne" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#c62828" }}>✕</button>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td style={{ padding: "7px 12px" }}>{c.prenom || <span style={{ color: "#CCC" }}>—</span>}</td>
+                  <td style={{ padding: "7px 12px", fontWeight: 600 }}>{c.nom || <span style={{ color: "#CCC" }}>—</span>}</td>
+                  <td style={{ padding: "7px 12px", color: "#C8102E" }}>{c.email}</td>
+                  <td style={{ padding: "7px 12px" }}>{c.phone || <span style={{ color: "#CCC" }}>—</span>}</td>
+                  <td style={{ padding: "7px 12px", color: "#6A6A6A" }}>{c.fonction || <span style={{ color: "#CCC" }}>—</span>}</td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+      {editable && (
+        <div style={{ padding: "8px 12px", borderTop: "1px solid #F0F0F0", background: "#FAFAFA" }}>
+          <button onClick={add} style={{ background: "none", border: "1px dashed #C8102E", color: "#C8102E", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            + Ajouter une ligne
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -260,6 +298,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [inviteNom, setInviteNom] = useState("");
   const [equipeText, setEquipeText] = useState("");
   const [equipeResult, setEquipeResult] = useState("");
+  const [equipeRows, setEquipeRows] = useState<ParsedContact[] | null>(null);
+  const [editEnseignantId, setEditEnseignantId] = useState<string | null>(null);
   const [prospectText, setProspectText] = useState("");
   const [prospectResult, setProspectResult] = useState("");
   const [prospectSel, setProspectSel] = useState<string[]>([]);
@@ -399,20 +439,29 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
     <>
       {/* TOPBAR */}
       <div className="topbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/formateur/coordination" style={{ fontSize: 13, color: "#6A6A6A", textDecoration: "none" }}>← Coordination</Link>
-          <div style={{ width: 1, height: 18, background: "#E0E0E0" }} />
-          <div className="topbar-title">{cursus.titre}{cursus.annee ? ` · ${cursus.annee}` : ""}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+          <Link href="/formateur/coordination" style={{ fontSize: 13, color: "#6A6A6A", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>← Coordination</Link>
+          <div style={{ width: 1, height: 18, background: "#E0E0E0", flexShrink: 0 }} />
+          <div className="topbar-title" title={`${cursus.titre}${cursus.annee ? ` · ${cursus.annee}` : ""}`}>{cursus.titre}{cursus.annee ? ` · ${cursus.annee}` : ""}</div>
         </div>
-        <div className="topbar-right" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div className="topbar-right">
           {cursus.statut === "PUBLIE"
-            ? <span className="pill pill-green">Publié</span>
-            : <span className="pill pill-orange">Brouillon</span>}
+            ? <span className="pill pill-green" style={{ flexShrink: 0 }}>Publié</span>
+            : <span className="pill pill-orange" style={{ flexShrink: 0 }}>Brouillon</span>}
           {isCoord && (
             <>
-              <a href={`/api/pdf/cursus-programme/${cursusId}`} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: "none" }}>📄 Programme PDF</a>
+              <a
+                href={`/api/pdf/cursus-programme/${cursusId}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Télécharger le programme PDF"
+                style={{ ...btnGhost, padding: "6px 12px", fontSize: 12, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}
+              >
+                📄 PDF
+              </a>
               <button
-                style={btnGhost}
+                style={{ ...btnGhost, padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0 }}
+                title="Envoyer le programme par email"
                 disabled={busy === "programme"}
                 onClick={async () => {
                   const inclureEtudiants = confirm("Envoyer aussi le programme aux étudiants inscrits ?\nOK = enseignants + étudiants · Annuler = enseignants seulement");
@@ -422,10 +471,10 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                   setBusy(null);
                 }}
               >
-                {busy === "programme" ? "Envoi…" : "✉️ Envoyer le programme"}
+                {busy === "programme" ? "Envoi…" : "✉️ Envoyer"}
               </button>
               <button
-                style={btnRed}
+                style={{ ...btnRed, padding: "6px 14px", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0 }}
                 disabled={busy === "statut"}
                 onClick={async () => {
                   setBusy("statut");
@@ -434,7 +483,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                   setBusy(null);
                 }}
               >
-                {cursus.statut === "PUBLIE" ? "Repasser en brouillon" : "🚀 Publier"}
+                {cursus.statut === "PUBLIE" ? "↩ Brouillon" : "🚀 Publier"}
               </button>
             </>
           )}
@@ -1004,39 +1053,129 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                     Collez votre liste (CSV, export Excel, ou simple texte) — une ligne par enseignant.
                     Les emails, noms, prénoms, téléphones et fonctions sont <strong>détectés automatiquement</strong>. Vérifiez l&apos;aperçu avant d&apos;envoyer les invitations.
                   </div>
-                  <textarea
-                    placeholder={"MARTIN Jeanne jeanne.martin@chu.fr 06 12 34 56 78 PU-PH cardiologie\ndupont@aphp.fr;Dupont;Paul;Praticien hospitalier"}
-                    value={equipeText}
-                    onChange={(e) => setEquipeText(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 100, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
-                  />
-                  <PreviewTable contacts={parseContacts(equipeText)} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
-                    <button
-                      style={btnRed}
-                      disabled={parseContacts(equipeText).length === 0 || busy === "equipeImport"}
-                      onClick={async () => {
-                        setBusy("equipeImport");
-                        const contacts = parseContacts(equipeText).map((c) => ({
-                          email: c.email,
-                          nom: [c.prenom, c.nom].filter(Boolean).join(" ") || undefined,
-                          phone: c.phone || undefined,
-                          fonction: c.fonction || undefined,
-                        }));
-                        const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts });
-                        if (r) {
-                          const suffix = (r.rattaches ?? 0) > 0 ? ` · 🔗 ${r.rattaches} intervenant(s) auto-rattaché(s) aux créneaux` : "";
-                          setEquipeResult(`✅ ${r.invites} invitation(s) envoyée(s), ${r.doublons} déjà dans l'équipe, ${r.erreurs} ligne(s) sans email valide.${suffix}`);
-                          setEquipeText("");
-                          await reload();
-                        }
-                        setBusy(null);
-                      }}
-                    >
-                      {busy === "equipeImport" ? "Envoi…" : `✉️ Inviter les ${parseContacts(equipeText).length} enseignant(s)`}
-                    </button>
-                    {equipeResult && <span style={{ fontSize: 12, color: "#2e7d32" }}>{equipeResult}</span>}
-                  </div>
+                  {equipeRows === null ? (
+                    <>
+                      <textarea
+                        placeholder={"MARTIN Jeanne jeanne.martin@chu.fr 06 12 34 56 78 PU-PH cardiologie\ndupont@aphp.fr;Dupont;Paul;Praticien hospitalier"}
+                        value={equipeText}
+                        onChange={(e) => setEquipeText(e.target.value)}
+                        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 100, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+                      />
+                      <PreviewTable contacts={parseContacts(equipeText)} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                        <button
+                          style={btnGhost}
+                          disabled={parseContacts(equipeText).length === 0}
+                          onClick={() => setEquipeRows(parseContacts(equipeText))}
+                        >
+                          ✏️ Modifier avant d&apos;enregistrer
+                        </button>
+                        <button
+                          style={btnGhost}
+                          disabled={parseContacts(equipeText).length === 0 || busy === "equipeSans"}
+                          onClick={async () => {
+                            setBusy("equipeSans");
+                            const contacts = parseContacts(equipeText).map((c) => ({
+                              email: c.email, prenom: c.prenom || undefined, nom: c.nom || undefined,
+                              phone: c.phone || undefined, fonction: c.fonction || undefined,
+                            }));
+                            const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts, sansInviter: true });
+                            if (r) {
+                              const suffix = (r.rattaches ?? 0) > 0 ? ` · 🔗 ${r.rattaches} intervenant(s) auto-rattaché(s)` : "";
+                              setEquipeResult(`✅ ${r.invites} enseignant(s) enregistré(s) sans invitation, ${r.doublons} déjà dans l'équipe.${suffix}`);
+                              setEquipeText("");
+                              await reload();
+                            }
+                            setBusy(null);
+                          }}
+                        >
+                          {busy === "equipeSans" ? "Enregistrement…" : `💾 Enregistrer sans inviter (${parseContacts(equipeText).length})`}
+                        </button>
+                        <button
+                          style={btnRed}
+                          disabled={parseContacts(equipeText).length === 0 || busy === "equipeImport"}
+                          onClick={async () => {
+                            setBusy("equipeImport");
+                            const contacts = parseContacts(equipeText).map((c) => ({
+                              email: c.email, prenom: c.prenom || undefined, nom: c.nom || undefined,
+                              phone: c.phone || undefined, fonction: c.fonction || undefined,
+                            }));
+                            const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts });
+                            if (r) {
+                              const suffix = (r.rattaches ?? 0) > 0 ? ` · 🔗 ${r.rattaches} intervenant(s) auto-rattaché(s)` : "";
+                              setEquipeResult(`✅ ${r.invites} invitation(s) envoyée(s), ${r.doublons} déjà dans l'équipe, ${r.erreurs} ligne(s) sans email valide.${suffix}`);
+                              setEquipeText("");
+                              await reload();
+                            }
+                            setBusy(null);
+                          }}
+                        >
+                          {busy === "equipeImport" ? "Envoi…" : `✉️ Enregistrer et inviter (${parseContacts(equipeText).length})`}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12, color: "#0F0F0F", background: "#e3f2fd", borderRadius: 8, padding: "8px 12px", marginTop: 4 }}>
+                        ✏️ Mode édition manuelle — corrigez les lignes, ajoutez ou supprimez des enseignants, puis choisissez d&apos;enregistrer avec ou sans invitation.
+                      </div>
+                      <PreviewTable contacts={equipeRows} editable onChange={setEquipeRows} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                        <button
+                          style={btnGhost}
+                          onClick={() => { setEquipeRows(null); }}
+                        >
+                          ← Revenir au texte
+                        </button>
+                        <div style={{ flex: 1 }} />
+                        <button
+                          style={btnGhost}
+                          disabled={equipeRows.filter((r) => r.email.includes("@")).length === 0 || busy === "equipeSans"}
+                          onClick={async () => {
+                            setBusy("equipeSans");
+                            const contacts = equipeRows.filter((r) => r.email.includes("@")).map((c) => ({
+                              email: c.email, prenom: c.prenom || undefined, nom: c.nom || undefined,
+                              phone: c.phone || undefined, fonction: c.fonction || undefined,
+                            }));
+                            const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts, sansInviter: true });
+                            if (r) {
+                              const suffix = (r.rattaches ?? 0) > 0 ? ` · 🔗 ${r.rattaches} intervenant(s) auto-rattaché(s)` : "";
+                              setEquipeResult(`✅ ${r.invites} enseignant(s) enregistré(s) sans invitation, ${r.doublons} déjà dans l'équipe.${suffix}`);
+                              setEquipeRows(null);
+                              setEquipeText("");
+                              await reload();
+                            }
+                            setBusy(null);
+                          }}
+                        >
+                          {busy === "equipeSans" ? "Enregistrement…" : `💾 Enregistrer sans inviter (${equipeRows.filter((r) => r.email.includes("@")).length})`}
+                        </button>
+                        <button
+                          style={btnRed}
+                          disabled={equipeRows.filter((r) => r.email.includes("@")).length === 0 || busy === "equipeImport"}
+                          onClick={async () => {
+                            setBusy("equipeImport");
+                            const contacts = equipeRows.filter((r) => r.email.includes("@")).map((c) => ({
+                              email: c.email, prenom: c.prenom || undefined, nom: c.nom || undefined,
+                              phone: c.phone || undefined, fonction: c.fonction || undefined,
+                            }));
+                            const r = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { enseignants: contacts });
+                            if (r) {
+                              const suffix = (r.rattaches ?? 0) > 0 ? ` · 🔗 ${r.rattaches} intervenant(s) auto-rattaché(s)` : "";
+                              setEquipeResult(`✅ ${r.invites} invitation(s) envoyée(s), ${r.doublons} déjà dans l'équipe, ${r.erreurs} ligne(s) sans email valide.${suffix}`);
+                              setEquipeRows(null);
+                              setEquipeText("");
+                              await reload();
+                            }
+                            setBusy(null);
+                          }}
+                        >
+                          {busy === "equipeImport" ? "Envoi…" : `✉️ Enregistrer et inviter (${equipeRows.filter((r) => r.email.includes("@")).length})`}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {equipeResult && <div style={{ fontSize: 12, color: "#2e7d32", marginTop: 8 }}>{equipeResult}</div>}
                 </div>
               </>
             )}
@@ -1046,7 +1185,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
               {data.enseignants.map((e) => {
                 const nbCreneaux = data.journees.reduce((s, j) => s + j.slots.filter((sl) => sl.enseignantId === e.id).length, 0);
                 return (
-                  <div key={e.id} style={{ padding: "14px 22px", borderBottom: "1px solid #F5F5F5", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div key={e.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
+                  <div style={{ padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 200 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0F0F" }}>
                         {e.nom ?? e.email}
@@ -1059,14 +1199,33 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                     </div>
                     {e.statut === "ACCEPTE"
                       ? <span className="pill pill-green">Actif</span>
-                      : <span className="pill pill-orange">Invitation en attente</span>}
+                      : e.statut === "EN_ATTENTE"
+                      ? <span className="pill pill-orange">Invitation en attente</span>
+                      : <span className="pill pill-gray">Enregistré · non invité</span>}
                     {isCoord && (
                       <>
+                        {e.statut === "NON_INVITE" && (
+                          <button
+                            style={btnRed}
+                            onClick={async () => {
+                              const r = await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { action: "inviter" });
+                              if (r) { alert("Invitation envoyée !"); await reload(); }
+                            }}
+                          >
+                            ✉️ Inviter
+                          </button>
+                        )}
                         {e.statut === "EN_ATTENTE" && (
                           <button style={btnGhost} onClick={async () => { const r = await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { action: "relancer" }); if (r) alert("Invitation relancée !"); }}>
                             🔔 Relancer
                           </button>
                         )}
+                        <button
+                          style={btnGhost}
+                          onClick={() => setEditEnseignantId(editEnseignantId === e.id ? null : e.id)}
+                        >
+                          {editEnseignantId === e.id ? "Fermer" : "✏️ Modifier"}
+                        </button>
                         <button
                           style={btnGhost}
                           onClick={async () => { await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { coCoordinateur: !e.coCoordinateur }); await reload(); }}
@@ -1086,6 +1245,17 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       </>
                     )}
                   </div>
+                  {editEnseignantId === e.id && isCoord && (
+                    <EnseignantEdit
+                      enseignant={e}
+                      onSave={async (patch) => {
+                        await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", patch);
+                        setEditEnseignantId(null);
+                        await reload();
+                      }}
+                    />
+                  )}
+                </div>
                 );
               })}
             </div>
@@ -1410,6 +1580,52 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 }
 
 // ─── Onglet Paramètres ────────────────────────────────────────────────────────
+
+// ─── Édition inline d'un enseignant ───────────────────────────────────────────
+
+function EnseignantEdit({ enseignant, onSave }: {
+  enseignant: Enseignant;
+  onSave: (patch: { nom?: string; email?: string; phone?: string; fonction?: string }) => Promise<void>;
+}) {
+  const [nom, setNom] = useState(enseignant.nom ?? "");
+  const [email, setEmail] = useState(enseignant.email);
+  const [phone, setPhone] = useState(enseignant.phone ?? "");
+  const [fonction, setFonction] = useState(enseignant.fonction ?? "");
+  const [saving, setSaving] = useState(false);
+  const inp: React.CSSProperties = { border: "1px solid #E0E0E0", borderRadius: 6, padding: "5px 9px", fontSize: 12, fontFamily: "inherit", outline: "none", background: "white", width: "100%", boxSizing: "border-box" };
+  return (
+    <div style={{ padding: "10px 22px 14px", background: "#F9F7F4", borderTop: "1px dashed #E0E0E0" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
+        <div>
+          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Nom complet</div>
+          <input value={nom} onChange={(e) => setNom(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Email</div>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Téléphone</div>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} style={inp} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: "#6A6A6A", marginBottom: 2 }}>Fonction / note</div>
+          <input value={fonction} onChange={(e) => setFonction(e.target.value)} style={inp} />
+        </div>
+        <button
+          disabled={saving || !email.includes("@")}
+          onClick={async () => {
+            setSaving(true);
+            try { await onSave({ nom, email, phone, fonction }); } finally { setSaving(false); }
+          }}
+          style={{ background: saving ? "#999" : "#C8102E", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+        >
+          {saving ? "…" : "💾 Enregistrer"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBusy }: {
   cursusId: string;

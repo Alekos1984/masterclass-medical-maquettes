@@ -22,14 +22,17 @@ export async function PATCH(
 
   const body = await req.json();
 
-  if (body.action === "relancer") {
+  if (body.action === "relancer" || body.action === "inviter") {
+    // Envoie (ou renvoie) l'email d'invitation. Fait passer le statut de NON_INVITE à EN_ATTENTE.
     const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
     const inviteUrl = enseignant.formateurId
       ? `${baseUrl}/formateur/coordination/${id}`
       : `${baseUrl}/cursus/invitation/${enseignant.inviteToken}`;
     await sendEmail({
       to: [{ email: enseignant.email, name: enseignant.nom ?? undefined }],
-      subject: `Rappel : invitation à enseigner — ${cursus.titre}`,
+      subject: body.action === "inviter"
+        ? `Vous êtes invité·e à enseigner — ${cursus.titre}`
+        : `Rappel : invitation à enseigner — ${cursus.titre}`,
       htmlContent: emailInvitationEnseignant({
         nom: enseignant.nom ?? "cher·e collègue",
         cursusTitre: cursus.titre,
@@ -38,11 +41,25 @@ export async function PATCH(
         dejaInscrit: !!enseignant.formateurId,
       }),
     });
+    if (enseignant.statut === "NON_INVITE") {
+      await prisma.cursusEnseignant.update({ where: { id: eid }, data: { statut: "EN_ATTENTE" } });
+    }
     return NextResponse.json({ ok: true });
   }
 
   if (body.coCoordinateur !== undefined) {
     await prisma.cursusEnseignant.update({ where: { id: eid }, data: { coCoordinateur: !!body.coCoordinateur } });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Édition manuelle des champs d'un enseignant existant
+  const fields: Record<string, unknown> = {};
+  if (body.nom !== undefined) fields.nom = body.nom?.trim() || null;
+  if (body.phone !== undefined) fields.phone = body.phone?.trim() || null;
+  if (body.fonction !== undefined) fields.fonction = body.fonction?.trim() || null;
+  if (body.email !== undefined) fields.email = (body.email as string).trim().toLowerCase();
+  if (Object.keys(fields).length > 0) {
+    await prisma.cursusEnseignant.update({ where: { id: eid }, data: fields });
     return NextResponse.json({ ok: true });
   }
 
