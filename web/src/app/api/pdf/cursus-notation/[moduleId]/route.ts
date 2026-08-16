@@ -61,6 +61,7 @@ export async function GET(
           };
         }),
       },
+      branding: { orgNom: mod.cursus.orgNom, orgLogoBase64: mod.cursus.orgLogoBase64, masquerMM: mod.cursus.masquerMM },
     })
   );
   return pdfResponse(buffer, `notation-${mod.intitule.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.pdf`);

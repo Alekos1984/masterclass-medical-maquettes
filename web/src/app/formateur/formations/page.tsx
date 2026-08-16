@@ -75,7 +75,7 @@ export default async function FormateurFormationsPage() {
 
   const coursDU: {
     formationId: string; slotId: string; date: string; heureDebut: string; heureFin: string;
-    titre: string; cursusId: string; cursusTitre: string; cursusAnnee: string | null; role: "COORDINATEUR" | "ENSEIGNANT";
+    titre: string; cursusId: string; cursusTitre: string; cursusAnnee: string | null; role: "COORDINATEUR" | "ENSEIGNANT" | "APERCU";
     lieu: string | null; type: string;
   }[] = [];
   for (const j of journeesCursus) {
@@ -85,13 +85,14 @@ export default async function FormateurFormationsPage() {
       if (slot.type === "pause" || !slot.titre) continue;
       const suisAffecte = slot.enseignantId && idsEnseignant.has(slot.enseignantId);
       if (!suisAffecte && !suisCoord) continue;
-      // Un coordinateur voit uniquement SES créneaux (pas les autres cours des autres enseignants)
-      if (suisCoord && !suisAffecte) continue;
+      // Le coordinateur voit aussi les cours des autres enseignants (aperçu de la vue enseignant),
+      // marqués comme tels via le champ role — utile en mode brouillon pour vérifier le rendu.
       coursDU.push({
         formationId: j.id, slotId: slot.slotId,
         date: j.date.toISOString(), heureDebut: slot.heureDebut, heureFin: slot.heureFin,
         titre: slot.titre, cursusId: j.cursus.id, cursusTitre: j.cursus.titre,
-        cursusAnnee: j.cursus.annee, role: suisCoord ? "COORDINATEUR" : "ENSEIGNANT",
+        cursusAnnee: j.cursus.annee,
+        role: suisAffecte ? (suisCoord ? "COORDINATEUR" : "ENSEIGNANT") : "APERCU",
         lieu: [j.lieuNom, j.lieuVille].filter(Boolean).join(", ") || null,
         type: slot.type,
       });

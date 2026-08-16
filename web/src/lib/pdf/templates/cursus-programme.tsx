@@ -1,6 +1,6 @@
 import React from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
-import { PdfHeader } from "../shared/Header";
+import { PdfHeader, PdfMMFootnote, type BrandingInfo } from "../shared/Header";
 import { base, RED, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData } from "../shared/types";
 
@@ -32,11 +32,11 @@ export type CursusProgrammeData = {
   }[];
 };
 
-export function CursusProgrammePdf({ company, cursus }: { company: CompanyData; cursus: CursusProgrammeData }) {
+export function CursusProgrammePdf({ company, cursus, branding }: { company: CompanyData; cursus: CursusProgrammeData; branding?: BrandingInfo }) {
   return (
     <Document title={`Programme — ${cursus.titre}`} author={company.raisonSociale}>
       <Page size="A4" style={base.page}>
-        <PdfHeader company={company} docLabel="PROGRAMME D'ENSEIGNEMENT" />
+        <PdfHeader company={company} docLabel="PROGRAMME D'ENSEIGNEMENT" branding={branding} />
         <Text style={base.docTitle}>{cursus.titre}</Text>
         <Text style={base.docSubtitle}>
           {cursus.specialite}{cursus.annee ? ` — ${cursus.annee}` : ""} · Coordination : {cursus.coordinateurNom}
@@ -66,9 +66,12 @@ export function CursusProgrammePdf({ company, cursus }: { company: CompanyData; 
         ))}
 
         <View style={base.footer} fixed>
-          <Text style={base.footerText}>{company.raisonSociale} — Programme {cursus.titre}</Text>
+          <Text style={base.footerText}>
+            {branding?.masquerMM ? (branding.orgNom ?? "") : (branding?.orgNom ?? company.raisonSociale)} — Programme {cursus.titre}
+          </Text>
           <Text style={base.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} fixed />
         </View>
+        <PdfMMFootnote company={company} branding={branding} />
       </Page>
     </Document>
   );

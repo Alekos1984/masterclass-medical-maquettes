@@ -672,6 +672,11 @@ model Cursus {
   // Modalité d'émargement (impacte qui peut lancer l'émargement et la validité du QR)
   emargementMode String @default("DEMI_JOURNEE") // PAR_COURS | DEMI_JOURNEE | JOUR
 
+  // Marque blanche : nom + logo de l'organisation qui délivre l'enseignement
+  orgNom         String?
+  orgLogoBase64  String? @db.Text // data URI complet (data:image/png;base64,...) ou base64 brut
+  masquerMM      Boolean @default(false) // supprime toute mention Masterclass Médical
+
   coordinateurId String
   coordinateur   FormateurProfile @relation("CursusCoordonnes", fields: [coordinateurId], references: [id])
 

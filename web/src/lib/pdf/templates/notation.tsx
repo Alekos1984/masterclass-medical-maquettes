@@ -1,6 +1,6 @@
 import React from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
-import { PdfHeader } from "../shared/Header";
+import { PdfHeader, PdfMMFootnote, type BrandingInfo } from "../shared/Header";
 import { base, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData } from "../shared/types";
 
@@ -28,7 +28,7 @@ export type NotationData = {
   lignes: { nom: string; email: string; note: number | null; commentaire: string }[];
 };
 
-export function NotationPdf({ company, data }: { company: CompanyData; data: NotationData }) {
+export function NotationPdf({ company, data, branding }: { company: CompanyData; data: NotationData; branding?: BrandingInfo }) {
   const moyenne = (() => {
     const notes = data.lignes.map((l) => l.note).filter((n): n is number => typeof n === "number");
     if (notes.length === 0) return null;
@@ -41,7 +41,7 @@ export function NotationPdf({ company, data }: { company: CompanyData; data: Not
   return (
     <Document title={`Feuille de notation — ${data.moduleIntitule}`} author={company.raisonSociale}>
       <Page size="A4" style={base.page}>
-        <PdfHeader company={company} docLabel="FEUILLE DE NOTATION — CLÔTURÉE" />
+        <PdfHeader company={company} docLabel="FEUILLE DE NOTATION — CLÔTURÉE" branding={branding} />
         <Text style={base.docTitle}>{data.moduleIntitule}</Text>
         <Text style={base.docSubtitle}>
           {data.cursusTitre}{data.cursusAnnee ? ` — ${data.cursusAnnee}` : ""} · Coordination : {data.coordinateurNom}
@@ -110,9 +110,10 @@ export function NotationPdf({ company, data }: { company: CompanyData; data: Not
         </Text>
 
         <View style={base.footer} fixed>
-          <Text style={base.footerText}>{company.raisonSociale} — Feuille de notation clôturée</Text>
+          <Text style={base.footerText}>{branding?.masquerMM ? (branding.orgNom ?? "") : (branding?.orgNom ?? company.raisonSociale)} — Feuille de notation clôturée</Text>
           <Text style={base.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} fixed />
         </View>
+        <PdfMMFootnote company={company} branding={branding} />
       </Page>
     </Document>
   );

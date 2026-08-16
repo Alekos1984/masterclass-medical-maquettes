@@ -49,7 +49,7 @@ function tabForStatut(statut: string): string {
 type CoursDU = {
   formationId: string; slotId: string; date: string; heureDebut: string; heureFin: string;
   titre: string; cursusId: string; cursusTitre: string; cursusAnnee: string | null;
-  role: "COORDINATEUR" | "ENSEIGNANT"; lieu: string | null; type: string;
+  role: "COORDINATEUR" | "ENSEIGNANT" | "APERCU"; lieu: string | null; type: string;
 };
 
 export default function FormationsClient({
@@ -134,11 +134,19 @@ export default function FormationsClient({
                       📅 {dateStr} · {c.heureDebut}–{c.heureFin}
                       {c.lieu && <> · 📍 {c.lieu}</>}
                     </div>
-                    {c.role === "COORDINATEUR" && (
-                      <div style={{ marginTop: 6 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, background: "#fff5f6", color: "#C8102E", padding: "2px 8px", borderRadius: 100 }}>Coordinateur</span>
-                      </div>
-                    )}
+                    <div style={{ marginTop: 6 }}>
+                      {c.role === "COORDINATEUR" && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: "#fff5f6", color: "#C8102E", padding: "2px 8px", borderRadius: 100 }}>Coordinateur · vous enseignez</span>
+                      )}
+                      {c.role === "ENSEIGNANT" && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: "#e8f5e9", color: "#2e7d32", padding: "2px 8px", borderRadius: 100 }}>Vous enseignez</span>
+                      )}
+                      {c.role === "APERCU" && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: "#eceff1", color: "#607d8b", padding: "2px 8px", borderRadius: 100 }} title="Coordinateur — aperçu de ce que voit l'enseignant affecté">
+                          👁 Aperçu coord.
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               );

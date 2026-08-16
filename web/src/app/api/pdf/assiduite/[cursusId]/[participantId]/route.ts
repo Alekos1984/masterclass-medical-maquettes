@@ -69,6 +69,7 @@ export async function GET(
         journees,
         tauxPresence: demiJournees > 0 ? Math.round((presences / demiJournees) * 100) : 0,
       },
+      branding: { orgNom: cursus.orgNom, orgLogoBase64: cursus.orgLogoBase64, masquerMM: cursus.masquerMM },
     })
   );
   return pdfResponse(buffer, `assiduite-${cursus.slug}.pdf`);

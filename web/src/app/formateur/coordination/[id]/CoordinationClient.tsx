@@ -39,7 +39,9 @@ type ApiData = {
     id: string; slug: string; titre: string; description: string; specialite: string;
     annee: string | null; publique: boolean; statut: string; inscriptionMode: string; prixHT: number | null;
     lieuNom: string | null; lieuAdresse: string | null; lieuVille: string | null;
-    certifBlocCode: string | null; certifActionTitre: string | null; emargementMode?: string; coordinateurNom: string;
+    certifBlocCode: string | null; certifActionTitre: string | null; emargementMode?: string;
+    orgNom?: string | null; orgLogoBase64?: string | null; masquerMM?: boolean;
+    coordinateurNom: string;
   };
   journees: Journee[];
   enseignants: Enseignant[];
@@ -2181,6 +2183,9 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
     publique: cursus.publique, inscriptionMode: cursus.inscriptionMode, prixHT: cursus.prixHT?.toString() ?? "",
     lieuNom: cursus.lieuNom ?? "", lieuAdresse: cursus.lieuAdresse ?? "", lieuVille: cursus.lieuVille ?? "",
     emargementMode: cursus.emargementMode ?? "DEMI_JOURNEE",
+    orgNom: cursus.orgNom ?? "",
+    orgLogoBase64: cursus.orgLogoBase64 ?? "",
+    masquerMM: cursus.masquerMM ?? false,
   });
 
   return (
@@ -2216,6 +2221,48 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
         {form.inscriptionMode === "PAYANT" && (
           <input type="number" placeholder="Prix HT" value={form.prixHT} onChange={(e) => setForm((s) => ({ ...s, prixHT: e.target.value }))} style={{ ...inputStyle, width: 120 }} />
         )}
+      </div>
+      <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>🏛 Organisation (marque blanche)</div>
+        <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 12, lineHeight: 1.5 }}>
+          Nom et logo de l&apos;organisation qui délivre l&apos;enseignement — remplacent Masterclass Médical
+          en tête de tous les documents PDF (programme, notation, attestations) et sur la page publique. Le logo Masterclass
+          Médical est repoussé en pied de page « Avec l&apos;aide de… », sauf si vous cochez la case pour tout masquer.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Nom du fournisseur</div>
+            <input value={form.orgNom} onChange={(e) => setForm((s) => ({ ...s, orgNom: e.target.value }))} placeholder="Ex : Sorbonne Université — DU d'échographie" style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Logo (PNG ou JPG, ≤ 500 Ko)</div>
+            {form.orgLogoBase64 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.orgLogoBase64.startsWith("data:") ? form.orgLogoBase64 : `data:image/png;base64,${form.orgLogoBase64}`} alt="Logo" style={{ height: 40, background: "white", border: "1px solid #EBEBEB", borderRadius: 6, padding: 4 }} />
+                <button type="button" onClick={() => setForm((s) => ({ ...s, orgLogoBase64: "" }))} style={{ background: "transparent", border: "1.5px solid #ffcdd2", color: "#c62828", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Retirer</button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  if (f.size > 500 * 1024) { alert("Logo trop volumineux (max 500 Ko)"); return; }
+                  const r = new FileReader();
+                  r.onload = () => setForm((s) => ({ ...s, orgLogoBase64: r.result as string }));
+                  r.readAsDataURL(f);
+                }}
+                style={{ fontSize: 12, fontFamily: "inherit" }}
+              />
+            )}
+          </div>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer", marginTop: 6 }}>
+          <input type="checkbox" checked={form.masquerMM} onChange={(e) => setForm((s) => ({ ...s, masquerMM: e.target.checked }))} />
+          Masquer toute mention de Masterclass Médical sur les documents (marque blanche stricte)
+        </label>
       </div>
       <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>✍️ Mode d&apos;émargement</div>
