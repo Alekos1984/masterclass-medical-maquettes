@@ -44,6 +44,7 @@ export async function GET(
       orgNom: cursus.orgNom, orgLogoBase64: cursus.orgLogoBase64, masquerMM: cursus.masquerMM,
       organisateursTexte: cursus.organisateursTexte,
       contactNom: cursus.contactNom, contactEmail: cursus.contactEmail, contactTelephone: cursus.contactTelephone,
+      capaciteMax: cursus.capaciteMax,
       coordinateurNom: cursus.coordinateur.user?.name ?? "—",
     },
     journees: cursus.journees.map((j) => ({
@@ -100,6 +101,7 @@ export async function PATCH(
   if (body.contactNom !== undefined) data.contactNom = body.contactNom || null;
   if (body.contactEmail !== undefined) data.contactEmail = body.contactEmail || null;
   if (body.contactTelephone !== undefined) data.contactTelephone = body.contactTelephone || null;
+  if (body.capaciteMax !== undefined) data.capaciteMax = body.capaciteMax === null || body.capaciteMax === "" ? null : parseInt(body.capaciteMax, 10);
 
   const updated = await prisma.cursus.update({ where: { id }, data, select: { id: true, statut: true } });
 

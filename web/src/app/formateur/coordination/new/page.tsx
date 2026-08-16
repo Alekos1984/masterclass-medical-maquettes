@@ -14,6 +14,7 @@ const cardStyle: React.CSSProperties = { background: "white", borderRadius: 16, 
 const cardTitleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid #EBEBEB" };
 
 type CertifBlocOption = { code: string; ordre: number; titre: string; emoji: string };
+type Template = { id: string; nom: string; specialite: string | null; description: string | null; createdAt: string };
 
 export default function NouveauCursusPage() {
   const router = useRouter();
@@ -32,13 +33,27 @@ export default function NouveauCursusPage() {
   const [certifAction, setCertifAction] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templateId, setTemplateId] = useState("");
 
   useEffect(() => {
     fetch("/api/certification/referentiel")
       .then((r) => r.json())
       .then((d) => setCertifBlocs(d.blocs ?? []))
       .catch(() => {});
+    fetch("/api/cursus-templates")
+      .then((r) => r.json())
+      .then((d) => setTemplates(d.templates ?? []))
+      .catch(() => {});
   }, []);
+
+  function appliquerTemplate(id: string) {
+    setTemplateId(id);
+    const t = templates.find((tp) => tp.id === id);
+    if (!t) return;
+    if (t.specialite) setSpecialite(t.specialite);
+    if (t.description) setDescription(t.description);
+  }
 
   async function submit() {
     if (!titre.trim()) { setError("Le titre est obligatoire"); return; }
@@ -54,6 +69,7 @@ export default function NouveauCursusPage() {
           lieuNom, lieuAdresse, lieuVille,
           certifBlocCode: certifBloc || null,
           certifActionTitre: certifAction || null,
+          templateId: templateId || null,
         }),
       });
       const d = await res.json();
@@ -76,6 +92,19 @@ export default function NouveauCursusPage() {
         </div>
       </div>
       <div className="content" style={{ maxWidth: 820 }}>
+        {templates.length > 0 && (
+          <div style={{ ...cardStyle, border: "1.5px solid #C8102E", background: "#fff5f6" }}>
+            <div style={cardTitleStyle}>📐 Partir d&apos;un modèle <span style={{ color: "#9A9A9A", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optionnel)</span></div>
+            <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 14, lineHeight: 1.5 }}>
+              Réutilisez le comité d&apos;organisation, le contact, le mode d&apos;émargement et les blocs de validation
+              d&apos;un modèle déjà enregistré.
+            </div>
+            <select value={templateId} onChange={(e) => appliquerTemplate(e.target.value)} style={inputStyle}>
+              <option value="">— Repartir de zéro —</option>
+              {templates.map((t) => <option key={t.id} value={t.id}>{t.nom}</option>)}
+            </select>
+          </div>
+        )}
         <div style={cardStyle}>
           <div style={cardTitleStyle}>Informations générales</div>
           <div style={{ marginBottom: 18 }}>

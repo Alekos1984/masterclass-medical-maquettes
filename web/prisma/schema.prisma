@@ -683,6 +683,11 @@ model Cursus {
   contactEmail       String?
   contactTelephone   String?
 
+  // Tableau de bord multi-DU : capacité indicative pour le taux de remplissage
+  capaciteMax Int?
+
+  templateOrigineId String? // template utilisé à la création (traçabilité, optionnel)
+
   coordinateurId String
   coordinateur   FormateurProfile @relation("CursusCoordonnes", fields: [coordinateurId], references: [id])
 
@@ -769,6 +774,9 @@ model CursusProspect {
   fonction String? // texte libre détecté ou saisi (ex : "Interne DES cardio", "PU-PH")
   statut   String  @default("ATTENTE") // ATTENTE | ACCEPTE | REFUSE
 
+  // Dossier d'inscription (DU sélectifs) : { cv?: {nom,base64}, lettre?: {...}, diplome?: {...} }
+  piecesJointes Json?
+
   createdAt DateTime @default(now())
 
   @@unique([cursusId, email])
@@ -826,4 +834,30 @@ model CursusNoteHistorique {
   createdAt DateTime @default(now())
 
   @@index([moduleId, participantId])
+}
+
+// ─── MODÈLE DE DU RÉUTILISABLE ─────────────────────────────────────────────────
+
+model CursusTemplate {
+  id          String @id @default(cuid())
+  formateurId String
+  nom         String
+  specialite  String?
+  description String? @db.Text
+
+  // Réglages recopiés à la création d'un nouveau cursus
+  emargementMode     String  @default("DEMI_JOURNEE")
+  organisateursTexte String? @db.Text
+  contactNom         String?
+  contactEmail       String?
+  contactTelephone   String?
+  certifBlocCode     String?
+  certifActionTitre  String?
+
+  // Structure des modules de validation à recréer (sans dates ni notes)
+  // [{ type, intitule, coefficient, noteMax, seuilValidation }]
+  modulesValidation Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

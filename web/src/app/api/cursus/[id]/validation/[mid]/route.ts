@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCursusAccess } from "@/lib/cursus";
+import { sendEmail, emailResultatsDisponiblesCursus } from "@/lib/brevo";
 
 // GET : liste des étudiants du cursus + leurs notes pour ce module
 export async function GET(
@@ -88,6 +89,7 @@ export async function PATCH(
       where: { id: mid },
       data: { cloture: true, clotureAt: new Date(), clotureExportUrl: `/api/pdf/cursus-notation/${mid}` },
     });
+    notifierResultatsDisponibles(id, mid).catch(() => {});
     return NextResponse.json({ ok: true, exportUrl: `/api/pdf/cursus-notation/${mid}` });
   }
 
@@ -124,6 +126,43 @@ export async function PATCH(
   ]);
 
   return NextResponse.json({ ok: true });
+}
+
+async function notifierResultatsDisponibles(cursusId: string, moduleId: string) {
+  const [cursus, mod, notes] = await Promise.all([
+    prisma.cursus.findUnique({ where: { id: cursusId }, select: { titre: true } }),
+    prisma.cursusValidationModule.findUnique({ where: { id: moduleId }, select: { intitule: true } }),
+    prisma.cursusNote.findMany({ where: { moduleId, note: { not: null } } }),
+  ]);
+  if (!cursus || !mod) return;
+
+  const participantIds = notes.map((n) => n.participantId);
+  if (participantIds.length === 0) return;
+  const participants = await prisma.participantProfile.findMany({
+    where: { id: { in: participantIds } },
+    include: { user: { select: { name: true, email: true } } },
+  });
+  const participantsById = new Map(participants.map((p) => [p.id, p]));
+
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://masterclassmedicale.com";
+
+  for (const note of notes) {
+    const participant = participantsById.get(note.participantId);
+    const email = participant?.user?.email;
+    if (!email) continue;
+    try {
+      await sendEmail({
+        to: [{ email, name: participant?.user?.name ?? undefined }],
+        subject: `📋 Résultats disponibles — ${cursus.titre}`,
+        htmlContent: emailResultatsDisponiblesCursus({
+          nom: participant?.user?.name ?? "cher·e participant·e",
+          cursusTitre: cursus.titre,
+          moduleIntitule: mod.intitule,
+          url: `${baseUrl}/participant/notes`,
+        }),
+      });
+    } catch { /* notification best-effort */ }
+  }
 }
 
 // DELETE : supprime un module (uniquement s'il n'est pas clôturé)

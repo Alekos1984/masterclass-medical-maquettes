@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCursusAccess, type CursusSlot, peutGerer } from "@/lib/cursus";
+import { sendEmail, emailChangementJourneeCursus } from "@/lib/brevo";
 
 export async function PATCH(
   req: NextRequest,
@@ -15,7 +16,10 @@ export async function PATCH(
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
   if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
-  const journee = await prisma.formation.findFirst({ where: { id: fid, cursusId: id }, select: { id: true } });
+  const journee = await prisma.formation.findFirst({
+    where: { id: fid, cursusId: id },
+    select: { id: true, date: true, heureDebut: true, heureFin: true, lieuNom: true, lieuVille: true, modaliteSession: true, visioUrl: true },
+  });
   if (!journee) return NextResponse.json({ error: "Journée introuvable" }, { status: 404 });
 
   const body = await req.json();
@@ -44,8 +48,58 @@ export async function PATCH(
     data.programme = slots;
   }
 
-  await prisma.formation.update({ where: { id: fid }, data });
+  const changementSignificatif =
+    (data.date !== undefined && (data.date as Date).getTime() !== journee.date.getTime()) ||
+    (data.heureDebut !== undefined && data.heureDebut !== journee.heureDebut) ||
+    (data.heureFin !== undefined && data.heureFin !== journee.heureFin) ||
+    (data.lieuNom !== undefined && data.lieuNom !== journee.lieuNom) ||
+    (data.lieuVille !== undefined && data.lieuVille !== journee.lieuVille);
+
+  const updated = await prisma.formation.update({ where: { id: fid }, data });
+
+  if (changementSignificatif && updated.date.getTime() > Date.now()) {
+    notifierChangementJournee(id, updated).catch(() => {});
+  }
+
   return NextResponse.json({ ok: true });
+}
+
+async function notifierChangementJournee(
+  cursusId: string,
+  journee: { id: string; date: Date; heureDebut: string; heureFin: string; lieuNom: string | null; lieuVille: string | null; modaliteSession: string | null; visioUrl: string | null }
+) {
+  const cursus = await prisma.cursus.findUnique({ where: { id: cursusId }, select: { titre: true } });
+  if (!cursus) return;
+
+  const inscriptions = await prisma.inscription.findMany({
+    where: { formationId: journee.id, statut: "CONFIRMEE" },
+    include: { participant: { include: { user: { select: { name: true, email: true } } } } },
+  });
+  if (inscriptions.length === 0) return;
+
+  const dateStr = journee.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const lieu = journee.modaliteSession === "VIRTUEL"
+    ? (journee.visioUrl ? `Visioconférence — ${journee.visioUrl}` : "Visioconférence")
+    : [journee.lieuNom, journee.lieuVille].filter(Boolean).join(", ") || "Lieu à confirmer";
+
+  for (const insc of inscriptions) {
+    const email = insc.participant.user?.email;
+    if (!email) continue;
+    try {
+      await sendEmail({
+        to: [{ email, name: insc.participant.user?.name ?? undefined }],
+        subject: `📅 Changement pour votre cours — ${cursus.titre}`,
+        htmlContent: emailChangementJourneeCursus({
+          nom: insc.participant.user?.name ?? "cher·e participant·e",
+          cursusTitre: cursus.titre,
+          dateStr,
+          heureDebut: journee.heureDebut,
+          heureFin: journee.heureFin,
+          lieu,
+        }),
+      });
+    } catch { /* notification best-effort */ }
+  }
 }
 
 export async function DELETE(

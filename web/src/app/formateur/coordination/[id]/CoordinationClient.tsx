@@ -21,7 +21,11 @@ type Enseignant = {
   id: string; email: string; nom: string | null; phone: string | null; fonction: string | null;
   statut: string; coCoordinateur: boolean; role: string; estOrganisateur: boolean;
 };
-type Prospect = { id: string; email: string; nom: string | null; prenom: string | null; phone: string | null; fonction: string | null; statut: string; createdAt: string };
+type PieceJointe = { nom: string; base64: string; taille: number | null };
+type Prospect = {
+  id: string; email: string; nom: string | null; prenom: string | null; phone: string | null; fonction: string | null; statut: string; createdAt: string;
+  piecesJointes?: Partial<Record<"cv" | "lettre" | "diplome", PieceJointe>> | null;
+};
 type Support = { id: string; formationId: string; slotId: string | null; nom: string; taille: number | null };
 type Message = { id: string; auteurEmail: string; auteurNom: string; texte: string; createdAt: string };
 type Echange = {
@@ -46,6 +50,7 @@ type ApiData = {
     orgNom?: string | null; orgLogoBase64?: string | null; masquerMM?: boolean;
     organisateursTexte?: string | null;
     contactNom?: string | null; contactEmail?: string | null; contactTelephone?: string | null;
+    capaciteMax?: number | null;
     coordinateurNom: string;
   };
   journees: Journee[];
@@ -220,6 +225,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [prospectResult, setProspectResult] = useState("");
   const [prospectSel, setProspectSel] = useState<string[]>([]);
   const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
+  const [dossierProspectId, setDossierProspectId] = useState<string | null>(null);
+  const [pieceBusy, setPieceBusy] = useState<string | null>(null);
 
   // Génération IA du calendrier (consigne libre et/ou digitalisation d'un programme existant)
   type JourneeProposee = {
@@ -1552,7 +1559,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               onChange={(e) => setProspectSel(e.target.checked ? data.prospects.map((p) => p.id) : [])}
                             />
                           </th>
-                          {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note", "Statut"].map((h) => (
+                          {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note", "Dossier", "Statut"].map((h) => (
                             <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#6A6A6A", fontWeight: 600 }}>{h}</th>
                           ))}
                         </tr>
@@ -1573,6 +1580,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                             <td style={{ padding: "7px 12px" }}>{p.phone ?? "—"}</td>
                             <td style={{ padding: "7px 12px", color: "#6A6A6A" }}>{p.fonction ?? "—"}</td>
                             <td style={{ padding: "7px 12px" }}>
+                              <button
+                                onClick={() => setDossierProspectId(p.id)}
+                                style={{ background: "none", border: "1px solid #E0E0E0", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: "#6A6A6A" }}
+                              >
+                                📎 {Object.keys(p.piecesJointes ?? {}).length}/3
+                              </button>
+                            </td>
+                            <td style={{ padding: "7px 12px" }}>
                               {p.statut === "ACCEPTE"
                                 ? <span className="pill pill-green">Accepté</span>
                                 : p.statut === "REFUSE"
@@ -1587,6 +1602,81 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 </>
               )}
             </div>
+
+            {dossierProspectId && (() => {
+              const p = data.prospects.find((pr) => pr.id === dossierProspectId);
+              if (!p) return null;
+              const slots: { type: "cv" | "lettre" | "diplome"; label: string }[] = [
+                { type: "cv", label: "CV" },
+                { type: "lettre", label: "Lettre de motivation" },
+                { type: "diplome", label: "Diplôme(s)" },
+              ];
+              return (
+                <div
+                  onClick={() => setDossierProspectId(null)}
+                  style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: 16, padding: "22px 26px", width: 460, maxWidth: "90vw" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>Dossier d&apos;inscription</div>
+                      <button onClick={() => setDossierProspectId(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#6A6A6A" }}>✕</button>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 16 }}>{p.prenom ?? ""} {p.nom ?? p.email}</div>
+                    {slots.map((s) => {
+                      const piece = p.piecesJointes?.[s.type];
+                      const busyKey = `${p.id}:${s.type}`;
+                      return (
+                        <div key={s.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 0", borderBottom: "1px solid #F0F0F0" }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.label}</div>
+                          {piece ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <a href={piece.base64} download={piece.nom} style={{ fontSize: 12, color: "#C8102E", textDecoration: "none", fontWeight: 600 }}>📄 {piece.nom}</a>
+                              <button
+                                disabled={pieceBusy === busyKey}
+                                onClick={async () => {
+                                  setPieceBusy(busyKey);
+                                  await api(`/api/cursus/${cursusId}/prospects/${p.id}/pieces`, "DELETE", { type: s.type });
+                                  await reload();
+                                  setPieceBusy(null);
+                                }}
+                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9A9A9A" }}
+                              >
+                                🗑
+                              </button>
+                            </div>
+                          ) : (
+                            <label style={{ fontSize: 12, color: "#C8102E", fontWeight: 600, cursor: pieceBusy === busyKey ? "wait" : "pointer" }}>
+                              {pieceBusy === busyKey ? "Envoi…" : "+ Ajouter"}
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,image/*"
+                                style={{ display: "none" }}
+                                disabled={pieceBusy === busyKey}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (!f) return;
+                                  if (f.size > 10 * 1024 * 1024) { alert("Fichier trop volumineux (max 10 Mo)"); return; }
+                                  setPieceBusy(busyKey);
+                                  const r = new FileReader();
+                                  r.onload = async () => {
+                                    await api(`/api/cursus/${cursusId}/prospects/${p.id}/pieces`, "POST", {
+                                      type: s.type, nom: f.name, base64: r.result as string, taille: f.size,
+                                    });
+                                    await reload();
+                                    setPieceBusy(null);
+                                  };
+                                  r.readAsDataURL(f);
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={cardStyle}>
               <div style={{ padding: "14px 22px", borderBottom: "1px solid #EBEBEB", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
@@ -1821,10 +1911,21 @@ function DocumentsTab({ cursusId, cursusSlug, journees, api, busy, setBusy }: {
     <div>
       <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 20, lineHeight: 1.6, maxWidth: 700 }}>
         Tous les documents du DU en un seul endroit. Ces documents ne sont pas exposés aux enseignants
-        depuis leur vue "Mes cours" — seuls le coordinateur (et éventuellement les co-coordinateurs) y ont accès ici.
+        depuis leur vue &quot;Mes cours&quot; — seuls le coordinateur (et éventuellement les co-coordinateurs) y ont accès ici.
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <div style={{ ...cardDocStyle, border: "1.5px solid #C8102E", background: "#fff5f6" }}>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>🗄️</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Export global du dossier</div>
+          <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 12, lineHeight: 1.5 }}>
+            Archive ZIP complète pour l&apos;archivage annuel ou un audit qualité (Qualiopi) : programme,
+            liste des étudiants avec assiduité, et toutes les feuilles de notation clôturées.
+          </div>
+          <a href={`/api/cursus/${cursusId}/export-dossier`} target="_blank" rel="noreferrer" style={{ background: "#C8102E", color: "white", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            📦 Télécharger le ZIP
+          </a>
+        </div>
         <div style={cardDocStyle}>
           <div style={{ fontSize: 22, marginBottom: 6 }}>📄</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Programme complet</div>
@@ -2295,7 +2396,9 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
     contactNom: cursus.contactNom ?? "",
     contactEmail: cursus.contactEmail ?? "",
     contactTelephone: cursus.contactTelephone ?? "",
+    capaciteMax: cursus.capaciteMax?.toString() ?? "",
   });
+  const [modeleBusy, setModeleBusy] = useState(false);
   const [orgaBusy, setOrgaBusy] = useState<string | null>(null);
 
   async function toggleOrganisateur(eid: string, next: boolean) {
@@ -2375,6 +2478,18 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
         <input type="text" placeholder="Lieu (établissement)" value={form.lieuNom} onChange={(e) => setForm((s) => ({ ...s, lieuNom: e.target.value }))} style={inputStyle} />
         <input type="text" placeholder="Adresse" value={form.lieuAdresse} onChange={(e) => setForm((s) => ({ ...s, lieuAdresse: e.target.value }))} style={inputStyle} />
         <input type="text" placeholder="Ville" value={form.lieuVille} onChange={(e) => setForm((s) => ({ ...s, lieuVille: e.target.value }))} style={inputStyle} />
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Capacité maximale (étudiants)</div>
+        <input
+          type="number" min={0} placeholder="Ex : 30"
+          value={form.capaciteMax}
+          onChange={(e) => setForm((s) => ({ ...s, capaciteMax: e.target.value }))}
+          style={{ ...inputStyle, width: 140 }}
+        />
+        <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 4 }}>
+          Utilisée pour le taux de remplissage affiché sur le tableau de bord multi-DU.
+        </div>
       </div>
       <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 18, flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
@@ -2484,6 +2599,20 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
           }}
         >
           {busy === "dupliquer" ? "Duplication…" : "🔁 Dupliquer pour l'année suivante"}
+        </button>
+        <button
+          style={btnGhost}
+          disabled={modeleBusy}
+          onClick={async () => {
+            const nom = prompt("Nom du modèle (ex : DU Échographie — trame type)", cursus.titre);
+            if (!nom?.trim()) return;
+            setModeleBusy(true);
+            const ok = await api(`/api/cursus-templates`, "POST", { cursusId, nom: nom.trim() });
+            setModeleBusy(false);
+            if (ok) alert("Modèle enregistré — disponible lors de la création d'un nouveau DU.");
+          }}
+        >
+          {modeleBusy ? "Enregistrement…" : "📐 Enregistrer comme modèle"}
         </button>
         <button
           style={{ ...btnGhost, color: "#c62828", borderColor: "#ffcdd2", marginLeft: "auto" }}
