@@ -55,10 +55,12 @@ type CoursDU = {
 export default function FormationsClient({
   formations,
   coursDU = [],
+  cursusCoordonnes = [],
   stats,
 }: {
   formations: FormationItem[];
   coursDU?: CoursDU[];
+  cursusCoordonnes?: { id: string; titre: string; annee: string | null; statut: string; nbJournees: number; prochaineDate: string | null }[];
   stats: { total: number; inscriptionsTotal: number; revenus: number };
 }) {
   const [activeTab, setActiveTab] = useState("all");
@@ -88,6 +90,30 @@ export default function FormationsClient({
 
   return (
     <>
+      {/* MES DU COORDONNÉS (carte par cursus dont on est coordinateur, indépendamment des créneaux affectés) */}
+      {cursusCoordonnes.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 10 }}>
+            🎓 Mes DU coordonnés ({cursusCoordonnes.length})
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+            {cursusCoordonnes.map((c) => (
+              <Link key={c.id} href={`/formateur/coordination/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div style={{ background: "white", borderRadius: 12, border: "1px solid #E0E0E0", padding: "14px 16px", cursor: "pointer", transition: "border-color .15s" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#C8102E", marginBottom: 6 }}>Coordinateur</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F", marginBottom: 4, lineHeight: 1.35 }}>{c.titre}{c.annee ? ` · ${c.annee}` : ""}</div>
+                  <div style={{ fontSize: 12, color: "#6A6A6A" }}>
+                    {c.nbJournees} journée{c.nbJournees > 1 ? "s" : ""}
+                    {c.prochaineDate && ` · prochaine : ${new Date(c.prochaineDate).toLocaleDateString("fr-FR")}`}
+                    {c.statut !== "PUBLIE" && ` · ${c.statut === "BROUILLON" ? "Brouillon" : c.statut}`}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* MES COURS DE DU (créneaux dans un cursus coordonné) */}
       {coursDU.length > 0 && (
         <div style={{ marginBottom: 24 }}>

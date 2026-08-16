@@ -680,6 +680,7 @@ model Cursus {
   messages    CursusMessage[]
   echanges    CursusEchange[]
   prospects   CursusProspect[]
+  validationModules CursusValidationModule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -758,4 +759,58 @@ model CursusProspect {
   createdAt DateTime @default(now())
 
   @@unique([cursusId, email])
+}
+
+// ─── VALIDATION DU DU (examens, mémoire, stages…) ─────────────────────────────
+
+model CursusValidationModule {
+  id       String @id @default(cuid())
+  cursusId String
+  cursus   Cursus @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+
+  type       String   // ECRIT | ORAL | MEMOIRE | SOUTENANCE | STAGE | ASSIDUITE | AUTRE
+  intitule   String
+  dateEpreuve DateTime?
+  infos       String? @db.Text
+  coefficient Float @default(1)
+  noteMax     Int   @default(20)
+  seuilValidation Float? // note minimale pour valider ce module
+  cloture    Boolean @default(false)
+  clotureAt  DateTime?
+  clotureExportUrl String? // URL du PDF exporté à la clôture (à garder pour audit)
+
+  notes CursusNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CursusNote {
+  id       String @id @default(cuid())
+  moduleId String
+  module   CursusValidationModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  participantId String
+  note        Float?
+  commentaire String? @db.Text
+
+  saisiParUserId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([moduleId, participantId])
+}
+
+// Journal d'audit pour la sécurité des notes (anti-effacement, versioning simple)
+model CursusNoteHistorique {
+  id      String   @id @default(cuid())
+  moduleId String
+  participantId String
+  noteAvant       Float?
+  noteApres       Float?
+  commentaireAvant String? @db.Text
+  commentaireApres String? @db.Text
+  parUserId String?
+  createdAt DateTime @default(now())
+
+  @@index([moduleId, participantId])
 }

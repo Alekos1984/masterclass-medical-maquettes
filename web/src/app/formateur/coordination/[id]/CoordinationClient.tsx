@@ -186,7 +186,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const router = useRouter();
   const [data, setData] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"journees" | "equipe" | "etudiants" | "messages" | "parametres">("journees");
+  const [tab, setTab] = useState<"journees" | "equipe" | "etudiants" | "messages" | "documents" | "validation" | "parametres">("journees");
   const [busy, setBusy] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -473,6 +473,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             ["equipe", "🧑‍🏫 Équipe"],
             ...(isCoord ? [["etudiants", "🎓 Étudiants"]] : []),
             ["messages", `💬 Messages${data.messages.length ? ` (${data.messages.length})` : ""}`],
+            ...(isCoord ? [["documents", "📄 Documents"]] : []),
+            ...(isCoord ? [["validation", "🎓 Validation du DU"]] : []),
             ...(isCoord ? [["parametres", "⚙️ Paramètres"]] : []),
           ] as [typeof tab, string][]).map(([key, label]) => (
             <button
@@ -1584,6 +1586,23 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
           </div>
         )}
 
+        {/* ═══ DOCUMENTS DU DU ═══ */}
+        {tab === "documents" && isCoord && (
+          <DocumentsTab
+            cursusId={cursusId}
+            cursusSlug={cursus.slug}
+            journees={data.journees}
+            api={api}
+            busy={busy}
+            setBusy={setBusy}
+          />
+        )}
+
+        {/* ═══ VALIDATION DU DU ═══ */}
+        {tab === "validation" && isCoord && (
+          <ValidationTab cursusId={cursusId} nbEtudiants={data.nbEtudiants} api={api} busy={busy} setBusy={setBusy} />
+        )}
+
         {/* ═══ PARAMÈTRES ═══ */}
         {tab === "parametres" && isCoord && (
           <ParametresTab cursusId={cursusId} cursus={cursus} onSaved={reload} onDeleted={() => router.push("/formateur/coordination")} api={api} busy={busy} setBusy={setBusy} />
@@ -1673,6 +1692,475 @@ function EnseignantEdit({ enseignant, onSave }: {
         >
           {saving ? "…" : "💾 Enregistrer"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Onglet Documents du DU ──────────────────────────────────────────────────
+// Regroupe tous les documents PDF générables pour le DU (programme, feuilles
+// de présence par journée, attestations). Les enseignants ne voient que leurs
+// supports de cours dans l'onglet Journées.
+
+function DocumentsTab({ cursusId, cursusSlug, journees, api, busy, setBusy }: {
+  cursusId: string;
+  cursusSlug: string;
+  journees: Journee[];
+  api: (path: string, method: string, body?: unknown) => Promise<Record<string, unknown> | null>;
+  busy: string | null;
+  setBusy: (b: string | null) => void;
+}) {
+  const cardDocStyle: React.CSSProperties = { background: "white", borderRadius: 12, border: "1px solid #E0E0E0", padding: "18px 20px" };
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 20, lineHeight: 1.6, maxWidth: 700 }}>
+        Tous les documents du DU en un seul endroit. Ces documents ne sont pas exposés aux enseignants
+        depuis leur vue "Mes cours" — seuls le coordinateur (et éventuellement les co-coordinateurs) y ont accès ici.
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <div style={cardDocStyle}>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>📄</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Programme complet</div>
+          <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 12, lineHeight: 1.5 }}>
+            PDF officiel avec toutes les journées, créneaux et intervenants — à envoyer aux étudiants et à l&apos;université.
+          </div>
+          <a href={`/api/pdf/cursus-programme/${cursusId}`} target="_blank" rel="noreferrer" style={{ background: "#C8102E", color: "white", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            📥 Télécharger
+          </a>
+        </div>
+
+        <div style={cardDocStyle}>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>✉️</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Envoyer le programme</div>
+          <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 12, lineHeight: 1.5 }}>
+            Diffusion email à toute l&apos;équipe (± étudiants) avec le programme en pièce jointe.
+          </div>
+          <button
+            disabled={busy === "doc-envoi"}
+            onClick={async () => {
+              const inclureEtudiants = confirm("Envoyer aussi aux étudiants ?\nOK = équipe + étudiants · Annuler = équipe seulement");
+              setBusy("doc-envoi");
+              const r = await api(`/api/cursus/${cursusId}/envoyer-programme`, "POST", { inclureEtudiants });
+              if (r) alert(`Envoyé à ${r.envoyes} destinataire(s).`);
+              setBusy(null);
+            }}
+            style={{ background: "transparent", color: "#C8102E", border: "1.5px solid #C8102E", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {busy === "doc-envoi" ? "Envoi…" : "✉️ Envoyer"}
+          </button>
+        </div>
+
+        <div style={cardDocStyle}>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>🌐</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Page publique du DU</div>
+          <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 12, lineHeight: 1.5 }}>
+            Lien à partager pour communication externe (visible uniquement si le DU est publié en public).
+          </div>
+          <a href={`/du/${cursusSlug}`} target="_blank" rel="noreferrer" style={{ background: "transparent", color: "#C8102E", border: "1.5px solid #C8102E", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            🔗 Ouvrir
+          </a>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 10 }}>
+        Documents par journée
+      </div>
+      <div style={{ background: "white", borderRadius: 12, border: "1px solid #E0E0E0", overflow: "hidden" }}>
+        {journees.length === 0 && <div style={{ padding: "20px 22px", color: "#6A6A6A", fontSize: 13 }}>Aucune journée pour l&apos;instant.</div>}
+        {journees.map((j, i) => (
+          <div key={j.id} style={{ padding: "12px 20px", borderBottom: i < journees.length - 1 ? "1px solid #F5F5F5" : "none", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0F0F" }}>Journée {i + 1} — {fdate(j.date)}</div>
+              <div style={{ fontSize: 11, color: "#6A6A6A" }}>{j.heureDebut}–{j.heureFin}</div>
+            </div>
+            <a href={`/api/pdf/feuille-presence/${j.id}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 600, color: "#C8102E", textDecoration: "none", border: "1.5px solid #C8102E", borderRadius: 6, padding: "4px 10px" }}>
+              📋 Feuille de présence
+            </a>
+            <Link href={`/formateur/formations/${j.id}`} style={{ fontSize: 12, fontWeight: 600, color: "#6A6A6A", textDecoration: "none" }}>
+              Machinerie journée →
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Onglet Validation du DU ─────────────────────────────────────────────────
+
+type ValidationModule = {
+  id: string; type: string; intitule: string;
+  dateEpreuve: string | null; infos: string | null;
+  coefficient: number; noteMax: number; seuilValidation: number | null;
+  cloture: boolean; clotureAt: string | null; clotureExportUrl: string | null;
+  nbNotesSaisies: number; nbNotesTotal: number;
+};
+
+const MODALITES_VALIDATION = [
+  { v: "ECRIT", t: "Examen écrit", i: "📝" },
+  { v: "ORAL", t: "Examen oral", i: "🗣️" },
+  { v: "MEMOIRE", t: "Mémoire", i: "📄" },
+  { v: "SOUTENANCE", t: "Soutenance", i: "🎤" },
+  { v: "STAGE", t: "Stage clinique", i: "🏥" },
+  { v: "ASSIDUITE", t: "Assiduité", i: "✅" },
+  { v: "AUTRE", t: "Autre modalité", i: "•" },
+];
+
+function ValidationTab({ cursusId, nbEtudiants, api, busy, setBusy }: {
+  cursusId: string;
+  nbEtudiants: number;
+  api: (path: string, method: string, body?: unknown) => Promise<Record<string, unknown> | null>;
+  busy: string | null;
+  setBusy: (b: string | null) => void;
+}) {
+  const [modules, setModules] = useState<ValidationModule[] | null>(null);
+  const [openFeuille, setOpenFeuille] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/cursus/${cursusId}/validation`);
+    if (r.ok) setModules(((await r.json()).modules as ValidationModule[]) ?? []);
+  }, [cursusId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const modulesByType = new Set((modules ?? []).map((m) => m.type));
+
+  if (modules === null) return <div style={{ padding: 40, textAlign: "center", color: "#6A6A6A" }}>Chargement…</div>;
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 20, lineHeight: 1.6, maxWidth: 720 }}>
+        Configurez les modalités de validation du DU. Chaque modalité activée devient un module de notation :
+        vous y programmez la date, saisissez les notes, puis clôturez avec un PDF archivé.
+        <strong> Toutes les saisies sont journalisées</strong> (auteur, horodatage, valeur précédente)
+        — anti-effacement et anti-piratage.
+      </div>
+
+      {/* Ajout d'une modalité */}
+      <div style={{ background: "white", borderRadius: 12, border: "1px solid #E0E0E0", padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8, color: "#6A6A6A" }}>
+          Ajouter une modalité de validation
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {MODALITES_VALIDATION.map((m) => (
+            <button
+              key={m.v}
+              disabled={busy === `add-${m.v}`}
+              onClick={async () => {
+                const intitule = prompt(`Intitulé du module « ${m.t} » (ex : "Examen écrit final") ?`, m.t);
+                if (!intitule?.trim()) return;
+                setBusy(`add-${m.v}`);
+                const r = await api(`/api/cursus/${cursusId}/validation`, "POST", { type: m.v, intitule });
+                if (r) await load();
+                setBusy(null);
+              }}
+              style={{
+                background: modulesByType.has(m.v) ? "#f0f0f0" : "#fff5f6",
+                border: `1.5px solid ${modulesByType.has(m.v) ? "#DDD" : "#C8102E"}`,
+                color: modulesByType.has(m.v) ? "#999" : "#C8102E",
+                borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {m.i} {m.t}{modulesByType.has(m.v) ? " ✓" : " +"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {modules.length === 0 && (
+        <div style={{ background: "#fff8e1", border: "1.5px solid #ffe082", borderRadius: 10, padding: "14px 18px", fontSize: 13, color: "#5d4037" }}>
+          Aucune modalité de validation configurée. Choisissez ci-dessus les évaluations qui composeront le DU.
+        </div>
+      )}
+
+      {modules.map((m) => {
+        const now = new Date();
+        const dateOK = m.dateEpreuve ? new Date(m.dateEpreuve).getTime() <= now.getTime() : false;
+        const modalite = MODALITES_VALIDATION.find((x) => x.v === m.type);
+        return (
+          <div key={m.id} style={{ background: "white", borderRadius: 12, border: "1px solid #E0E0E0", padding: "18px 22px", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#C8102E", marginBottom: 3 }}>
+                  {modalite?.i} {modalite?.t ?? m.type}
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#0F0F0F" }}>{m.intitule}</div>
+              </div>
+              {m.cloture ? (
+                <span className="pill pill-gray">🔒 Clôturé le {new Date(m.clotureAt!).toLocaleDateString("fr-FR")}</span>
+              ) : m.nbNotesSaisies > 0 ? (
+                <span className="pill pill-orange">{m.nbNotesSaisies}/{m.nbNotesTotal || nbEtudiants} note(s) saisie(s)</span>
+              ) : (
+                <span className="pill pill-gray">À noter</span>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12 }}>
+              <ChampDateEpreuve module={m} cursusId={cursusId} onSaved={load} />
+              <ChampBaremes module={m} cursusId={cursusId} onSaved={load} />
+              <ChampSeuil module={m} cursusId={cursusId} onSaved={load} />
+            </div>
+
+            {m.infos && (
+              <div style={{ marginTop: 10, fontSize: 12, color: "#6A6A6A", whiteSpace: "pre-wrap", background: "#F9F7F4", borderRadius: 6, padding: "8px 12px" }}>
+                {m.infos}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              {!m.cloture && (
+                <button
+                  disabled={!dateOK}
+                  title={dateOK ? "Ouvrir la feuille de notation" : "Disponible à partir de la date d'épreuve"}
+                  onClick={() => setOpenFeuille(m.id)}
+                  style={{
+                    background: dateOK ? "#C8102E" : "#DDD", color: "white",
+                    border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700,
+                    cursor: dateOK ? "pointer" : "not-allowed", fontFamily: "inherit",
+                  }}
+                >
+                  📝 Feuille de notation
+                </button>
+              )}
+              {m.cloture && m.clotureExportUrl && (
+                <a href={m.clotureExportUrl} target="_blank" rel="noreferrer" style={{ background: "#2e7d32", color: "white", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                  📄 Télécharger le PDF archivé
+                </a>
+              )}
+              {!m.cloture && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("Supprimer ce module ? Les notes déjà saisies seront perdues.")) return;
+                    await api(`/api/cursus/${cursusId}/validation/${m.id}`, "DELETE");
+                    await load();
+                  }}
+                  style={{ background: "transparent", color: "#c62828", border: "1.5px solid #ffcdd2", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  🗑 Supprimer
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {openFeuille && (
+        <FeuilleNotation
+          cursusId={cursusId}
+          moduleId={openFeuille}
+          onClose={() => setOpenFeuille(null)}
+          onCloture={() => { setOpenFeuille(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ChampDateEpreuve({ module: m, cursusId, onSaved }: { module: ValidationModule; cursusId: string; onSaved: () => Promise<void> }) {
+  const [v, setV] = useState(m.dateEpreuve ? m.dateEpreuve.slice(0, 10) : "");
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Date de l&apos;épreuve</div>
+      <input
+        type="date"
+        value={v}
+        disabled={m.cloture}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={async () => {
+          if (v !== (m.dateEpreuve?.slice(0, 10) ?? "")) {
+            await fetch(`/api/cursus/${cursusId}/validation/${m.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "editer", dateEpreuve: v || null }),
+            });
+            await onSaved();
+          }
+        }}
+        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+      />
+    </div>
+  );
+}
+
+function ChampBaremes({ module: m, cursusId, onSaved }: { module: ValidationModule; cursusId: string; onSaved: () => Promise<void> }) {
+  const [noteMax, setNoteMax] = useState(m.noteMax);
+  const [coef, setCoef] = useState(m.coefficient);
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Barème & coefficient</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input type="number" value={noteMax} disabled={m.cloture} onChange={(e) => setNoteMax(Number(e.target.value))}
+          onBlur={async () => {
+            if (noteMax !== m.noteMax) {
+              await fetch(`/api/cursus/${cursusId}/validation/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "editer", noteMax }) });
+              await onSaved();
+            }
+          }}
+          style={{ flex: 1, minWidth: 0, border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          placeholder="Note max" />
+        <input type="number" value={coef} step="0.5" disabled={m.cloture} onChange={(e) => setCoef(Number(e.target.value))}
+          onBlur={async () => {
+            if (coef !== m.coefficient) {
+              await fetch(`/api/cursus/${cursusId}/validation/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "editer", coefficient: coef }) });
+              await onSaved();
+            }
+          }}
+          style={{ flex: 1, minWidth: 0, border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          placeholder="Coef" />
+      </div>
+    </div>
+  );
+}
+
+function ChampSeuil({ module: m, cursusId, onSaved }: { module: ValidationModule; cursusId: string; onSaved: () => Promise<void> }) {
+  const [v, setV] = useState(m.seuilValidation?.toString() ?? "");
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Seuil de validation (optionnel)</div>
+      <input
+        type="number"
+        value={v}
+        step="0.5"
+        disabled={m.cloture}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={async () => {
+          const num = v ? Number(v) : null;
+          if (num !== m.seuilValidation) {
+            await fetch(`/api/cursus/${cursusId}/validation/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "editer", seuilValidation: num }) });
+            await onSaved();
+          }
+        }}
+        style={{ width: "100%", border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+        placeholder={`ex : ${Math.round(m.noteMax / 2)}`}
+      />
+    </div>
+  );
+}
+
+// ─── Feuille de notation (modale) ────────────────────────────────────────────
+
+function FeuilleNotation({ cursusId, moduleId, onClose, onCloture }: {
+  cursusId: string; moduleId: string; onClose: () => void; onCloture: () => void;
+}) {
+  type Ligne = { participantId: string; nom: string; email: string; note: number | null; commentaire: string };
+  const [data, setData] = useState<{ module: { intitule: string; noteMax: number; seuilValidation: number | null; cloture: boolean }; lignes: Ligne[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [status, setStatus] = useState<Record<string, "saving" | "saved" | "error">>({});
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/cursus/${cursusId}/validation/${moduleId}`);
+    if (r.ok) setData(await r.json());
+  }, [cursusId, moduleId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function saveLigne(participantId: string, patch: Partial<Pick<Ligne, "note" | "commentaire">>) {
+    setStatus((s) => ({ ...s, [participantId]: "saving" }));
+    const r = await fetch(`/api/cursus/${cursusId}/validation/${moduleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantId, ...patch }),
+    });
+    if (r.ok) setStatus((s) => ({ ...s, [participantId]: "saved" }));
+    else {
+      const err = await r.json().catch(() => ({}));
+      setStatus((s) => ({ ...s, [participantId]: "error" }));
+      alert(err.error ?? "Erreur");
+    }
+  }
+
+  function updateLocal(participantId: string, patch: Partial<Ligne>) {
+    setData((d) => d ? { ...d, lignes: d.lignes.map((l) => l.participantId === participantId ? { ...l, ...patch } : l) } : d);
+    if (timers.current[participantId]) clearTimeout(timers.current[participantId]);
+    timers.current[participantId] = setTimeout(() => saveLigne(participantId, patch), 800);
+  }
+
+  if (!data) return null;
+  const mod = data.module;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "stretch", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "white", borderRadius: 16, maxWidth: 900, width: "100%", maxHeight: "95vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid #E0E0E0", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#C8102E" }}>📝 Feuille de notation</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#0F0F0F", marginTop: 2 }}>{mod.intitule}</div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 3 }}>
+              Sur {mod.noteMax}{mod.seuilValidation != null ? ` · seuil ${mod.seuilValidation}` : ""} · les modifications sont enregistrées automatiquement
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: "1.5px solid #E0E0E0", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Fermer</button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 24px" }}>
+          {data.lignes.length === 0 && (
+            <div style={{ padding: 40, textAlign: "center", color: "#9A9A9A" }}>Aucun étudiant inscrit au cursus.</div>
+          )}
+          {data.lignes.map((l) => (
+            <div key={l.participantId} style={{ display: "grid", gridTemplateColumns: "1fr 100px 2fr auto", gap: 10, alignItems: "center", padding: "10px 0", borderBottom: "1px solid #F5F5F5" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F" }}>{l.nom}</div>
+                <div style={{ fontSize: 10, color: "#9A9A9A" }}>{l.email}</div>
+              </div>
+              <input
+                type="number"
+                step="0.25"
+                min={0}
+                max={mod.noteMax}
+                value={l.note ?? ""}
+                disabled={mod.cloture}
+                onChange={(e) => updateLocal(l.participantId, { note: e.target.value === "" ? null : Number(e.target.value) })}
+                placeholder="—"
+                style={{ border: `1.5px solid ${l.note != null && mod.seuilValidation != null && l.note < mod.seuilValidation ? "#c62828" : "#E0E0E0"}`, borderRadius: 6, padding: "6px 10px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", outline: "none", textAlign: "center", color: l.note != null ? (mod.seuilValidation != null && l.note < mod.seuilValidation ? "#c62828" : "#2e7d32") : "#0F0F0F" }}
+              />
+              <input
+                type="text"
+                value={l.commentaire}
+                disabled={mod.cloture}
+                onChange={(e) => updateLocal(l.participantId, { commentaire: e.target.value })}
+                placeholder="Commentaire (optionnel)"
+                style={{ border: "1.5px solid #E0E0E0", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+              />
+              <span style={{ fontSize: 11, color: status[l.participantId] === "saved" ? "#2e7d32" : status[l.participantId] === "saving" ? "#6A6A6A" : status[l.participantId] === "error" ? "#c62828" : "#CCC", minWidth: 24, textAlign: "center" }}>
+                {status[l.participantId] === "saved" ? "✓" : status[l.participantId] === "saving" ? "…" : status[l.participantId] === "error" ? "!" : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {!mod.cloture && (
+          <div style={{ padding: "14px 24px", borderTop: "1px solid #E0E0E0", background: "#fff8e1", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 12, color: "#5d4037", lineHeight: 1.5, flex: 1, minWidth: 200 }}>
+              🔒 <strong>Clôturer</strong> génère un PDF archive horodaté et verrouille la saisie. L&apos;historique
+              complet des modifications reste conservé côté serveur pour audit.
+            </div>
+            <button
+              disabled={busy}
+              onClick={async () => {
+                if (!confirm("Clôturer définitivement ce module ?\n\nAprès clôture :\n• plus aucune modification possible\n• un PDF archive est généré et téléchargeable\n• l'historique reste consultable côté serveur")) return;
+                setBusy(true);
+                const r = await fetch(`/api/cursus/${cursusId}/validation/${moduleId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "cloturer" }),
+                });
+                setBusy(false);
+                if (r.ok) {
+                  const d = await r.json();
+                  window.open(d.exportUrl, "_blank");
+                  onCloture();
+                } else {
+                  alert("Erreur lors de la clôture");
+                }
+              }}
+              style={{ background: busy ? "#999" : "#c62828", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+            >
+              {busy ? "Clôture…" : "🔒 Clôturer et exporter le PDF"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
