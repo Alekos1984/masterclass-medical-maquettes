@@ -1,6 +1,6 @@
 import React from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
-import { PdfHeader } from "../shared/Header";
+import { PdfHeader, PdfMMFootnote, type BrandingInfo } from "../shared/Header";
 import { base, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData } from "../shared/types";
 
@@ -22,11 +22,11 @@ export type AssiduiteData = {
   tauxPresence: number; // 0..100
 };
 
-export function AssiduitePdf({ company, data }: { company: CompanyData; data: AssiduiteData }) {
+export function AssiduitePdf({ company, data, branding }: { company: CompanyData; data: AssiduiteData; branding?: BrandingInfo }) {
   return (
     <Document title={`Attestation d'assiduité — ${data.etudiantNom}`} author={company.raisonSociale}>
       <Page size="A4" style={base.page}>
-        <PdfHeader company={company} docLabel="ATTESTATION D'ASSIDUITÉ" />
+        <PdfHeader company={company} docLabel="ATTESTATION D'ASSIDUITÉ" branding={branding} />
         <Text style={base.docTitle}>Attestation d&apos;assiduité</Text>
         <Text style={base.docSubtitle}>{data.cursusTitre}{data.annee ? ` — ${data.annee}` : ""}</Text>
 
@@ -66,9 +66,10 @@ export function AssiduitePdf({ company, data }: { company: CompanyData; data: As
         </Text>
 
         <View style={base.footer} fixed>
-          <Text style={base.footerText}>{company.raisonSociale} — Attestation d&apos;assiduité</Text>
+          <Text style={base.footerText}>{branding?.masquerMM ? (branding.orgNom ?? "") : (branding?.orgNom ?? company.raisonSociale)} — Attestation d&apos;assiduité</Text>
           <Text style={base.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} fixed />
         </View>
+        <PdfMMFootnote company={company} branding={branding} />
       </Page>
     </Document>
   );

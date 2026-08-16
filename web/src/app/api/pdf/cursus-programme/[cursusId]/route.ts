@@ -48,6 +48,7 @@ export async function GET(
     })),
   };
 
-  const buffer = await renderPdf(React.createElement(CursusProgrammePdf, { company, cursus: data }));
+  const branding = { orgNom: cursus.orgNom, orgLogoBase64: cursus.orgLogoBase64, masquerMM: cursus.masquerMM };
+  const buffer = await renderPdf(React.createElement(CursusProgrammePdf, { company, cursus: data, branding }));
   return pdfResponse(buffer, `programme-${cursus.slug}.pdf`);
 }
