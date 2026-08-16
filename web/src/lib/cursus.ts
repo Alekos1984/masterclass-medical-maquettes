@@ -11,7 +11,13 @@ export type CursusSlot = {
   intervenantRaw?: string | null; // nom brut détecté (digitalisation), en attente de rattachement à un enseignant
 };
 
-export type CursusRole = "COORDINATEUR" | "ENSEIGNANT" | null;
+export type CursusRole = "COORDINATEUR" | "SECRETAIRE" | "ENSEIGNANT" | null;
+
+/** La secrétaire pédagogique a les mêmes droits opérationnels que le coordinateur
+ * (créneaux, équipe, étudiants) mais pas l'accès aux notes ni aux réglages du cursus. */
+export function peutGerer(role: CursusRole): boolean {
+  return role === "COORDINATEUR" || role === "SECRETAIRE";
+}
 
 /**
  * Résout le rôle d'un utilisateur sur un cursus.
@@ -41,6 +47,7 @@ export async function getCursusAccess(cursusId: string, userId: string) {
   let role: CursusRole = null;
   if (profile && cursus.coordinateurId === profile.id) role = "COORDINATEUR";
   else if (enseignant?.coCoordinateur && enseignant.statut === "ACCEPTE") role = "COORDINATEUR";
+  else if (enseignant?.role === "SECRETAIRE" && enseignant.statut === "ACCEPTE") role = "SECRETAIRE";
   else if (enseignant) role = "ENSEIGNANT";
 
   return { cursus, role, enseignant, profile };

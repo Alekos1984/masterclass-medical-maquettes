@@ -22,6 +22,11 @@ export type CursusProgrammeData = {
   specialite: string;
   description: string;
   coordinateurNom: string;
+  organisateurs: string[]; // enseignants cochés "organisateur" + lignes libres, fusionnés
+  secretaires: string[]; // noms des secrétaires pédagogiques
+  contactNom: string | null;
+  contactEmail: string | null;
+  contactTelephone: string | null;
   journees: {
     dateStr: string;
     heureDebut: string;
@@ -47,6 +52,31 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
             <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.description}</Text>
           </View>
         ) : <View style={{ height: 0 }} />}
+
+        {(cursus.organisateurs.length > 0 || cursus.secretaires.length > 0 || cursus.contactNom || cursus.contactEmail) && (
+          <View style={[s.infoBox, { flexDirection: "row", gap: 16 }]}>
+            {cursus.organisateurs.length > 0 && (
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 7, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>Comité d&apos;organisation</Text>
+                {cursus.organisateurs.map((o, i) => <Text key={i} style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{o}</Text>)}
+              </View>
+            )}
+            {cursus.secretaires.length > 0 && (
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 7, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>Secrétariat pédagogique</Text>
+                {cursus.secretaires.map((o, i) => <Text key={i} style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{o}</Text>)}
+              </View>
+            )}
+            {(cursus.contactNom || cursus.contactEmail || cursus.contactTelephone) && (
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 7, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>Contact</Text>
+                {cursus.contactNom && <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.contactNom}</Text>}
+                {cursus.contactEmail && <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.contactEmail}</Text>}
+                {cursus.contactTelephone && <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.contactTelephone}</Text>}
+              </View>
+            )}
+          </View>
+        )}
 
         {cursus.journees.map((j, i) => (
           <View key={i} wrap={false}>

@@ -677,6 +677,12 @@ model Cursus {
   orgLogoBase64  String? @db.Text // data URI complet (data:image/png;base64,...) ou base64 brut
   masquerMM      Boolean @default(false) // supprime toute mention Masterclass Médical
 
+  // Comité d'organisation et contact (affichés sur le programme et les documents)
+  organisateursTexte String? @db.Text // noms libres, un par ligne, en plus des enseignants cochés "organisateur"
+  contactNom         String? // ex : "Secrétariat pédagogique du DU"
+  contactEmail       String?
+  contactTelephone   String?
+
   coordinateurId String
   coordinateur   FormateurProfile @relation("CursusCoordonnes", fields: [coordinateurId], references: [id])
 
@@ -704,6 +710,8 @@ model CursusEnseignant {
   statut      String  @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTE
   inviteToken String  @unique @default(cuid())
   coCoordinateur Boolean @default(false)
+  role            String  @default("ENSEIGNANT") // ENSEIGNANT | SECRETAIRE
+  estOrganisateur Boolean @default(false) // affiché dans le comité d'organisation du programme
 
   createdAt DateTime @default(now())
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, peutGerer } from "@/lib/cursus";
 import { sendEmail, emailInvitationEnseignant } from "@/lib/brevo";
 
 // PATCH : toggle co-coordinateur ou relance d'invitation
@@ -15,7 +15,7 @@ export async function PATCH(
   const { id, eid } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const enseignant = await prisma.cursusEnseignant.findFirst({ where: { id: eid, cursusId: id } });
   if (!enseignant) return NextResponse.json({ error: "Enseignant introuvable" }, { status: 404 });
@@ -47,8 +47,17 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
 
+  // Promotion co-coordinateur : réservé au coordinateur (élargit les droits d'accès)
   if (body.coCoordinateur !== undefined) {
+    if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
     await prisma.cursusEnseignant.update({ where: { id: eid }, data: { coCoordinateur: !!body.coCoordinateur } });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Comité d'organisation (affiché sur le programme) : réservé au coordinateur
+  if (body.estOrganisateur !== undefined) {
+    if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+    await prisma.cursusEnseignant.update({ where: { id: eid }, data: { estOrganisateur: !!body.estOrganisateur } });
     return NextResponse.json({ ok: true });
   }
 
@@ -76,7 +85,12 @@ export async function DELETE(
   const { id, eid } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
+
+  const cible = await prisma.cursusEnseignant.findFirst({ where: { id: eid, cursusId: id } });
+  if (cible && (cible.coCoordinateur || cible.role === "SECRETAIRE") && role !== "COORDINATEUR") {
+    return NextResponse.json({ error: "Seul le coordinateur peut retirer un co-coordinateur ou une secrétaire" }, { status: 403 });
+  }
 
   // Désaffecter ses créneaux avant de le retirer
   for (const j of cursus.journees) {

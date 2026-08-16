@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 type Invitation = {
-  email: string; nom: string | null; statut: string;
+  email: string; nom: string | null; statut: string; role: string;
   cursusTitre: string; annee: string | null; coordinateurNom: string; nbJournees: number;
 };
 
@@ -38,7 +38,9 @@ export default function InvitationPage() {
         return;
       }
       if (res.status === 403) {
-        // Pas de compte formateur → inscription
+        // Pas de compte → inscription. Un compte "formateur" est utilisé même pour la secrétaire
+        // pédagogique : c'est ce qui donne accès aux pages /formateur/coordination/*, la secrétaire
+        // n'aura simplement aucune formation personnelle à gérer.
         router.push(`/auth/register?role=formateur&callbackUrl=${encodeURIComponent(`/cursus/invitation/${token}`)}`);
         return;
       }
@@ -65,15 +67,21 @@ export default function InvitationPage() {
         {invitation && (
           <>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#C8102E", marginBottom: 8 }}>
-              Invitation enseignant·e
+              {invitation.role === "SECRETAIRE" ? "Invitation secrétaire pédagogique" : "Invitation enseignant·e"}
             </div>
             <div style={{ fontSize: 21, fontWeight: 800, color: "#0F0F0F", marginBottom: 8, lineHeight: 1.3 }}>
               {invitation.cursusTitre}{invitation.annee ? ` · ${invitation.annee}` : ""}
             </div>
             <div style={{ fontSize: 14, color: "#6A6A6A", lineHeight: 1.6, marginBottom: 22 }}>
-              <strong>{invitation.coordinateurNom}</strong> vous invite à rejoindre l&apos;équipe pédagogique
-              ({invitation.nbJournees} journée{invitation.nbJournees > 1 ? "s" : ""} d&apos;enseignement).
-              Vous pourrez consulter vos créneaux, charger vos supports, échanger vos cours et communiquer avec les autres intervenants.
+              {invitation.role === "SECRETAIRE" ? (
+                <><strong>{invitation.coordinateurNom}</strong> vous invite comme secrétaire pédagogique
+                ({invitation.nbJournees} journée{invitation.nbJournees > 1 ? "s" : ""} d&apos;enseignement).
+                Vous pourrez gérer les créneaux, l&apos;équipe enseignante, les étudiants et les émargements — sans accès aux notes.</>
+              ) : (
+                <><strong>{invitation.coordinateurNom}</strong> vous invite à rejoindre l&apos;équipe pédagogique
+                ({invitation.nbJournees} journée{invitation.nbJournees > 1 ? "s" : ""} d&apos;enseignement).
+                Vous pourrez consulter vos créneaux, charger vos supports, échanger vos cours et communiquer avec les autres intervenants.</>
+              )}
             </div>
             {invitation.statut === "ACCEPTE" ? (
               <div style={{ fontSize: 14, color: "#2e7d32", fontWeight: 700 }}>✓ Invitation déjà acceptée — connectez-vous pour accéder au cursus.</div>

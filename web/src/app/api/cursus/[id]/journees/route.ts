@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, cursusSlugify } from "@/lib/cursus";
+import { getCursusAccess, cursusSlugify, peutGerer } from "@/lib/cursus";
 
 async function uniqueFormationSlug(base: string): Promise<string> {
   let slug = base || "journee";
@@ -23,7 +23,7 @@ export async function POST(
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const { date, heureDebut, heureFin, modaliteSession, visioUrl, lieuNom, lieuAdresse, lieuVille, titre, slots } = await req.json();
   if (!date) return NextResponse.json({ error: "Date obligatoire" }, { status: 400 });

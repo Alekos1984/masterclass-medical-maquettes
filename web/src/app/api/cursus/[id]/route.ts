@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots, computeAlertes } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, computeAlertes, peutGerer } from "@/lib/cursus";
 
 export async function GET(
   _req: NextRequest,
@@ -26,7 +26,7 @@ export async function GET(
       by: ["participantId"],
       where: { formationId: { in: cursus.journees.map((j) => j.id) }, statut: "CONFIRMEE" },
     }),
-    role === "COORDINATEUR"
+    peutGerer(role)
       ? prisma.cursusProspect.findMany({ where: { cursusId: id }, orderBy: [{ statut: "asc" }, { createdAt: "desc" }] })
       : Promise.resolve([]),
   ]);
@@ -42,6 +42,8 @@ export async function GET(
       certifBlocCode: cursus.certifBlocCode, certifActionTitre: cursus.certifActionTitre,
       emargementMode: cursus.emargementMode,
       orgNom: cursus.orgNom, orgLogoBase64: cursus.orgLogoBase64, masquerMM: cursus.masquerMM,
+      organisateursTexte: cursus.organisateursTexte,
+      contactNom: cursus.contactNom, contactEmail: cursus.contactEmail, contactTelephone: cursus.contactTelephone,
       coordinateurNom: cursus.coordinateur.user?.name ?? "—",
     },
     journees: cursus.journees.map((j) => ({
@@ -54,6 +56,7 @@ export async function GET(
     enseignants: cursus.enseignants.map((e) => ({
       id: e.id, email: e.email, nom: e.nom, phone: e.phone, fonction: e.fonction,
       statut: e.statut, coCoordinateur: e.coCoordinateur,
+      role: e.role, estOrganisateur: e.estOrganisateur,
     })),
     supports: ressources,
     messages,
@@ -93,6 +96,10 @@ export async function PATCH(
   if (body.orgNom !== undefined) data.orgNom = body.orgNom || null;
   if (body.orgLogoBase64 !== undefined) data.orgLogoBase64 = body.orgLogoBase64 || null;
   if (body.masquerMM !== undefined) data.masquerMM = !!body.masquerMM;
+  if (body.organisateursTexte !== undefined) data.organisateursTexte = body.organisateursTexte || null;
+  if (body.contactNom !== undefined) data.contactNom = body.contactNom || null;
+  if (body.contactEmail !== undefined) data.contactEmail = body.contactEmail || null;
+  if (body.contactTelephone !== undefined) data.contactTelephone = body.contactTelephone || null;
 
   const updated = await prisma.cursus.update({ where: { id }, data, select: { id: true, statut: true } });
 
