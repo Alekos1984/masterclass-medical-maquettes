@@ -86,6 +86,14 @@ export function parseSlots(programme: unknown): CursusSlot[] {
   });
 }
 
+/** Préfixe un nom avec sa civilité (Dr./Pr.) si connue et pas déjà présente. */
+export function nomAvecCivilite(nom: string, titre?: string | null): string {
+  const t = titre?.trim();
+  if (!t) return nom;
+  if (nom.toLowerCase().startsWith(t.toLowerCase().replace(/\.$/, ""))) return nom;
+  return `${t} ${nom}`;
+}
+
 // ─── Rattachement d'un nom d'intervenant à un enseignant de l'équipe ──────────
 // Matching tolérant : insensible aux accents, aux titres (Dr/Pr/Mme…), utilise
 // aussi le préfixe email en fallback.

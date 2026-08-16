@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import React from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots, peutGerer } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, peutGerer, nomAvecCivilite } from "@/lib/cursus";
 import { renderPdf } from "@/lib/pdf/render";
 import { getCompanySettings } from "@/lib/pdf/db-helpers";
 import { CursusProgrammePdf } from "@/lib/pdf/templates/cursus-programme";
@@ -36,19 +36,31 @@ export async function GET(
   const entries: ZipEntry[] = [];
 
   // 1. Programme
-  const enseignantsById = new Map(cursus.enseignants.map((e) => [e.id, e.nom ?? e.email]));
+  const formateurIds = cursus.enseignants.map((e) => e.formateurId).filter((v): v is string => !!v);
+  const titreByFormateurId = formateurIds.length
+    ? new Map(
+        (await prisma.formateurProfile.findMany({ where: { id: { in: formateurIds } }, select: { id: true, titre: true } }))
+          .map((f) => [f.id, f.titre] as const)
+      )
+    : new Map<string, string | null>();
+  const nomEnseignant = (e: { nom: string | null; email: string; formateurId: string | null }) =>
+    nomAvecCivilite(e.nom ?? e.email, e.formateurId ? titreByFormateurId.get(e.formateurId) : null);
+
+  const enseignantsById = new Map(cursus.enseignants.map((e) => [e.id, nomEnseignant(e)]));
+  const coordinateurNom = nomAvecCivilite(cursus.coordinateur.user?.name ?? "—", cursus.coordinateur.titre);
   const organisateurs = [
-    ...cursus.enseignants.filter((e) => e.estOrganisateur).map((e) => e.nom ?? e.email),
+    `${coordinateurNom} (coordinateur·rice)`,
+    ...cursus.enseignants.filter((e) => e.estOrganisateur).map(nomEnseignant),
     ...(cursus.organisateursTexte ?? "").split("\n").map((l) => l.trim()).filter(Boolean),
   ];
-  const secretaires = cursus.enseignants.filter((e) => e.role === "SECRETAIRE" && e.statut === "ACCEPTE").map((e) => e.nom ?? e.email);
+  const secretaires = cursus.enseignants.filter((e) => e.role === "SECRETAIRE" && e.statut === "ACCEPTE").map(nomEnseignant);
   const programmeBuffer = await renderPdf(
     React.createElement(CursusProgrammePdf, {
       company,
       branding,
       cursus: {
         titre: cursus.titre, annee: cursus.annee, specialite: cursus.specialite, description: cursus.description,
-        coordinateurNom: cursus.coordinateur.user?.name ?? "—",
+        coordinateurNom,
         organisateurs, secretaires,
         contactNom: cursus.contactNom, contactEmail: cursus.contactEmail, contactTelephone: cursus.contactTelephone,
         journees: cursus.journees.map((j) => ({

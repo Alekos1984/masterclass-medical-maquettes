@@ -4,13 +4,25 @@ import { PdfHeader, PdfMMFootnote, type BrandingInfo } from "../shared/Header";
 import { base, RED, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData } from "../shared/types";
 
+const RED_SHADOW = "#820A1E"; // teinte assombrie de RED, utilisée pour l'effet de relief des bandeaux "Journée"
+
 const s = StyleSheet.create({
-  journeeTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: BLACK, marginTop: 16, marginBottom: 2 },
-  journeeMeta: { fontSize: 8, color: GRAY, marginBottom: 6 },
+  journeeWrap: { marginTop: 20, marginBottom: 0 },
+  journeeShadow: { backgroundColor: RED_SHADOW, borderRadius: 8 },
+  journeeBar: {
+    backgroundColor: RED, borderRadius: 8, marginRight: 3, marginBottom: 3,
+    paddingVertical: 8, paddingHorizontal: 14,
+    flexDirection: "row", alignItems: "baseline", justifyContent: "space-between",
+    borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.4)",
+  },
+  journeeTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "white" },
+  journeeDate: { fontSize: 8, color: "rgba(255,255,255,0.85)" },
+  journeeMeta: { fontSize: 8, color: GRAY, marginTop: 5, marginBottom: 6 },
   row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: LIGHT_GRAY },
   heure: { width: 70, paddingVertical: 6, fontSize: 8, color: GRAY },
   contenu: { flex: 1, paddingVertical: 6 },
   titre: { fontSize: 9, fontFamily: "Helvetica-Bold", color: BLACK },
+  titrePause: { fontSize: 8, fontFamily: "Helvetica-Oblique", color: GRAY },
   desc: { fontSize: 8, color: GRAY, marginTop: 1, lineHeight: 1.4 },
   prof: { width: 120, paddingVertical: 6, fontSize: 8, color: RED, textAlign: "right" },
   infoBox: { backgroundColor: OFF_WHITE, borderRadius: 6, padding: 10, marginBottom: 6 },
@@ -44,7 +56,7 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
         <PdfHeader company={company} docLabel="PROGRAMME D'ENSEIGNEMENT" branding={branding} />
         <Text style={base.docTitle}>{cursus.titre}</Text>
         <Text style={base.docSubtitle}>
-          {cursus.specialite}{cursus.annee ? ` — ${cursus.annee}` : ""} · Coordination : {cursus.coordinateurNom}
+          {cursus.specialite}{cursus.annee ? ` — ${cursus.annee}` : ""}
         </Text>
 
         {cursus.description ? (
@@ -70,7 +82,7 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
             {(cursus.contactNom || cursus.contactEmail || cursus.contactTelephone) && (
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 7, color: GRAY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>Contact</Text>
-                {cursus.contactNom && <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.contactNom}</Text>}
+                {cursus.contactNom && <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: BLACK, lineHeight: 1.5 }}>{cursus.contactNom}</Text>}
                 {cursus.contactEmail && <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.contactEmail}</Text>}
                 {cursus.contactTelephone && <Text style={{ fontSize: 8, color: BLACK, lineHeight: 1.5 }}>{cursus.contactTelephone}</Text>}
               </View>
@@ -80,14 +92,23 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
 
         {cursus.journees.map((j, i) => (
           <View key={i} wrap={false}>
-            <Text style={s.journeeTitle}>Journée {i + 1} — {j.dateStr}</Text>
+            <View style={s.journeeWrap}>
+              <View style={s.journeeShadow}>
+                <View style={s.journeeBar}>
+                  <Text style={s.journeeTitle}>Journée {i + 1}</Text>
+                  <Text style={s.journeeDate}>{j.dateStr}</Text>
+                </View>
+              </View>
+            </View>
             <Text style={s.journeeMeta}>{j.heureDebut}–{j.heureFin} · {j.modalite} · {j.lieu}</Text>
             {j.slots.map((slot, k) => (
               <View key={k} style={s.row}>
                 <Text style={s.heure}>{slot.heureDebut}–{slot.heureFin}</Text>
                 <View style={s.contenu}>
-                  <Text style={s.titre}>{slot.titre}</Text>
-                  {slot.description ? <Text style={s.desc}>{slot.description}</Text> : <View style={{ height: 0 }} />}
+                  <Text style={slot.type === "pause" ? s.titrePause : s.titre}>{slot.titre}</Text>
+                  {slot.description ? (
+                    <Text style={[s.desc, slot.type === "pause" ? { fontFamily: "Helvetica-Oblique" } : {}]}>{slot.description}</Text>
+                  ) : <View style={{ height: 0 }} />}
                   {(slot.enVisio || slot.lieuNom || slot.salle) ? (
                     <Text style={s.desc}>
                       {slot.enVisio ? "Visioconférence" : [slot.lieuNom, slot.salle ? `salle ${slot.salle}` : null].filter(Boolean).join(" — ")}
