@@ -87,13 +87,16 @@ export default async function FormateurFormationsPage() {
       if (!suisAffecte && !suisCoord) continue;
       // Le coordinateur voit aussi les cours des autres enseignants (aperçu de la vue enseignant),
       // marqués comme tels via le champ role — utile en mode brouillon pour vérifier le rendu.
+      const lieu = slot.enVisio
+        ? "Visioconférence"
+        : [slot.lieuNom || j.lieuNom, j.lieuVille, slot.salle ? `salle ${slot.salle}` : null].filter(Boolean).join(", ") || null;
       coursDU.push({
         formationId: j.id, slotId: slot.slotId,
         date: j.date.toISOString(), heureDebut: slot.heureDebut, heureFin: slot.heureFin,
         titre: slot.titre, cursusId: j.cursus.id, cursusTitre: j.cursus.titre,
         cursusAnnee: j.cursus.annee,
         role: suisAffecte ? (suisCoord ? "COORDINATEUR" : "ENSEIGNANT") : "APERCU",
-        lieu: [j.lieuNom, j.lieuVille].filter(Boolean).join(", ") || null,
+        lieu,
         type: slot.type,
       });
     }

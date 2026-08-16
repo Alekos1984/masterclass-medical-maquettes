@@ -59,6 +59,7 @@ export async function GET(
           slots: parseSlots(j.programme).map((s) => ({
             heureDebut: s.heureDebut, heureFin: s.heureFin, titre: s.titre, description: s.description, type: s.type,
             enseignantNom: s.enseignantId ? enseignantsById.get(s.enseignantId) ?? null : null,
+            lieuNom: s.lieuNom, salle: s.salle, enVisio: s.enVisio,
           })),
         })),
       },
