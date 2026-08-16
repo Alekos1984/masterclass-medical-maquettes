@@ -2243,19 +2243,22 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
                 <button type="button" onClick={() => setForm((s) => ({ ...s, orgLogoBase64: "" }))} style={{ background: "transparent", border: "1.5px solid #ffcdd2", color: "#c62828", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Retirer</button>
               </div>
             ) : (
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/svg+xml"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  if (f.size > 500 * 1024) { alert("Logo trop volumineux (max 500 Ko)"); return; }
-                  const r = new FileReader();
-                  r.onload = () => setForm((s) => ({ ...s, orgLogoBase64: r.result as string }));
-                  r.readAsDataURL(f);
-                }}
-                style={{ fontSize: 12, fontFamily: "inherit" }}
-              />
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff5f6", color: "#C8102E", border: "1.5px dashed #C8102E", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                📎 Choisir un logo
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 500 * 1024) { alert("Logo trop volumineux (max 500 Ko)"); return; }
+                    const r = new FileReader();
+                    r.onload = () => setForm((s) => ({ ...s, orgLogoBase64: r.result as string }));
+                    r.readAsDataURL(f);
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
             )}
           </div>
         </div>
