@@ -21,7 +21,11 @@ type Enseignant = {
   id: string; email: string; nom: string | null; phone: string | null; fonction: string | null;
   statut: string; coCoordinateur: boolean; role: string; estOrganisateur: boolean;
 };
-type Prospect = { id: string; email: string; nom: string | null; prenom: string | null; phone: string | null; fonction: string | null; statut: string; createdAt: string };
+type PieceJointe = { nom: string; base64: string; taille: number | null };
+type Prospect = {
+  id: string; email: string; nom: string | null; prenom: string | null; phone: string | null; fonction: string | null; statut: string; createdAt: string;
+  piecesJointes?: Partial<Record<"cv" | "lettre" | "diplome", PieceJointe>> | null;
+};
 type Support = { id: string; formationId: string; slotId: string | null; nom: string; taille: number | null };
 type Message = { id: string; auteurEmail: string; auteurNom: string; texte: string; createdAt: string };
 type Echange = {
@@ -221,6 +225,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [prospectResult, setProspectResult] = useState("");
   const [prospectSel, setProspectSel] = useState<string[]>([]);
   const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
+  const [dossierProspectId, setDossierProspectId] = useState<string | null>(null);
+  const [pieceBusy, setPieceBusy] = useState<string | null>(null);
 
   // Génération IA du calendrier (consigne libre et/ou digitalisation d'un programme existant)
   type JourneeProposee = {
@@ -1553,7 +1559,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               onChange={(e) => setProspectSel(e.target.checked ? data.prospects.map((p) => p.id) : [])}
                             />
                           </th>
-                          {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note", "Statut"].map((h) => (
+                          {["Prénom", "Nom", "Email", "Téléphone", "Fonction / note", "Dossier", "Statut"].map((h) => (
                             <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#6A6A6A", fontWeight: 600 }}>{h}</th>
                           ))}
                         </tr>
@@ -1574,6 +1580,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                             <td style={{ padding: "7px 12px" }}>{p.phone ?? "—"}</td>
                             <td style={{ padding: "7px 12px", color: "#6A6A6A" }}>{p.fonction ?? "—"}</td>
                             <td style={{ padding: "7px 12px" }}>
+                              <button
+                                onClick={() => setDossierProspectId(p.id)}
+                                style={{ background: "none", border: "1px solid #E0E0E0", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: "#6A6A6A" }}
+                              >
+                                📎 {Object.keys(p.piecesJointes ?? {}).length}/3
+                              </button>
+                            </td>
+                            <td style={{ padding: "7px 12px" }}>
                               {p.statut === "ACCEPTE"
                                 ? <span className="pill pill-green">Accepté</span>
                                 : p.statut === "REFUSE"
@@ -1588,6 +1602,81 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 </>
               )}
             </div>
+
+            {dossierProspectId && (() => {
+              const p = data.prospects.find((pr) => pr.id === dossierProspectId);
+              if (!p) return null;
+              const slots: { type: "cv" | "lettre" | "diplome"; label: string }[] = [
+                { type: "cv", label: "CV" },
+                { type: "lettre", label: "Lettre de motivation" },
+                { type: "diplome", label: "Diplôme(s)" },
+              ];
+              return (
+                <div
+                  onClick={() => setDossierProspectId(null)}
+                  style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: 16, padding: "22px 26px", width: 460, maxWidth: "90vw" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>Dossier d&apos;inscription</div>
+                      <button onClick={() => setDossierProspectId(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#6A6A6A" }}>✕</button>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 16 }}>{p.prenom ?? ""} {p.nom ?? p.email}</div>
+                    {slots.map((s) => {
+                      const piece = p.piecesJointes?.[s.type];
+                      const busyKey = `${p.id}:${s.type}`;
+                      return (
+                        <div key={s.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 0", borderBottom: "1px solid #F0F0F0" }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.label}</div>
+                          {piece ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <a href={piece.base64} download={piece.nom} style={{ fontSize: 12, color: "#C8102E", textDecoration: "none", fontWeight: 600 }}>📄 {piece.nom}</a>
+                              <button
+                                disabled={pieceBusy === busyKey}
+                                onClick={async () => {
+                                  setPieceBusy(busyKey);
+                                  await api(`/api/cursus/${cursusId}/prospects/${p.id}/pieces`, "DELETE", { type: s.type });
+                                  await reload();
+                                  setPieceBusy(null);
+                                }}
+                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9A9A9A" }}
+                              >
+                                🗑
+                              </button>
+                            </div>
+                          ) : (
+                            <label style={{ fontSize: 12, color: "#C8102E", fontWeight: 600, cursor: pieceBusy === busyKey ? "wait" : "pointer" }}>
+                              {pieceBusy === busyKey ? "Envoi…" : "+ Ajouter"}
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,image/*"
+                                style={{ display: "none" }}
+                                disabled={pieceBusy === busyKey}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (!f) return;
+                                  if (f.size > 10 * 1024 * 1024) { alert("Fichier trop volumineux (max 10 Mo)"); return; }
+                                  setPieceBusy(busyKey);
+                                  const r = new FileReader();
+                                  r.onload = async () => {
+                                    await api(`/api/cursus/${cursusId}/prospects/${p.id}/pieces`, "POST", {
+                                      type: s.type, nom: f.name, base64: r.result as string, taille: f.size,
+                                    });
+                                    await reload();
+                                    setPieceBusy(null);
+                                  };
+                                  r.readAsDataURL(f);
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={cardStyle}>
               <div style={{ padding: "14px 22px", borderBottom: "1px solid #EBEBEB", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
@@ -1822,7 +1911,7 @@ function DocumentsTab({ cursusId, cursusSlug, journees, api, busy, setBusy }: {
     <div>
       <div style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 20, lineHeight: 1.6, maxWidth: 700 }}>
         Tous les documents du DU en un seul endroit. Ces documents ne sont pas exposés aux enseignants
-        depuis leur vue "Mes cours" — seuls le coordinateur (et éventuellement les co-coordinateurs) y ont accès ici.
+        depuis leur vue &quot;Mes cours&quot; — seuls le coordinateur (et éventuellement les co-coordinateurs) y ont accès ici.
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
