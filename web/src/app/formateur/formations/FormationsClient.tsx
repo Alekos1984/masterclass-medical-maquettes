@@ -46,11 +46,19 @@ function tabForStatut(statut: string): string {
   }
 }
 
+type CoursDU = {
+  formationId: string; slotId: string; date: string; heureDebut: string; heureFin: string;
+  titre: string; cursusId: string; cursusTitre: string; cursusAnnee: string | null;
+  role: "COORDINATEUR" | "ENSEIGNANT"; lieu: string | null; type: string;
+};
+
 export default function FormationsClient({
   formations,
+  coursDU = [],
   stats,
 }: {
   formations: FormationItem[];
+  coursDU?: CoursDU[];
   stats: { total: number; inscriptionsTotal: number; revenus: number };
 }) {
   const [activeTab, setActiveTab] = useState("all");
@@ -80,6 +88,39 @@ export default function FormationsClient({
 
   return (
     <>
+      {/* MES COURS DE DU (créneaux dans un cursus coordonné) */}
+      {coursDU.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 10 }}>
+            🎓 Mes cours dans un DU ({coursDU.length})
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+            {coursDU.map((c) => {
+              const dateStr = new Date(c.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+              return (
+                <Link key={`${c.formationId}-${c.slotId}`} href={`/formateur/coordination/${c.cursusId}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  <div style={{ background: "white", borderRadius: 12, border: "1px solid #E0E0E0", padding: "14px 16px", cursor: "pointer", transition: "border-color .15s" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#1565c0", marginBottom: 6 }}>
+                      → {c.cursusTitre}{c.cursusAnnee ? ` · ${c.cursusAnnee}` : ""}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F", marginBottom: 4, lineHeight: 1.35 }}>{c.titre}</div>
+                    <div style={{ fontSize: 12, color: "#6A6A6A" }}>
+                      📅 {dateStr} · {c.heureDebut}–{c.heureFin}
+                      {c.lieu && <> · 📍 {c.lieu}</>}
+                    </div>
+                    {c.role === "COORDINATEUR" && (
+                      <div style={{ marginTop: 6 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: "#fff5f6", color: "#C8102E", padding: "2px 8px", borderRadius: 100 }}>Coordinateur</span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* STATS ROW */}
       <div
         style={{

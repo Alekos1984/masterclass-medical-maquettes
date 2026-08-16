@@ -40,6 +40,7 @@ export async function GET(
       inscriptionMode: cursus.inscriptionMode, prixHT: cursus.prixHT ? Number(cursus.prixHT) : null,
       lieuNom: cursus.lieuNom, lieuAdresse: cursus.lieuAdresse, lieuVille: cursus.lieuVille,
       certifBlocCode: cursus.certifBlocCode, certifActionTitre: cursus.certifActionTitre,
+      emargementMode: cursus.emargementMode,
       coordinateurNom: cursus.coordinateur.user?.name ?? "—",
     },
     journees: cursus.journees.map((j) => ({
@@ -85,6 +86,9 @@ export async function PATCH(
   if (body.inscriptionMode !== undefined && ["IMPORT", "PAYANT"].includes(body.inscriptionMode)) data.inscriptionMode = body.inscriptionMode;
   if (body.prixHT !== undefined) data.prixHT = body.prixHT ? parseFloat(body.prixHT) : null;
   if (body.certifBlocCode !== undefined) data.certifBlocCode = body.certifBlocCode || null;
+  if (body.emargementMode !== undefined && ["PAR_COURS", "DEMI_JOURNEE", "JOUR"].includes(body.emargementMode)) {
+    data.emargementMode = body.emargementMode;
+  }
 
   const updated = await prisma.cursus.update({ where: { id }, data, select: { id: true, statut: true } });
 

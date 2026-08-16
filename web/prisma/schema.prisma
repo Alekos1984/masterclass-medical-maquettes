@@ -669,6 +669,9 @@ model Cursus {
   certifBlocCode    String?
   certifActionTitre String?
 
+  // Modalité d'émargement (impacte qui peut lancer l'émargement et la validité du QR)
+  emargementMode String @default("DEMI_JOURNEE") // PAR_COURS | DEMI_JOURNEE | JOUR
+
   coordinateurId String
   coordinateur   FormateurProfile @relation("CursusCoordonnes", fields: [coordinateurId], references: [id])
 
