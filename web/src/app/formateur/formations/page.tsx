@@ -98,6 +98,30 @@ export default async function FormateurFormationsPage() {
     }
   }
 
+  // Cursus dont l'utilisateur est coordinateur : une carte "coordination" par cursus,
+  // même s'il n'a aucun créneau affecté à son propre nom.
+  const cursusCoordinesRaw = formateurId
+    ? await prisma.cursus.findMany({
+        where: { coordinateurId: formateurId },
+        select: {
+          id: true, titre: true, annee: true, statut: true,
+          journees: { select: { date: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+  const now = new Date();
+  const cursusCoordonnes = cursusCoordinesRaw.map((c) => ({
+    id: c.id,
+    titre: c.titre,
+    annee: c.annee,
+    statut: c.statut,
+    nbJournees: c.journees.length,
+    prochaineDate: c.journees
+      .filter((j) => j.date >= now)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())[0]?.date.toISOString() ?? null,
+  }));
+
   const revenus = revenusAgg._sum.netFormateur ? Number(revenusAgg._sum.netFormateur) : 0;
 
   const formationsData = formations.map((f) => ({
@@ -129,6 +153,7 @@ export default async function FormateurFormationsPage() {
         <FormationsClient
           formations={formationsData}
           coursDU={coursDU}
+          cursusCoordonnes={cursusCoordonnes}
           stats={{ total: formations.length, inscriptionsTotal: inscriptionsCount, revenus }}
         />
       </div>
