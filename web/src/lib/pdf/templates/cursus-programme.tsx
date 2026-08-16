@@ -4,20 +4,21 @@ import { PdfHeader, PdfMMFootnote, type BrandingInfo } from "../shared/Header";
 import { base, RED, GRAY, LIGHT_GRAY, OFF_WHITE, BLACK } from "../shared/styles";
 import type { CompanyData } from "../shared/types";
 
-const RED_SHADOW = "#820A1E"; // teinte assombrie de RED, utilisée pour l'effet de relief des bandeaux "Journée"
+const SHADOW_GRAY = "#D8D8D8"; // ombre légère et plate sous les bandeaux "Journée" (décalage vertical uniquement)
 
 const s = StyleSheet.create({
   journeeWrap: { marginTop: 20, marginBottom: 0 },
-  journeeShadow: { backgroundColor: RED_SHADOW, borderRadius: 8 },
+  // Ombre légère : même largeur/rayon que le bandeau, seulement décalée de 2pt vers le bas
+  // (un décalage horizontal en plus casserait l'alignement des coins arrondis).
+  journeeShadow: { backgroundColor: SHADOW_GRAY, borderRadius: 6 },
   journeeBar: {
-    backgroundColor: RED, borderRadius: 8, marginRight: 3, marginBottom: 3,
-    paddingVertical: 8, paddingHorizontal: 14,
-    flexDirection: "row", alignItems: "baseline", justifyContent: "space-between",
-    borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.4)",
+    backgroundColor: RED, borderRadius: 6, marginBottom: 2,
+    paddingVertical: 9, paddingHorizontal: 16,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
-  journeeTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "white" },
-  journeeDate: { fontSize: 8, color: "rgba(255,255,255,0.85)" },
-  journeeMeta: { fontSize: 8, color: GRAY, marginTop: 5, marginBottom: 6 },
+  journeeLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: 1.5 },
+  journeeTitle: { fontSize: 13, fontFamily: "Helvetica-Bold", color: "white", textTransform: "capitalize", marginTop: 2 },
+  journeeMeta: { fontSize: 8, color: GRAY, marginTop: 6, marginBottom: 6 },
   row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: LIGHT_GRAY },
   heure: { width: 70, paddingVertical: 6, fontSize: 8, color: GRAY },
   contenu: { flex: 1, paddingVertical: 6 },
@@ -95,8 +96,10 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
             <View style={s.journeeWrap}>
               <View style={s.journeeShadow}>
                 <View style={s.journeeBar}>
-                  <Text style={s.journeeTitle}>Journée {i + 1}</Text>
-                  <Text style={s.journeeDate}>{j.dateStr}</Text>
+                  <View>
+                    <Text style={s.journeeLabel}>Journée {i + 1}</Text>
+                    <Text style={s.journeeTitle}>{j.dateStr}</Text>
+                  </View>
                 </View>
               </View>
             </View>
