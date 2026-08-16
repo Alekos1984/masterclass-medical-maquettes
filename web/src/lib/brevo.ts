@@ -326,3 +326,45 @@ export function emailCompteEtudiantCursus(data: {
     ${ctaButton(data.loginUrl, "Me connecter")}
   `);
 }
+
+export function emailRappelEtudiantCursus(data: {
+  nom: string; cursusTitre: string; delaiLabel: string; dateStr: string; heureDebut: string; heureFin: string; lieu: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Rappel : cours ${data.delaiLabel} 📅</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      Vous avez un cours de « <strong>${data.cursusTitre}</strong> » <strong>${data.dateStr}</strong>.</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;line-height:1.7;">
+      🕐 ${data.heureDebut}–${data.heureFin}<br/>📍 ${data.lieu}
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:10px;">L'invitation agenda (.ics) est jointe à ce message.</p>
+  `);
+}
+
+export function emailChangementJourneeCursus(data: {
+  nom: string; cursusTitre: string; dateStr: string; heureDebut: string; heureFin: string; lieu: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Un cours a été modifié ⚠️</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      Les horaires ou le lieu d'un cours de « <strong>${data.cursusTitre}</strong> » ont changé :</p>
+    <div style="background:#fff8e1;border-radius:8px;padding:14px 18px;font-size:13px;color:#5d4037;line-height:1.7;">
+      📅 ${data.dateStr}<br/>🕐 ${data.heureDebut}–${data.heureFin}<br/>📍 ${data.lieu}
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:10px;">Merci de noter la mise à jour dans votre agenda.</p>
+  `);
+}
+
+export function emailResultatsDisponiblesCursus(data: {
+  nom: string; cursusTitre: string; moduleIntitule: string; url: string;
+}) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Vos résultats sont disponibles 📊</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      Votre résultat pour « <strong>${data.moduleIntitule}</strong> » (${data.cursusTitre}) est maintenant disponible.</p>
+    ${ctaButton(data.url, "Voir mon résultat")}
+  `);
+}

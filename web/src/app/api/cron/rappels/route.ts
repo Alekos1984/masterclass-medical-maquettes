@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseSlots } from "@/lib/cursus";
 import { generateIcs, icsToBase64 } from "@/lib/ics";
-import { sendEmail, emailRappelEnseignement } from "@/lib/brevo";
+import { sendEmail, emailRappelEnseignement, emailRappelEtudiantCursus } from "@/lib/brevo";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,9 @@ const FENETRES: { type: string; joursMin: number; joursMax: number; label: strin
   { type: "H48", joursMin: 1, joursMax: 2, label: "dans 48 heures" },
   { type: "MATIN", joursMin: 0, joursMax: 0, label: "aujourd'hui" },
 ];
+
+// Les étudiants reçoivent moins de rappels que les enseignants (pas de J-15).
+const FENETRES_ETUDIANTS = FENETRES.filter((f) => f.type !== "J15");
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -97,6 +100,63 @@ export async function GET(req: NextRequest) {
         });
         envoyes++;
       } catch { /* réessaiera au prochain passage */ }
+    }
+
+    // Rappels étudiants (fenêtres réduites : J7, H48, MATIN)
+    const fenetreEtu = FENETRES_ETUDIANTS.find((f) => joursAvant >= f.joursMin && joursAvant <= f.joursMax);
+    if (fenetreEtu) {
+      const typeEtu = `ETU_${fenetreEtu.type}`;
+      const inscriptions = await prisma.inscription.findMany({
+        where: { formationId: j.id, statut: "CONFIRMEE" },
+        include: { participant: { include: { user: { select: { name: true, email: true } } } } },
+      });
+
+      const creneauxEtuHtml = slots
+        .filter((s) => s.type !== "pause")
+        .map((s) => `🕐 <strong>${s.heureDebut}–${s.heureFin}</strong> · ${s.titre}`)
+        .join("<br/>");
+
+      for (const insc of inscriptions) {
+        const email = insc.participant.user?.email;
+        if (!email) continue;
+
+        const deja = await prisma.cursusRappel.findUnique({
+          where: { formationId_email_type: { formationId: j.id, email, type: typeEtu } },
+        });
+        if (deja) continue;
+
+        const ics = generateIcs({
+          uid: `${j.id}-${insc.participantId}`,
+          titre: j.cursus.titre,
+          description: creneauxEtuHtml.replace(/<[^>]+>/g, " "),
+          lieu,
+          dateISO: j.date.toISOString(),
+          heureDebut: j.heureDebut,
+          heureFin: j.heureFin,
+          url: `${baseUrl}/participant/dashboard`,
+        });
+
+        try {
+          await sendEmail({
+            to: [{ email, name: insc.participant.user?.name ?? undefined }],
+            subject: `⏰ Rappel : cours ${fenetreEtu.label} — ${j.cursus.titre}`,
+            htmlContent: emailRappelEtudiantCursus({
+              nom: insc.participant.user?.name ?? "cher·e participant·e",
+              cursusTitre: j.cursus.titre,
+              delaiLabel: fenetreEtu.label,
+              dateStr,
+              heureDebut: j.heureDebut,
+              heureFin: j.heureFin,
+              lieu,
+            }),
+            attachment: [{ name: "cours.ics", content: icsToBase64(ics) }],
+          });
+          await prisma.cursusRappel.create({
+            data: { formationId: j.id, email, type: typeEtu },
+          });
+          envoyes++;
+        } catch { /* réessaiera au prochain passage */ }
+      }
     }
   }
 

@@ -1825,6 +1825,17 @@ function DocumentsTab({ cursusId, cursusSlug, journees, api, busy, setBusy }: {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <div style={{ ...cardDocStyle, border: "1.5px solid #C8102E", background: "#fff5f6" }}>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>🗄️</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Export global du dossier</div>
+          <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 12, lineHeight: 1.5 }}>
+            Archive ZIP complète pour l&apos;archivage annuel ou un audit qualité (Qualiopi) : programme,
+            liste des étudiants avec assiduité, et toutes les feuilles de notation clôturées.
+          </div>
+          <a href={`/api/cursus/${cursusId}/export-dossier`} target="_blank" rel="noreferrer" style={{ background: "#C8102E", color: "white", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            📦 Télécharger le ZIP
+          </a>
+        </div>
         <div style={cardDocStyle}>
           <div style={{ fontSize: 22, marginBottom: 6 }}>📄</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Programme complet</div>
