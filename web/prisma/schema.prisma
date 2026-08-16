@@ -688,6 +688,10 @@ model Cursus {
 
   templateOrigineId String? // template utilisé à la création (traçabilité, optionnel)
 
+  // Affichés sur la page publique du DU
+  prerequis  String? @db.Text // ex : diplômes, expérience requise pour candidater
+  publicVise String? @db.Text // ex : médecins généralistes, internes en 3e cycle...
+
   coordinateurId String
   coordinateur   FormateurProfile @relation("CursusCoordonnes", fields: [coordinateurId], references: [id])
 

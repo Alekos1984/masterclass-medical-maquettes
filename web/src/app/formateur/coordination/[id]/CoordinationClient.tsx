@@ -51,6 +51,7 @@ type ApiData = {
     organisateursTexte?: string | null;
     contactNom?: string | null; contactEmail?: string | null; contactTelephone?: string | null;
     capaciteMax?: number | null;
+    prerequis?: string | null; publicVise?: string | null;
     coordinateurNom: string;
   };
   journees: Journee[];
@@ -2397,6 +2398,8 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
     contactEmail: cursus.contactEmail ?? "",
     contactTelephone: cursus.contactTelephone ?? "",
     capaciteMax: cursus.capaciteMax?.toString() ?? "",
+    prerequis: cursus.prerequis ?? "",
+    publicVise: cursus.publicVise ?? "",
   });
   const [modeleBusy, setModeleBusy] = useState(false);
   const [orgaBusy, setOrgaBusy] = useState<string | null>(null);
@@ -2423,6 +2426,33 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description</div>
         <textarea value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 90, resize: "vertical" }} />
+      </div>
+
+      <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>🎯 Prérequis &amp; public visé</div>
+        <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
+          Affichés sur la page publique du DU, au-dessus du bouton « Déposer sa candidature ».
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Public visé</div>
+            <textarea
+              value={form.publicVise}
+              onChange={(e) => setForm((s) => ({ ...s, publicVise: e.target.value }))}
+              placeholder={"Médecins généralistes\nInternes en 3e cycle de médecine générale"}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 70, resize: "vertical" }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Prérequis</div>
+            <textarea
+              value={form.prerequis}
+              onChange={(e) => setForm((s) => ({ ...s, prerequis: e.target.value }))}
+              placeholder={"Doctorat en médecine\nExpérience clinique d'au moins 1 an"}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 70, resize: "vertical" }}
+            />
+          </div>
+        </div>
       </div>
 
       <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>

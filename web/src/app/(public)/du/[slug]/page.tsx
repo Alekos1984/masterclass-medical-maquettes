@@ -32,6 +32,8 @@ export default async function DuPublicPage({ params }: { params: Promise<{ slug:
         prixHT: cursus.prixHT ? Number(cursus.prixHT) : null,
         lieuNom: cursus.lieuNom,
         lieuVille: cursus.lieuVille,
+        prerequis: cursus.prerequis,
+        publicVise: cursus.publicVise,
         enseignants: cursus.enseignants.map((e) => e.nom ?? e.email),
         journees: cursus.journees.map((j) => ({
           date: j.date.toISOString(),
