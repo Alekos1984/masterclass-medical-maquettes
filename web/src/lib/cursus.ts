@@ -9,6 +9,9 @@ export type CursusSlot = {
   type: string;
   enseignantId: string | null; // CursusEnseignant.id
   intervenantRaw?: string | null; // nom brut détecté (digitalisation), en attente de rattachement à un enseignant
+  lieuNom?: string | null; // site (ex : Hôpital Saint-Antoine) — laisse vide pour reprendre le lieu de la journée
+  salle?: string | null; // ex : "206"
+  enVisio?: boolean; // ce créneau précis se fait en visioconférence
 };
 
 export type CursusRole = "COORDINATEUR" | "SECRETAIRE" | "ENSEIGNANT" | null;
@@ -76,6 +79,9 @@ export function parseSlots(programme: unknown): CursusSlot[] {
       type: (s.type as string) ?? "cours",
       enseignantId: (s.enseignantId as string) ?? null,
       intervenantRaw,
+      lieuNom: (s.lieuNom as string) ?? null,
+      salle: (s.salle as string) ?? null,
+      enVisio: !!s.enVisio,
     };
   });
 }

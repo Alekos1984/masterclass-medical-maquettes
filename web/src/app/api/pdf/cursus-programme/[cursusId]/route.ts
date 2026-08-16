@@ -56,6 +56,7 @@ export async function GET(
         description: s.description,
         type: s.type,
         enseignantNom: s.enseignantId ? enseignantsById.get(s.enseignantId) ?? null : null,
+        lieuNom: s.lieuNom, salle: s.salle, enVisio: s.enVisio,
       })),
     })),
   };

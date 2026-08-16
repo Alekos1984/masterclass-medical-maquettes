@@ -13,7 +13,7 @@ type Props = {
     enseignants: string[];
     journees: {
       date: string; heureDebut: string; heureFin: string; modalite: string;
-      slots: { heureDebut: string; heureFin: string; titre: string; type: string; enseignantNom: string | null }[];
+      slots: { heureDebut: string; heureFin: string; titre: string; type: string; enseignantNom: string | null; lieuNom: string | null; salle: string | null; enVisio?: boolean }[];
     }[];
   };
 };
@@ -197,7 +197,14 @@ export default function DuPublicClient({ cursus }: Props) {
               {j.slots.map((s, k) => (
                 <div key={k} style={{ display: "flex", gap: 12, padding: "7px 0", borderBottom: "1px solid #F5F5F5", fontSize: 13 }}>
                   <span style={{ color: "#9A9A9A", whiteSpace: "nowrap", width: 95 }}>{s.heureDebut}–{s.heureFin}</span>
-                  <span style={{ flex: 1, fontWeight: s.type === "pause" ? 400 : 600, color: s.type === "pause" ? "#9A9A9A" : "#0F0F0F" }}>{s.titre}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: s.type === "pause" ? 400 : 600, color: s.type === "pause" ? "#9A9A9A" : "#0F0F0F" }}>{s.titre}</div>
+                    {s.type !== "pause" && (s.enVisio || s.lieuNom || s.salle) && (
+                      <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 1 }}>
+                        {s.enVisio ? "💻 Visioconférence" : [s.lieuNom, s.salle ? `salle ${s.salle}` : null].filter(Boolean).join(" — ")}
+                      </div>
+                    )}
+                  </div>
                   {s.type !== "pause" && s.enseignantNom && <span style={{ color: "#C8102E", whiteSpace: "nowrap" }}>{s.enseignantNom}</span>}
                 </div>
               ))}

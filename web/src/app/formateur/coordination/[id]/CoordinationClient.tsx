@@ -11,6 +11,7 @@ type Slot = {
   slotId: string; heureDebut: string; heureFin: string;
   titre: string; description: string; type: string; enseignantId: string | null;
   intervenantRaw?: string | null;
+  lieuNom?: string | null; salle?: string | null; enVisio?: boolean;
 };
 type Journee = {
   id: string; date: string; heureDebut: string; heureFin: string;
@@ -866,6 +867,39 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               </>
                             )}
                           </div>
+                          {/* Lieu du créneau (site / salle / visio) — laisser vide reprend le lieu de la journée */}
+                          {slot.type !== "pause" && (
+                            peutEditer ? (
+                              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 4, marginLeft: 23 }}>
+                                <input
+                                  type="text" placeholder="Site (ex : Hôpital Saint-Antoine)"
+                                  value={slot.lieuNom ?? ""}
+                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, lieuNom: e.target.value } : x))}
+                                  style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 190 }}
+                                />
+                                <input
+                                  type="text" placeholder="Salle (ex : 206)"
+                                  value={slot.salle ?? ""}
+                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, salle: e.target.value } : x))}
+                                  style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 110 }}
+                                />
+                                <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6A6A6A", cursor: "pointer" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={!!slot.enVisio}
+                                    onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enVisio: e.target.checked } : x))}
+                                  />
+                                  Ce créneau se fait en visio
+                                </label>
+                              </div>
+                            ) : (slot.lieuNom || slot.salle || slot.enVisio) && (
+                              <div style={{ marginTop: 4, marginLeft: 0, fontSize: 11, color: "#6A6A6A" }}>
+                                {slot.enVisio && "💻 Visio"}
+                                {slot.enVisio && (slot.lieuNom || slot.salle) && " · "}
+                                {slot.lieuNom}{slot.lieuNom && slot.salle && " · "}{slot.salle && `Salle ${slot.salle}`}
+                              </div>
+                            )
+                          )}
                           {/* Intervenant détecté à l'import mais non rattaché */}
                           {slot.intervenantRaw && !slot.enseignantId && slot.type !== "pause" && (
                             <div style={{ marginTop: 4, fontSize: 11, color: "#e65100", fontWeight: 600 }}>
@@ -926,7 +960,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       <div style={{ padding: "12px 22px", display: "flex", gap: 10, alignItems: "center" }}>
                         <button
                           style={btnGhost}
-                          onClick={() => updateSlots(j.id, [...slots, { slotId: `slot-${Date.now()}`, heureDebut: j.heureDebut, heureFin: "", titre: "", description: "", type: "cours", enseignantId: null }])}
+                          onClick={() => updateSlots(j.id, [...slots, { slotId: `slot-${Date.now()}`, heureDebut: j.heureDebut, heureFin: "", titre: "", description: "", type: "cours", enseignantId: null, lieuNom: null, salle: null, enVisio: false }])}
                         >
                           + Créneau
                         </button>

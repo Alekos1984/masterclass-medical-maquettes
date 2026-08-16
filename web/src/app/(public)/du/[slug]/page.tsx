@@ -43,6 +43,7 @@ export default async function DuPublicPage({ params }: { params: Promise<{ slug:
           slots: parseSlots(j.programme).map((s) => ({
             heureDebut: s.heureDebut, heureFin: s.heureFin, titre: s.titre, type: s.type,
             enseignantNom: s.enseignantId ? enseignantsById.get(s.enseignantId) ?? null : null,
+            lieuNom: s.lieuNom ?? null, salle: s.salle ?? null, enVisio: s.enVisio,
           })),
         })),
       }}

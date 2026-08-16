@@ -33,7 +33,7 @@ export type CursusProgrammeData = {
     heureFin: string;
     modalite: string;
     lieu: string;
-    slots: { heureDebut: string; heureFin: string; titre: string; description: string; type: string; enseignantNom: string | null }[];
+    slots: { heureDebut: string; heureFin: string; titre: string; description: string; type: string; enseignantNom: string | null; lieuNom?: string | null; salle?: string | null; enVisio?: boolean }[];
   }[];
 };
 
@@ -88,6 +88,11 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
                 <View style={s.contenu}>
                   <Text style={s.titre}>{slot.titre}</Text>
                   {slot.description ? <Text style={s.desc}>{slot.description}</Text> : <View style={{ height: 0 }} />}
+                  {(slot.enVisio || slot.lieuNom || slot.salle) ? (
+                    <Text style={s.desc}>
+                      {slot.enVisio ? "Visioconférence" : [slot.lieuNom, slot.salle ? `salle ${slot.salle}` : null].filter(Boolean).join(" — ")}
+                    </Text>
+                  ) : <View style={{ height: 0 }} />}
                 </View>
                 <Text style={s.prof}>{slot.type === "pause" ? "" : (slot.enseignantNom ?? "À confirmer")}</Text>
               </View>
