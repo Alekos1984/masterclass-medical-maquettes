@@ -6,6 +6,8 @@ import Link from "next/link";
 type CursusCoordonne = {
   id: string; titre: string; statut: string; annee: string | null; publique: boolean;
   nbJournees: number; nbEnseignants: number; enAttente: number; prochaineDate: string | null;
+  nbAlertes: number; prochaineEcheanceNotation: { intitule: string; date: string } | null;
+  nbEtudiants: number; capaciteMax: number | null; tauxRemplissage: number | null;
 };
 type CursusEnseigne = {
   id: string; titre: string; statut: string; annee: string | null;
@@ -54,6 +56,29 @@ export default function CoordinationPage() {
 
         {!loading && (
           <>
+            {coordonnes.length > 1 && (
+              <div style={{ display: "flex", gap: 12, marginBottom: 22, flexWrap: "wrap" }}>
+                <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 12, padding: "12px 18px", minWidth: 140 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: coordonnes.some((c) => c.nbAlertes > 0) ? "#C8102E" : "#0F0F0F" }}>
+                    {coordonnes.reduce((s, c) => s + c.nbAlertes, 0)}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6A6A6A" }}>alertes au total</div>
+                </div>
+                <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 12, padding: "12px 18px", minWidth: 140 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>
+                    {coordonnes.filter((c) => c.prochaineEcheanceNotation).length}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6A6A6A" }}>échéance(s) de notation à venir</div>
+                </div>
+                <div style={{ background: "white", border: "1px solid #E0E0E0", borderRadius: 12, padding: "12px 18px", minWidth: 140 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>
+                    {coordonnes.reduce((s, c) => s + c.nbEtudiants, 0)}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6A6A6A" }}>étudiants inscrits (tous DU)</div>
+                </div>
+              </div>
+            )}
+
             <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 12 }}>
               Mes cursus coordonnés ({coordonnes.length})
             </div>
@@ -71,8 +96,19 @@ export default function CoordinationPage() {
                     <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 3 }}>
                       {c.nbJournees} journée{c.nbJournees > 1 ? "s" : ""} · {c.nbEnseignants} enseignant{c.nbEnseignants > 1 ? "s" : ""}
                       {c.prochaineDate && ` · prochaine : ${new Date(c.prochaineDate).toLocaleDateString("fr-FR")}`}
+                      {c.tauxRemplissage !== null && ` · ${c.nbEtudiants}/${c.capaciteMax} étudiants (${c.tauxRemplissage}%)`}
                     </div>
                   </div>
+                  {c.nbAlertes > 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 700, background: "#ffebee", color: "#C8102E", padding: "4px 10px", borderRadius: 100 }}>
+                      ⚠ {c.nbAlertes} alerte{c.nbAlertes > 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {c.prochaineEcheanceNotation && (
+                    <span style={{ fontSize: 11, fontWeight: 700, background: "#f3e5f5", color: "#6a1b9a", padding: "4px 10px", borderRadius: 100 }}>
+                      📝 {c.prochaineEcheanceNotation.intitule} · {new Date(c.prochaineEcheanceNotation.date).toLocaleDateString("fr-FR")}
+                    </span>
+                  )}
                   {c.enAttente > 0 && (
                     <span style={{ fontSize: 11, fontWeight: 700, background: "#fff3e0", color: "#e65100", padding: "4px 10px", borderRadius: 100 }}>
                       {c.enAttente} invitation{c.enAttente > 1 ? "s" : ""} en attente

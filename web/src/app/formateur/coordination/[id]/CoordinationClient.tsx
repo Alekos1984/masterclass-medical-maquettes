@@ -46,6 +46,7 @@ type ApiData = {
     orgNom?: string | null; orgLogoBase64?: string | null; masquerMM?: boolean;
     organisateursTexte?: string | null;
     contactNom?: string | null; contactEmail?: string | null; contactTelephone?: string | null;
+    capaciteMax?: number | null;
     coordinateurNom: string;
   };
   journees: Journee[];
@@ -2306,7 +2307,9 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
     contactNom: cursus.contactNom ?? "",
     contactEmail: cursus.contactEmail ?? "",
     contactTelephone: cursus.contactTelephone ?? "",
+    capaciteMax: cursus.capaciteMax?.toString() ?? "",
   });
+  const [modeleBusy, setModeleBusy] = useState(false);
   const [orgaBusy, setOrgaBusy] = useState<string | null>(null);
 
   async function toggleOrganisateur(eid: string, next: boolean) {
@@ -2386,6 +2389,18 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
         <input type="text" placeholder="Lieu (établissement)" value={form.lieuNom} onChange={(e) => setForm((s) => ({ ...s, lieuNom: e.target.value }))} style={inputStyle} />
         <input type="text" placeholder="Adresse" value={form.lieuAdresse} onChange={(e) => setForm((s) => ({ ...s, lieuAdresse: e.target.value }))} style={inputStyle} />
         <input type="text" placeholder="Ville" value={form.lieuVille} onChange={(e) => setForm((s) => ({ ...s, lieuVille: e.target.value }))} style={inputStyle} />
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Capacité maximale (étudiants)</div>
+        <input
+          type="number" min={0} placeholder="Ex : 30"
+          value={form.capaciteMax}
+          onChange={(e) => setForm((s) => ({ ...s, capaciteMax: e.target.value }))}
+          style={{ ...inputStyle, width: 140 }}
+        />
+        <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 4 }}>
+          Utilisée pour le taux de remplissage affiché sur le tableau de bord multi-DU.
+        </div>
       </div>
       <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 18, flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
@@ -2495,6 +2510,20 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
           }}
         >
           {busy === "dupliquer" ? "Duplication…" : "🔁 Dupliquer pour l'année suivante"}
+        </button>
+        <button
+          style={btnGhost}
+          disabled={modeleBusy}
+          onClick={async () => {
+            const nom = prompt("Nom du modèle (ex : DU Échographie — trame type)", cursus.titre);
+            if (!nom?.trim()) return;
+            setModeleBusy(true);
+            const ok = await api(`/api/cursus-templates`, "POST", { cursusId, nom: nom.trim() });
+            setModeleBusy(false);
+            if (ok) alert("Modèle enregistré — disponible lors de la création d'un nouveau DU.");
+          }}
+        >
+          {modeleBusy ? "Enregistrement…" : "📐 Enregistrer comme modèle"}
         </button>
         <button
           style={{ ...btnGhost, color: "#c62828", borderColor: "#ffcdd2", marginLeft: "auto" }}
