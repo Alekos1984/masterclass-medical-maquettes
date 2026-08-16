@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parseContacts as parseContactsLib, type ParsedContact as ParsedContactLib } from "@/lib/parse-contacts";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -38,7 +39,7 @@ type ApiData = {
     id: string; slug: string; titre: string; description: string; specialite: string;
     annee: string | null; publique: boolean; statut: string; inscriptionMode: string; prixHT: number | null;
     lieuNom: string | null; lieuAdresse: string | null; lieuVille: string | null;
-    certifBlocCode: string | null; certifActionTitre: string | null; coordinateurNom: string;
+    certifBlocCode: string | null; certifActionTitre: string | null; emargementMode?: string; coordinateurNom: string;
   };
   journees: Journee[];
   enseignants: Enseignant[];
@@ -109,104 +110,9 @@ function InsertLine({ onInsert, onDropSlot, isDropTarget }: {
   );
 }
 
-// ─── Parseur intelligent de contacts (CSV, liste collée, texte libre) ─────────
-// Détecte par ligne : email, téléphone, civilité (Dr, Pr, Mme…), initiales (S., M.V., J-M.),
-// NOM en majuscules, Prénom capitalisé (Marie-Claire…), le reste = fonction/note.
-// Enrichissement depuis l'email quand un champ manque (marie.dupont@… → Marie DUPONT).
-
-export type ParsedContact = { email: string; nom: string; prenom: string; phone: string; fonction: string };
-
-const TITLES = new Set([
-  "dr", "dr.", "pr", "pr.", "prof", "prof.",
-  "docteur", "docteure", "professeur", "professeure",
-  "mme", "mlle", "monsieur", "madame", "mademoiselle",
-  "mr", "mr.", "ms", "ms.",
-]);
-
-function isTitle(w: string) { return TITLES.has(w.toLowerCase()); }
-function isInitial(w: string) {
-  // "S.", "M.V.", "J-M.", "A.B." — courte séquence d'initiales, doit contenir un point
-  if (w.length > 6 || !w.includes(".")) return false;
-  return /^(?:[A-ZÀ-Ý][.\-]?)+$/.test(w);
-}
-function isAllUpper(w: string) {
-  if (isInitial(w) || w.length < 2) return false;
-  return w === w.toUpperCase() && /[A-ZÀ-Ý]/.test(w);
-}
-function isCapitalized(w: string) {
-  if (isInitial(w) || isTitle(w)) return false;
-  return /^[A-ZÀ-Ý][a-zà-ÿ']*(?:-[A-ZÀ-Ý][a-zà-ÿ']*)*$/.test(w);
-}
-function capitalizeName(s: string): string {
-  return s.toLowerCase().replace(/(^|-)([a-zà-ÿ])/g, (_, sep, c: string) => sep + c.toUpperCase());
-}
-function namesFromEmail(email: string): { prenom: string; nom: string } {
-  const local = email.split("@")[0];
-  const parts = local.split(/[._]+/).filter((p) => p.length > 1);
-  if (parts.length === 0) return { prenom: "", nom: "" };
-  if (parts.length === 1) return { prenom: capitalizeName(parts[0]), nom: "" };
-  return {
-    prenom: capitalizeName(parts[0]),
-    nom: parts.slice(1).map((p) => p.toUpperCase()).join(" "),
-  };
-}
-
-function parseContacts(text: string): ParsedContact[] {
-  const results: ParsedContact[] = [];
-  for (const rawLine of text.split("\n")) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    const emailMatch = line.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
-    if (!emailMatch) continue;
-    const email = emailMatch[0].toLowerCase();
-
-    let rest = line.replace(emailMatch[0], " ");
-    const phoneMatch = rest.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?0\)?[\s.-]?)?[1-9](?:[\s.-]?\d{2}){4}/);
-    const phone = phoneMatch ? phoneMatch[0].replace(/[\s.-]+/g, " ").trim() : "";
-    if (phoneMatch) rest = rest.replace(phoneMatch[0], " ");
-
-    // Tokenisation : sépare sur ;/, tab puis sur espaces, retire ponctuation traînante
-    const tokens = rest
-      .split(/[;,\t]/)
-      .flatMap((t) => t.split(/\s+/))
-      .map((t) => t.trim().replace(/[,;]$/, ""))
-      .filter((t) => t && t !== "-" && t !== "&");
-
-    let nom = "";
-    let prenom = "";
-    const titles: string[] = [];
-    const fonctionParts: string[] = [];
-
-    for (const tok of tokens) {
-      if (isTitle(tok)) { titles.push(tok); continue; }
-      if (isInitial(tok)) continue; // ignoré — l'email fournira le prénom complet
-      if (isAllUpper(tok)) {
-        if (!nom) nom = tok; else fonctionParts.push(tok);
-        continue;
-      }
-      if (isCapitalized(tok)) {
-        if (!prenom) prenom = tok;
-        else if (!nom) nom = tok.toUpperCase();
-        else fonctionParts.push(tok);
-        continue;
-      }
-      if (tok.toLowerCase() !== "x") fonctionParts.push(tok);
-    }
-
-    // Enrichissement depuis l'email quand un champ manque
-    if (!prenom || !nom) {
-      const fromEmail = namesFromEmail(email);
-      if (!prenom && fromEmail.prenom) prenom = fromEmail.prenom;
-      if (!nom && fromEmail.nom) nom = fromEmail.nom;
-    }
-
-    const fonction = [...titles, ...fonctionParts].join(" ").replace(/\s+/g, " ").trim();
-    results.push({ email, nom, prenom, phone, fonction });
-  }
-  const seen = new Set<string>();
-  return results.filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)));
-}
+// Parseur de contacts factorisé dans @/lib/parse-contacts (partagé serveur/client)
+export type ParsedContact = ParsedContactLib;
+const parseContacts = parseContactsLib;
 
 function PreviewTable({ contacts, editable, onChange }: {
   contacts: ParsedContact[];
@@ -294,13 +200,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   // Journées : édition de slots (état local par journée)
   const [slotsEdit, setSlotsEdit] = useState<Record<string, Slot[]>>({});
   const [newJournee, setNewJournee] = useState({ date: "", heureDebut: "09:00", heureFin: "17:00", modaliteSession: "PRESENTIEL", visioUrl: "" });
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteNom, setInviteNom] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [newEns, setNewEns] = useState({ prenom: "", nom: "", email: "", fonction: "" });
   const [equipeText, setEquipeText] = useState("");
   const [equipeResult, setEquipeResult] = useState("");
   const [equipeRows, setEquipeRows] = useState<ParsedContact[] | null>(null);
   const [editEnseignantId, setEditEnseignantId] = useState<string | null>(null);
   const [prospectText, setProspectText] = useState("");
+  const [prospectRows, setProspectRows] = useState<ParsedContact[] | null>(null);
   const [prospectResult, setProspectResult] = useState("");
   const [prospectSel, setProspectSel] = useState<string[]>([]);
   const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
@@ -1020,38 +927,110 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
           <div>
             {isCoord && (
               <>
-                <div style={{ ...cardStyle, padding: "16px 22px", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <div style={{ flex: 1, minWidth: 200 }}>
-                    <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Email de l&apos;enseignant</div>
-                    <input type="email" placeholder="prenom.nom@chu.fr" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 160 }}>
-                    <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Nom (optionnel)</div>
-                    <input type="text" placeholder="Dr Jeanne Martin" value={inviteNom} onChange={(e) => setInviteNom(e.target.value)} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
-                  </div>
-                  <button
-                    style={btnRed}
-                    disabled={!inviteEmail || busy === "invite"}
-                    onClick={async () => {
-                      setBusy("invite");
-                      const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { email: inviteEmail, nom: inviteNom });
-                      if (ok) {
-                        if ((ok.rattaches ?? 0) > 0) alert(`🔗 ${ok.rattaches} intervenant(s) détecté(s) à l'import ont été rattaché(s) à cet enseignant.`);
-                        setInviteEmail(""); setInviteNom(""); await reload();
-                      }
-                      setBusy(null);
-                    }}
-                  >
-                    ✉️ Inviter
-                  </button>
+                <div style={{ ...cardStyle, padding: addOpen ? "18px 22px" : "12px 22px" }}>
+                  {!addOpen ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <button style={btnRed} onClick={() => setAddOpen(true)}>+ Ajouter un enseignant</button>
+                      <span style={{ fontSize: 12, color: "#6A6A6A" }}>ou utilisez l&apos;import en masse ci-dessous ↓</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, alignItems: "end" }}>
+                        <div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Prénom</div>
+                          <input value={newEns.prenom} onChange={(e) => setNewEns((s) => ({ ...s, prenom: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="Marie" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Nom</div>
+                          <input value={newEns.nom} onChange={(e) => setNewEns((s) => ({ ...s, nom: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="DUPONT" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Fonction / note</div>
+                          <input value={newEns.fonction} onChange={(e) => setNewEns((s) => ({ ...s, fonction: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="PU-PH cardiologie" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Email *</div>
+                          <input type="email" value={newEns.email} onChange={(e) => setNewEns((s) => ({ ...s, email: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="prenom.nom@chu.fr" />
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+                        <button style={btnGhost} onClick={() => { setAddOpen(false); setNewEns({ prenom: "", nom: "", email: "", fonction: "" }); }}>Annuler</button>
+                        <div style={{ flex: 1 }} />
+                        <button
+                          style={btnGhost}
+                          disabled={!newEns.email.includes("@") || busy === "addSans"}
+                          onClick={async () => {
+                            setBusy("addSans");
+                            const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { ...newEns, sansInviter: true });
+                            if (ok) {
+                              if ((ok.rattaches ?? 0) > 0) alert(`🔗 ${ok.rattaches} intervenant(s) auto-rattaché(s).`);
+                              setAddOpen(false); setNewEns({ prenom: "", nom: "", email: "", fonction: "" }); await reload();
+                            }
+                            setBusy(null);
+                          }}
+                        >
+                          💾 Enregistrer sans inviter
+                        </button>
+                        <button
+                          style={btnRed}
+                          disabled={!newEns.email.includes("@") || busy === "addInvite"}
+                          onClick={async () => {
+                            setBusy("addInvite");
+                            const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { ...newEns });
+                            if (ok) {
+                              if ((ok.rattaches ?? 0) > 0) alert(`🔗 ${ok.rattaches} intervenant(s) auto-rattaché(s).`);
+                              setAddOpen(false); setNewEns({ prenom: "", nom: "", email: "", fonction: "" }); await reload();
+                            }
+                            setBusy(null);
+                          }}
+                        >
+                          ✉️ Enregistrer et inviter
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Import en masse */}
                 <div style={{ ...cardStyle, padding: "16px 22px" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Importer toute l&apos;équipe d&apos;un coup</div>
                   <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
-                    Collez votre liste (CSV, export Excel, ou simple texte) — une ligne par enseignant.
-                    Les emails, noms, prénoms, téléphones et fonctions sont <strong>détectés automatiquement</strong>. Vérifiez l&apos;aperçu avant d&apos;envoyer les invitations.
+                    Collez votre liste (CSV, export Excel, ou simple texte) OU <strong>importez un fichier</strong> (PDF, Word, Excel, CSV).
+                    Les emails, noms, prénoms, téléphones et fonctions sont <strong>détectés automatiquement</strong>. Vérifiez et modifiez l&apos;aperçu avant d&apos;enregistrer.
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff5f6", color: "#C8102E", border: "1.5px dashed #C8102E", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: busy === "equipeFile" ? "wait" : "pointer" }}>
+                      {busy === "equipeFile" ? "Analyse du fichier…" : "📎 Importer depuis un fichier (PDF / Word / Excel / CSV)"}
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt,.tsv,.md"
+                        style={{ display: "none" }}
+                        disabled={busy === "equipeFile"}
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          if (f.size > 10 * 1024 * 1024) { alert("Fichier trop volumineux (max 10 Mo)"); return; }
+                          setBusy("equipeFile");
+                          try {
+                            const base64 = await new Promise<string>((resolve) => {
+                              const r = new FileReader();
+                              r.onload = () => resolve((r.result as string).split(",")[1] ?? "");
+                              r.readAsDataURL(f);
+                            });
+                            const r = await api(`/api/cursus/${cursusId}/extract-contacts`, "POST", { fichierNom: f.name, fichierBase64: base64 });
+                            if (r?.contacts) {
+                              setEquipeRows(r.contacts as ParsedContact[]);
+                              if ((r.contacts as ParsedContact[]).length === 0) {
+                                alert("Aucun contact détecté dans le fichier. Réessayez avec une consigne texte, ou vérifiez que le document contient des adresses email.");
+                              }
+                            }
+                          } finally {
+                            setBusy(null);
+                            e.currentTarget.value = "";
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
                   {equipeRows === null ? (
                     <>
@@ -1269,37 +1248,109 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             <div style={{ ...cardStyle, padding: "20px 22px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>📋 Liste d&apos;attente</div>
               <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
-                Collez votre liste (CSV, export Excel, texte libre) — emails, noms, prénoms, téléphones et
-                mentions libres (fonction, statut…) sont <strong>détectés automatiquement</strong>. Les étudiants restent
+                Collez votre liste (texte libre) OU <strong>importez un fichier</strong> (PDF, Word, Excel, CSV) —
+                emails, noms, prénoms, téléphones et fonctions <strong>détectés automatiquement</strong>. Les étudiants restent
                 « en attente » jusqu&apos;à ce que vous les acceptiez : l&apos;acceptation crée le compte, inscrit à toutes
                 les journées et envoie les identifiants.
               </div>
-              <textarea
-                placeholder={"DUPONT Marie marie.dupont@chu.fr 06 11 22 33 44 Interne DES cardiologie\njean.martin@aphp.fr;Martin;Jean;CCA"}
-                value={prospectText}
-                onChange={(e) => setProspectText(e.target.value)}
-                style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 100, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
-              />
-              <PreviewTable contacts={parseContacts(prospectText)} />
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
-                <button
-                  style={btnRed}
-                  disabled={parseContacts(prospectText).length === 0 || busy === "prospects"}
-                  onClick={async () => {
-                    setBusy("prospects");
-                    const r = await api(`/api/cursus/${cursusId}/prospects`, "POST", { prospects: parseContacts(prospectText) });
-                    if (r) {
-                      setProspectResult(`✅ ${r.ajoutes} ajouté(s) à la liste d'attente, ${r.doublons} déjà présent(s), ${r.erreurs} erreur(s).`);
-                      setProspectText("");
-                      await reload();
-                    }
-                    setBusy(null);
-                  }}
-                >
-                  {busy === "prospects" ? "Ajout…" : `📥 Ajouter les ${parseContacts(prospectText).length} à la liste d'attente`}
-                </button>
-                {prospectResult && <span style={{ fontSize: 12, color: "#2e7d32" }}>{prospectResult}</span>}
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff5f6", color: "#C8102E", border: "1.5px dashed #C8102E", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: busy === "prospectFile" ? "wait" : "pointer" }}>
+                  {busy === "prospectFile" ? "Analyse du fichier…" : "📎 Importer depuis un fichier (PDF / Word / Excel / CSV)"}
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt,.tsv,.md"
+                    style={{ display: "none" }}
+                    disabled={busy === "prospectFile"}
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      if (f.size > 10 * 1024 * 1024) { alert("Fichier trop volumineux (max 10 Mo)"); return; }
+                      setBusy("prospectFile");
+                      try {
+                        const base64 = await new Promise<string>((resolve) => {
+                          const r = new FileReader();
+                          r.onload = () => resolve((r.result as string).split(",")[1] ?? "");
+                          r.readAsDataURL(f);
+                        });
+                        const r = await api(`/api/cursus/${cursusId}/extract-contacts`, "POST", { fichierNom: f.name, fichierBase64: base64 });
+                        if (r?.contacts) {
+                          setProspectRows(r.contacts as ParsedContact[]);
+                          if ((r.contacts as ParsedContact[]).length === 0) alert("Aucun contact détecté dans le fichier.");
+                        }
+                      } finally {
+                        setBusy(null);
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                </label>
               </div>
+              {prospectRows === null ? (
+                <>
+                  <textarea
+                    placeholder={"DUPONT Marie marie.dupont@chu.fr 06 11 22 33 44 Interne DES cardiologie\njean.martin@aphp.fr;Martin;Jean;CCA"}
+                    value={prospectText}
+                    onChange={(e) => setProspectText(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 100, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+                  />
+                  <PreviewTable contacts={parseContacts(prospectText)} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                    <button
+                      style={btnGhost}
+                      disabled={parseContacts(prospectText).length === 0}
+                      onClick={() => setProspectRows(parseContacts(prospectText))}
+                    >
+                      ✏️ Modifier avant d&apos;ajouter
+                    </button>
+                    <button
+                      style={btnRed}
+                      disabled={parseContacts(prospectText).length === 0 || busy === "prospects"}
+                      onClick={async () => {
+                        setBusy("prospects");
+                        const r = await api(`/api/cursus/${cursusId}/prospects`, "POST", { prospects: parseContacts(prospectText) });
+                        if (r) {
+                          setProspectResult(`✅ ${r.ajoutes} ajouté(s) à la liste d'attente, ${r.doublons} déjà présent(s), ${r.erreurs} erreur(s).`);
+                          setProspectText("");
+                          await reload();
+                        }
+                        setBusy(null);
+                      }}
+                    >
+                      {busy === "prospects" ? "Ajout…" : `📥 Ajouter les ${parseContacts(prospectText).length} à la liste d'attente`}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: "#0F0F0F", background: "#e3f2fd", borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
+                    ✏️ Mode édition manuelle — corrigez, ajoutez ou supprimez des lignes puis validez l&apos;ajout à la liste d&apos;attente.
+                  </div>
+                  <PreviewTable contacts={prospectRows} editable onChange={setProspectRows} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                    <button style={btnGhost} onClick={() => setProspectRows(null)}>← Revenir au texte</button>
+                    <div style={{ flex: 1 }} />
+                    <button
+                      style={btnRed}
+                      disabled={prospectRows.filter((r) => r.email.includes("@")).length === 0 || busy === "prospects"}
+                      onClick={async () => {
+                        setBusy("prospects");
+                        const rows = prospectRows.filter((r) => r.email.includes("@"));
+                        const r = await api(`/api/cursus/${cursusId}/prospects`, "POST", { prospects: rows });
+                        if (r) {
+                          setProspectResult(`✅ ${r.ajoutes} ajouté(s), ${r.doublons} déjà présent(s), ${r.erreurs} erreur(s).`);
+                          setProspectRows(null);
+                          setProspectText("");
+                          await reload();
+                        }
+                        setBusy(null);
+                      }}
+                    >
+                      {busy === "prospects" ? "Ajout…" : `📥 Ajouter ${prospectRows.filter((r) => r.email.includes("@")).length} à la liste d'attente`}
+                    </button>
+                  </div>
+                </>
+              )}
+              {prospectResult && <div style={{ fontSize: 12, color: "#2e7d32", marginTop: 8 }}>{prospectResult}</div>}
 
               {/* Ajout un par un */}
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 16, paddingTop: 14, borderTop: "1px solid #EBEBEB" }}>
@@ -1641,6 +1692,7 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
     titre: cursus.titre, description: cursus.description, annee: cursus.annee ?? "",
     publique: cursus.publique, inscriptionMode: cursus.inscriptionMode, prixHT: cursus.prixHT?.toString() ?? "",
     lieuNom: cursus.lieuNom ?? "", lieuAdresse: cursus.lieuAdresse ?? "", lieuVille: cursus.lieuVille ?? "",
+    emargementMode: cursus.emargementMode ?? "DEMI_JOURNEE",
   });
 
   return (
@@ -1676,6 +1728,31 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
         {form.inscriptionMode === "PAYANT" && (
           <input type="number" placeholder="Prix HT" value={form.prixHT} onChange={(e) => setForm((s) => ({ ...s, prixHT: e.target.value }))} style={{ ...inputStyle, width: 120 }} />
         )}
+      </div>
+      <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>✍️ Mode d&apos;émargement</div>
+        <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
+          Détermine qui déclenche l&apos;émargement et la validité du QR code des étudiants.
+        </div>
+        {[
+          { v: "PAR_COURS", t: "À chaque cours", d: "Chaque enseignant génère et affiche son propre QR code — les étudiants émargent à chaque intervention." },
+          { v: "DEMI_JOURNEE", t: "Matin & après-midi", d: "Deux QR codes par jour, valides toute la demi-journée — c'est l'enseignant du premier créneau de chaque demi-journée qui les active." },
+          { v: "JOUR", t: "Une fois par jour", d: "Un seul QR code valable toute la journée — c'est l'enseignant du premier créneau du matin qui l'active." },
+        ].map((opt) => (
+          <label key={opt.v} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer", background: form.emargementMode === opt.v ? "#fff5f6" : "transparent", border: `1.5px solid ${form.emargementMode === opt.v ? "#C8102E" : "transparent"}`, marginBottom: 5 }}>
+            <input
+              type="radio"
+              name="emargementMode"
+              checked={form.emargementMode === opt.v}
+              onChange={() => setForm((s) => ({ ...s, emargementMode: opt.v }))}
+              style={{ marginTop: 3 }}
+            />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F" }}>{opt.t}</div>
+              <div style={{ fontSize: 12, color: "#6A6A6A", marginTop: 1, lineHeight: 1.5 }}>{opt.d}</div>
+            </div>
+          </label>
+        ))}
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button
