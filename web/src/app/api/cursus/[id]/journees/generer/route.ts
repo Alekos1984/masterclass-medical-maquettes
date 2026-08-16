@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots, matchEnseignantByName } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, matchEnseignantByName, peutGerer } from "@/lib/cursus";
 import { genererJournees, digitaliserProgramme } from "@/lib/ai/journees";
 import { extractText } from "@/lib/extract-text";
 
@@ -17,7 +17,7 @@ export async function POST(
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const { consigne, fichierNom, fichierBase64 } = await req.json() as {
     consigne?: string; fichierNom?: string; fichierBase64?: string;

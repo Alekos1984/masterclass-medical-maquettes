@@ -25,12 +25,24 @@ export async function GET(
   if (!cursus) return new Response("Cursus introuvable", { status: 404 });
 
   const enseignantsById = new Map(cursus.enseignants.map((e) => [e.id, e.nom ?? e.email]));
+  const organisateurs = [
+    ...cursus.enseignants.filter((e) => e.estOrganisateur).map((e) => e.nom ?? e.email),
+    ...(cursus.organisateursTexte ?? "").split("\n").map((l) => l.trim()).filter(Boolean),
+  ];
+  const secretaires = cursus.enseignants
+    .filter((e) => e.role === "SECRETAIRE" && e.statut === "ACCEPTE")
+    .map((e) => e.nom ?? e.email);
   const data = {
     titre: cursus.titre,
     annee: cursus.annee,
     specialite: cursus.specialite,
     description: cursus.description,
     coordinateurNom: cursus.coordinateur.user?.name ?? "—",
+    organisateurs,
+    secretaires,
+    contactNom: cursus.contactNom,
+    contactEmail: cursus.contactEmail,
+    contactTelephone: cursus.contactTelephone,
     journees: cursus.journees.map((j) => ({
       dateStr: j.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
       heureDebut: j.heureDebut,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, peutGerer } from "@/lib/cursus";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 Mo (PPT/PDF)
 
@@ -26,7 +26,7 @@ export async function POST(
 
   const slot = parseSlots(journee.programme).find((s) => s.slotId === slotId);
   if (!slot) return NextResponse.json({ error: "Créneau introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR" && slot.enseignantId !== enseignant?.id) {
+  if (!peutGerer(role) && slot.enseignantId !== enseignant?.id) {
     return NextResponse.json({ error: "Vous ne pouvez charger un support que sur vos propres créneaux" }, { status: 403 });
   }
 
@@ -56,7 +56,7 @@ export async function DELETE(
   if (!journee) return NextResponse.json({ error: "Journée introuvable" }, { status: 404 });
 
   const slot = parseSlots(journee.programme).find((s) => s.slotId === slotId);
-  if (role !== "COORDINATEUR" && slot?.enseignantId !== enseignant?.id) {
+  if (!peutGerer(role) && slot?.enseignantId !== enseignant?.id) {
     return NextResponse.json({ error: "Non autorisé sur ce créneau" }, { status: 403 });
   }
 

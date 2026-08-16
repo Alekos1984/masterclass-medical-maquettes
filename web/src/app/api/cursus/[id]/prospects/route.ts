@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, inscrireEtudiantCursus } from "@/lib/cursus";
+import { getCursusAccess, inscrireEtudiantCursus, peutGerer } from "@/lib/cursus";
 
 type ProspectInput = { email: string; nom?: string; prenom?: string; phone?: string; fonction?: string };
 
@@ -16,7 +16,7 @@ export async function POST(
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const { prospects } = await req.json() as { prospects: ProspectInput[] };
   if (!Array.isArray(prospects) || prospects.length === 0) {
@@ -60,7 +60,7 @@ export async function GET(
 
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
-  if (!cursus || role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!cursus || !peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const prospects = await prisma.cursusProspect.findMany({
     where: { cursusId: id },
@@ -80,7 +80,7 @@ export async function PATCH(
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const { ids, action } = await req.json() as { ids: string[]; action: "ACCEPTER" | "REFUSER" | "ATTENTE" };
   if (!Array.isArray(ids) || ids.length === 0) return NextResponse.json({ error: "Aucune sélection" }, { status: 400 });
@@ -125,7 +125,7 @@ export async function DELETE(
 
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
-  if (!cursus || role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!cursus || !peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const { ids } = await req.json() as { ids: string[] };
   await prisma.cursusProspect.deleteMany({ where: { id: { in: ids }, cursusId: id } });

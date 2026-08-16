@@ -18,11 +18,14 @@ export async function POST(
   if (!enseignant) return NextResponse.json({ error: "Invitation introuvable ou expirée" }, { status: 404 });
 
   const profile = await prisma.formateurProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } });
-  if (!profile) return NextResponse.json({ error: "Un compte formateur est requis pour enseigner" }, { status: 403 });
+  // Enseigner exige un compte formateur ; la secrétaire pédagogique peut accepter avec n'importe quel compte.
+  if (!profile && enseignant.role !== "SECRETAIRE") {
+    return NextResponse.json({ error: "Un compte formateur est requis pour enseigner" }, { status: 403 });
+  }
 
   await prisma.cursusEnseignant.update({
     where: { id: enseignant.id },
-    data: { formateurId: profile.id, statut: "ACCEPTE" },
+    data: { formateurId: profile?.id ?? null, statut: "ACCEPTE" },
   });
 
   return NextResponse.json({ cursusId: enseignant.cursus.id });
@@ -52,6 +55,7 @@ export async function GET(
     email: enseignant.email,
     nom: enseignant.nom,
     statut: enseignant.statut,
+    role: enseignant.role,
     cursusTitre: enseignant.cursus.titre,
     annee: enseignant.cursus.annee,
     coordinateurNom: enseignant.cursus.coordinateur.user?.name ?? "—",

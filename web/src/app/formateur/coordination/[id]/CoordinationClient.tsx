@@ -17,7 +17,10 @@ type Journee = {
   modaliteSession: string; visioUrl: string | null; lieuNom: string | null; lieuVille: string | null;
   sessionStatus: string | null; slots: Slot[];
 };
-type Enseignant = { id: string; email: string; nom: string | null; phone: string | null; fonction: string | null; statut: string; coCoordinateur: boolean };
+type Enseignant = {
+  id: string; email: string; nom: string | null; phone: string | null; fonction: string | null;
+  statut: string; coCoordinateur: boolean; role: string; estOrganisateur: boolean;
+};
 type Prospect = { id: string; email: string; nom: string | null; prenom: string | null; phone: string | null; fonction: string | null; statut: string; createdAt: string };
 type Support = { id: string; formationId: string; slotId: string | null; nom: string; taille: number | null };
 type Message = { id: string; auteurEmail: string; auteurNom: string; texte: string; createdAt: string };
@@ -33,7 +36,7 @@ type Alertes = {
   invitationsEnAttente: Enseignant[];
 };
 type ApiData = {
-  role: "COORDINATEUR" | "ENSEIGNANT";
+  role: "COORDINATEUR" | "SECRETAIRE" | "ENSEIGNANT";
   monEnseignantId: string | null;
   cursus: {
     id: string; slug: string; titre: string; description: string; specialite: string;
@@ -41,6 +44,8 @@ type ApiData = {
     lieuNom: string | null; lieuAdresse: string | null; lieuVille: string | null;
     certifBlocCode: string | null; certifActionTitre: string | null; emargementMode?: string;
     orgNom?: string | null; orgLogoBase64?: string | null; masquerMM?: boolean;
+    organisateursTexte?: string | null;
+    contactNom?: string | null; contactEmail?: string | null; contactTelephone?: string | null;
     coordinateurNom: string;
   };
   journees: Journee[];
@@ -204,6 +209,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [newJournee, setNewJournee] = useState({ date: "", heureDebut: "09:00", heureFin: "17:00", modaliteSession: "PRESENTIEL", visioUrl: "" });
   const [addOpen, setAddOpen] = useState(false);
   const [newEns, setNewEns] = useState({ prenom: "", nom: "", email: "", fonction: "" });
+  const [secOpen, setSecOpen] = useState(false);
+  const [newSec, setNewSec] = useState({ prenom: "", nom: "", email: "" });
   const [equipeText, setEquipeText] = useState("");
   const [equipeResult, setEquipeResult] = useState("");
   const [equipeRows, setEquipeRows] = useState<ParsedContact[] | null>(null);
@@ -271,6 +278,9 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
   const { cursus, role } = data;
   const isCoord = role === "COORDINATEUR";
+  const isSecretaire = role === "SECRETAIRE";
+  // La secrétaire pédagogique gère créneaux/équipe/étudiants/documents mais pas notes ni réglages du DU.
+  const isManager = isCoord || isSecretaire;
   const enseignantsById = new Map(data.enseignants.map((e) => [e.id, e]));
   const supportByKey = new Map(data.supports.map((s) => [`${s.formationId}:${s.slotId}`, s]));
   const getSlots = (j: Journee) => slotsEdit[j.id] ?? j.slots;
@@ -340,7 +350,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   }
 
   const alertes = data.alertes;
-  const nbAlertes = isCoord && alertes
+  const nbAlertes = isManager && alertes
     ? alertes.creneauxSansEnseignant.length + alertes.conflits.length + alertes.invitationsEnAttente.length + alertes.supportsManquants.length + (alertes.intervenantsNonRattaches?.length ?? 0)
     : 0;
 
@@ -357,7 +367,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
           {cursus.statut === "PUBLIE"
             ? <span className="pill pill-green" style={{ flexShrink: 0 }}>Publié</span>
             : <span className="pill pill-orange" style={{ flexShrink: 0 }}>Brouillon</span>}
-          {isCoord && (
+          {isManager && (
             <>
               <a
                 href={`/api/pdf/cursus-programme/${cursusId}`}
@@ -382,19 +392,21 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
               >
                 {busy === "programme" ? "Envoi…" : "✉️ Envoyer"}
               </button>
-              <button
-                style={{ ...btnRed, padding: "6px 14px", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0 }}
-                disabled={busy === "statut"}
-                onClick={async () => {
-                  setBusy("statut");
-                  await api(`/api/cursus/${cursusId}`, "PATCH", { statut: cursus.statut === "PUBLIE" ? "BROUILLON" : "PUBLIE" });
-                  await reload();
-                  setBusy(null);
-                }}
-              >
-                {cursus.statut === "PUBLIE" ? "↩ Brouillon" : "🚀 Publier"}
-              </button>
             </>
+          )}
+          {isCoord && (
+            <button
+              style={{ ...btnRed, padding: "6px 14px", fontSize: 12, whiteSpace: "nowrap", flexShrink: 0 }}
+              disabled={busy === "statut"}
+              onClick={async () => {
+                setBusy("statut");
+                await api(`/api/cursus/${cursusId}`, "PATCH", { statut: cursus.statut === "PUBLIE" ? "BROUILLON" : "PUBLIE" });
+                await reload();
+                setBusy(null);
+              }}
+            >
+              {cursus.statut === "PUBLIE" ? "↩ Brouillon" : "🚀 Publier"}
+            </button>
           )}
         </div>
       </div>
@@ -421,7 +433,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         })}
 
         {/* Tableau de bord alertes (coordinateur) */}
-        {isCoord && alertes && nbAlertes > 0 && (
+        {isManager && alertes && nbAlertes > 0 && (
           <div style={{ background: "#fff8e1", border: "1.5px solid #ffe082", borderRadius: 12, padding: "14px 18px", marginBottom: 20, fontSize: 13, color: "#5d4037", lineHeight: 1.8 }}>
             <strong>⚠️ À traiter :</strong>
             {alertes.creneauxSansEnseignant.length > 0 && <div>• {alertes.creneauxSansEnseignant.length} créneau(x) sans enseignant affecté</div>}
@@ -473,9 +485,9 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
           {([
             ["journees", "📅 Journées & créneaux"],
             ["equipe", "🧑‍🏫 Équipe"],
-            ...(isCoord ? [["etudiants", "🎓 Étudiants"]] : []),
+            ...(isManager ? [["etudiants", "🎓 Étudiants"]] : []),
             ["messages", `💬 Messages${data.messages.length ? ` (${data.messages.length})` : ""}`],
-            ...(isCoord ? [["documents", "📄 Documents"]] : []),
+            ...(isManager ? [["documents", "📄 Documents"]] : []),
             ...(isCoord ? [["validation", "🎓 Validation du DU"]] : []),
             ...(isCoord ? [["parametres", "⚙️ Paramètres"]] : []),
           ] as [typeof tab, string][]).map(([key, label]) => (
@@ -498,7 +510,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         {tab === "journees" && (
           <div>
             {/* Génération IA du calendrier */}
-            {isCoord && (
+            {isManager && (
               <div style={{ ...cardStyle, padding: "16px 22px", border: iaOpen ? "1.5px solid #C8102E" : "1px solid #E0E0E0" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                   <div>
@@ -681,7 +693,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
               </div>
             )}
 
-            {isCoord && (
+            {isManager && (
               <div style={{ ...cardStyle, padding: "16px 22px", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Date</div>
@@ -769,7 +781,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                     <Link href={`/formateur/formations/${j.id}`} style={{ fontSize: 12, fontWeight: 700, color: "#C8102E", textDecoration: "none", border: "1.5px solid #C8102E", borderRadius: 8, padding: "5px 12px" }}>
                       Machinerie journée →
                     </Link>
-                    {isCoord && (
+                    {isManager && (
                       <button
                         style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#6A6A6A" }}
                         title="Supprimer la journée"
@@ -789,11 +801,11 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                     {slots.map((slot, si) => {
                       const support = supportByKey.get(`${j.id}:${slot.slotId}`);
                       const estMonSlot = slot.enseignantId === data.monEnseignantId;
-                      const peutEditer = isCoord;
+                      const peutEditer = isManager;
                       const enCoursDeDrag = dragSlot?.journeeId === j.id && dragSlot.index === si;
                       return (
                         <div key={slot.slotId}>
-                          {isCoord && (
+                          {isManager && (
                             <InsertLine
                               onInsert={() => insertAt(si)}
                               onDropSlot={() => dropAt(si)}
@@ -859,7 +871,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               {support ? (
                                 <>
                                   <span style={{ fontSize: 11, color: "#2e7d32", fontWeight: 600 }}>📎 {support.nom}</span>
-                                  {(isCoord || estMonSlot) && (
+                                  {(isManager || estMonSlot) && (
                                     <button
                                       style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#6A6A6A", textDecoration: "underline", fontFamily: "inherit" }}
                                       onClick={async () => { await api(`/api/cursus/${cursusId}/journees/${j.id}/support`, "DELETE", { slotId: slot.slotId }); await reload(); }}
@@ -868,7 +880,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                     </button>
                                   )}
                                 </>
-                              ) : (isCoord || estMonSlot) ? (
+                              ) : (isManager || estMonSlot) ? (
                                 <label style={{ fontSize: 11, color: "#C8102E", fontWeight: 600, cursor: "pointer" }}>
                                   {busy === `support-${slot.slotId}` ? "Chargement…" : "📎 Charger le support (PPT/PDF)"}
                                   <input
@@ -895,14 +907,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                         </div>
                       );
                     })}
-                    {isCoord && slots.length > 0 && (
+                    {isManager && slots.length > 0 && (
                       <InsertLine
                         onInsert={() => insertAt(slots.length)}
                         onDropSlot={() => dropAt(slots.length)}
                         isDropTarget={!!dragSlot && dragSlot.journeeId === j.id}
                       />
                     )}
-                    {isCoord && (
+                    {isManager && (
                       <div style={{ padding: "12px 22px", display: "flex", gap: 10, alignItems: "center" }}>
                         <button
                           style={btnGhost}
@@ -929,7 +941,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         {/* ═══ ÉQUIPE ═══ */}
         {tab === "equipe" && (
           <div>
-            {isCoord && (
+            {isManager && (
               <>
                 <div style={{ ...cardStyle, padding: addOpen ? "18px 22px" : "12px 22px" }}>
                   {!addOpen ? (
@@ -1164,8 +1176,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             )}
 
             <div style={cardStyle}>
-              {data.enseignants.length === 0 && <div style={{ padding: "30px 22px", textAlign: "center", color: "#6A6A6A", fontSize: 13 }}>Aucun enseignant pour l&apos;instant.</div>}
-              {data.enseignants.map((e) => {
+              {data.enseignants.filter((e) => e.role !== "SECRETAIRE").length === 0 && <div style={{ padding: "30px 22px", textAlign: "center", color: "#6A6A6A", fontSize: 13 }}>Aucun enseignant pour l&apos;instant.</div>}
+              {data.enseignants.filter((e) => e.role !== "SECRETAIRE").map((e) => {
                 const nbCreneaux = data.journees.reduce((s, j) => s + j.slots.filter((sl) => sl.enseignantId === e.id).length, 0);
                 return (
                 <div key={e.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
@@ -1185,7 +1197,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       : e.statut === "EN_ATTENTE"
                       ? <span className="pill pill-orange">Invitation en attente</span>
                       : <span className="pill pill-gray">Enregistré · non invité</span>}
-                    {isCoord && (
+                    {isManager && (
                       <>
                         {e.statut === "NON_INVITE" && (
                           <button
@@ -1209,12 +1221,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                         >
                           {editEnseignantId === e.id ? "Fermer" : "✏️ Modifier"}
                         </button>
-                        <button
-                          style={btnGhost}
-                          onClick={async () => { await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { coCoordinateur: !e.coCoordinateur }); await reload(); }}
-                        >
-                          {e.coCoordinateur ? "Retirer co-coord." : "Co-coordinateur"}
-                        </button>
+                        {isCoord && (
+                          <button
+                            style={btnGhost}
+                            onClick={async () => { await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { coCoordinateur: !e.coCoordinateur }); await reload(); }}
+                          >
+                            {e.coCoordinateur ? "Retirer co-coord." : "Co-coordinateur"}
+                          </button>
+                        )}
                         <button
                           style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
                           onClick={async () => {
@@ -1228,7 +1242,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       </>
                     )}
                   </div>
-                  {editEnseignantId === e.id && isCoord && (
+                  {editEnseignantId === e.id && isManager && (
                     <EnseignantEdit
                       enseignant={e}
                       onSave={async (patch) => {
@@ -1242,11 +1256,101 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 );
               })}
             </div>
+
+            {/* ── Secrétariat pédagogique ── */}
+            <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", margin: "24px 0 10px" }}>
+              🗂️ Secrétariat pédagogique
+            </div>
+            {isCoord && (
+              <div style={{ ...cardStyle, padding: secOpen ? "18px 22px" : "12px 22px" }}>
+                {!secOpen ? (
+                  <button style={btnGhost} onClick={() => setSecOpen(true)}>+ Ajouter une secrétaire pédagogique</button>
+                ) : (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, alignItems: "end" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Prénom</div>
+                        <input value={newSec.prenom} onChange={(e) => setNewSec((s) => ({ ...s, prenom: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="Julie" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Nom</div>
+                        <input value={newSec.nom} onChange={(e) => setNewSec((s) => ({ ...s, nom: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="MARTIN" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 3 }}>Email *</div>
+                        <input type="email" value={newSec.email} onChange={(e) => setNewSec((s) => ({ ...s, email: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} placeholder="julie.martin@chu.fr" />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#6A6A6A", marginTop: 8, lineHeight: 1.5 }}>
+                      Accès secrétariat : créneaux, équipe enseignante, étudiants, émargements, documents — sans les notes ni les réglages du DU.
+                    </div>
+                    <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                      <button style={btnGhost} onClick={() => { setSecOpen(false); setNewSec({ prenom: "", nom: "", email: "" }); }}>Annuler</button>
+                      <div style={{ flex: 1 }} />
+                      <button
+                        style={btnRed}
+                        disabled={!newSec.email.includes("@") || busy === "addSec"}
+                        onClick={async () => {
+                          setBusy("addSec");
+                          const ok = await api(`/api/cursus/${cursusId}/enseignants`, "POST", { ...newSec, role: "SECRETAIRE" });
+                          if (ok) { setSecOpen(false); setNewSec({ prenom: "", nom: "", email: "" }); await reload(); }
+                          setBusy(null);
+                        }}
+                      >
+                        {busy === "addSec" ? "Envoi…" : "✉️ Inviter comme secrétaire"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <div style={cardStyle}>
+              {data.enseignants.filter((e) => e.role === "SECRETAIRE").length === 0 && (
+                <div style={{ padding: "20px 22px", textAlign: "center", color: "#9A9A9A", fontSize: 13 }}>Aucune secrétaire pédagogique.</div>
+              )}
+              {data.enseignants.filter((e) => e.role === "SECRETAIRE").map((e) => (
+                <div key={e.id} style={{ padding: "14px 22px", borderBottom: "1px solid #F5F5F5", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0F0F" }}>{e.nom ?? e.email}</div>
+                    <div style={{ fontSize: 12, color: "#6A6A6A" }}>{e.email}{e.phone ? ` · 📞 ${e.phone}` : ""}</div>
+                  </div>
+                  {e.statut === "ACCEPTE"
+                    ? <span className="pill pill-green">Actif</span>
+                    : e.statut === "EN_ATTENTE"
+                    ? <span className="pill pill-orange">Invitation en attente</span>
+                    : <span className="pill pill-gray">Enregistré · non invité</span>}
+                  {isCoord && (
+                    <>
+                      {e.statut === "NON_INVITE" && (
+                        <button style={btnRed} onClick={async () => { const r = await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { action: "inviter" }); if (r) { alert("Invitation envoyée !"); await reload(); } }}>
+                          ✉️ Inviter
+                        </button>
+                      )}
+                      {e.statut === "EN_ATTENTE" && (
+                        <button style={btnGhost} onClick={async () => { const r = await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "PATCH", { action: "relancer" }); if (r) alert("Invitation relancée !"); }}>
+                          🔔 Relancer
+                        </button>
+                      )}
+                      <button
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
+                        onClick={async () => {
+                          if (!confirm(`Retirer ${e.nom ?? e.email} du secrétariat ?`)) return;
+                          await api(`/api/cursus/${cursusId}/enseignants/${e.id}`, "DELETE");
+                          await reload();
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* ═══ ÉTUDIANTS ═══ */}
-        {tab === "etudiants" && isCoord && (
+        {tab === "etudiants" && isManager && (
           <div>
             {/* ── Liste d'attente ── */}
             <div style={{ ...cardStyle, padding: "20px 22px" }}>
@@ -1589,7 +1693,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         )}
 
         {/* ═══ DOCUMENTS DU DU ═══ */}
-        {tab === "documents" && isCoord && (
+        {tab === "documents" && isManager && (
           <DocumentsTab
             cursusId={cursusId}
             cursusSlug={cursus.slug}
@@ -1607,7 +1711,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
         {/* ═══ PARAMÈTRES ═══ */}
         {tab === "parametres" && isCoord && (
-          <ParametresTab cursusId={cursusId} cursus={cursus} onSaved={reload} onDeleted={() => router.push("/formateur/coordination")} api={api} busy={busy} setBusy={setBusy} />
+          <ParametresTab cursusId={cursusId} cursus={cursus} enseignants={data.enseignants} onSaved={reload} onDeleted={() => router.push("/formateur/coordination")} api={api} busy={busy} setBusy={setBusy} />
         )}
       </div>
 
@@ -2168,9 +2272,10 @@ function FeuilleNotation({ cursusId, moduleId, onClose, onCloture }: {
   );
 }
 
-function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBusy }: {
+function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api, busy, setBusy }: {
   cursusId: string;
   cursus: ApiData["cursus"];
+  enseignants: Enseignant[];
   onSaved: () => Promise<void>;
   onDeleted: () => void;
   api: (path: string, method: string, body?: unknown) => Promise<Record<string, unknown> | null>;
@@ -2186,7 +2291,19 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
     orgNom: cursus.orgNom ?? "",
     orgLogoBase64: cursus.orgLogoBase64 ?? "",
     masquerMM: cursus.masquerMM ?? false,
+    organisateursTexte: cursus.organisateursTexte ?? "",
+    contactNom: cursus.contactNom ?? "",
+    contactEmail: cursus.contactEmail ?? "",
+    contactTelephone: cursus.contactTelephone ?? "",
   });
+  const [orgaBusy, setOrgaBusy] = useState<string | null>(null);
+
+  async function toggleOrganisateur(eid: string, next: boolean) {
+    setOrgaBusy(eid);
+    await api(`/api/cursus/${cursusId}/enseignants/${eid}`, "PATCH", { estOrganisateur: next });
+    await onSaved();
+    setOrgaBusy(null);
+  }
 
   return (
     <div style={{ ...cardStyle, padding: "22px 26px" }}>
@@ -2204,6 +2321,56 @@ function ParametresTab({ cursusId, cursus, onSaved, onDeleted, api, busy, setBus
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Description</div>
         <textarea value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 90, resize: "vertical" }} />
       </div>
+
+      <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>🎓 Comité d&apos;organisation</div>
+        <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
+          Affiché sur le programme et les documents. Cochez les enseignants qui font partie du comité,
+          et ajoutez au besoin des noms libres (ex : membres du comité scientifique non enseignants).
+        </div>
+        {enseignants.filter((e) => e.role !== "SECRETAIRE").length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            {enseignants.filter((e) => e.role !== "SECRETAIRE").map((e) => (
+              <label
+                key={e.id}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7, fontSize: 12, cursor: orgaBusy === e.id ? "wait" : "pointer",
+                  background: e.estOrganisateur ? "#fff5f6" : "white", border: `1.5px solid ${e.estOrganisateur ? "#C8102E" : "#E0E0E0"}`,
+                  borderRadius: 100, padding: "5px 12px",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={e.estOrganisateur}
+                  disabled={orgaBusy === e.id}
+                  onChange={(ev) => toggleOrganisateur(e.id, ev.target.checked)}
+                />
+                {e.nom ?? e.email}
+              </label>
+            ))}
+          </div>
+        )}
+        <div style={{ fontSize: 11, color: "#6A6A6A", marginBottom: 4 }}>Autres organisateurs (un par ligne)</div>
+        <textarea
+          value={form.organisateursTexte}
+          onChange={(e) => setForm((s) => ({ ...s, organisateursTexte: e.target.value }))}
+          placeholder={"Pr. Jean Dupont (président du comité scientifique)\nDr Anne Martin (CHU de Lyon)"}
+          style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 60, resize: "vertical" }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 18, background: "#F9F7F4", borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>📇 Contact du DU</div>
+        <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10, lineHeight: 1.5 }}>
+          Affiché sur le programme (ex : secrétariat pédagogique) pour que les étudiants et intervenants sachent qui contacter.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <input type="text" placeholder="Nom (ex : Secrétariat pédagogique)" value={form.contactNom} onChange={(e) => setForm((s) => ({ ...s, contactNom: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+          <input type="email" placeholder="Email de contact" value={form.contactEmail} onChange={(e) => setForm((s) => ({ ...s, contactEmail: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+          <input type="text" placeholder="Téléphone" value={form.contactTelephone} onChange={(e) => setForm((s) => ({ ...s, contactTelephone: e.target.value }))} style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }} />
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
         <input type="text" placeholder="Lieu (établissement)" value={form.lieuNom} onChange={(e) => setForm((s) => ({ ...s, lieuNom: e.target.value }))} style={inputStyle} />
         <input type="text" placeholder="Adresse" value={form.lieuAdresse} onChange={(e) => setForm((s) => ({ ...s, lieuAdresse: e.target.value }))} style={inputStyle} />

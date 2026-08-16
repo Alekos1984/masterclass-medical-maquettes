@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, rematchIntervenants } from "@/lib/cursus";
+import { getCursusAccess, rematchIntervenants, peutGerer } from "@/lib/cursus";
 import { sendEmail, emailInvitationEnseignant } from "@/lib/brevo";
 
 export async function POST(
@@ -14,14 +14,19 @@ export async function POST(
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const body = await req.json();
-  // Accepte une invitation unique { email, nom, phone, fonction, sansInviter? }
-  // ou un import en masse { enseignants: [...], sansInviter? }
+  // Accepte une invitation unique { email, nom, phone, fonction, sansInviter?, role? }
+  // ou un import en masse { enseignants: [...], sansInviter?, role? }
   const rows: { email?: string; nom?: string; phone?: string; fonction?: string; prenom?: string }[] =
     Array.isArray(body.enseignants) ? body.enseignants : [body];
   const sansInviter: boolean = !!body.sansInviter;
+  const roleDemande: string = body.role === "SECRETAIRE" ? "SECRETAIRE" : "ENSEIGNANT";
+  // Seul le coordinateur peut nommer une secrétaire pédagogique (accès élargi)
+  if (roleDemande === "SECRETAIRE" && role !== "COORDINATEUR") {
+    return NextResponse.json({ error: "Seul le coordinateur peut ajouter une secrétaire pédagogique" }, { status: 403 });
+  }
   if (rows.length === 0) return NextResponse.json({ error: "Liste vide" }, { status: 400 });
   if (rows.length > 200) return NextResponse.json({ error: "Maximum 200 enseignants par import" }, { status: 400 });
 
@@ -60,6 +65,7 @@ export async function POST(
         fonction: row.fonction?.trim() || null,
         formateurId: user?.formateurProfile?.id ?? null,
         statut,
+        role: roleDemande,
       },
     });
     invites++;
@@ -72,7 +78,9 @@ export async function POST(
 
       sendEmail({
         to: [{ email: cleanEmail, name: enseignant.nom ?? undefined }],
-        subject: `Vous êtes invité·e à enseigner — ${cursus.titre}`,
+        subject: roleDemande === "SECRETAIRE"
+          ? `Vous êtes invité·e comme secrétaire pédagogique — ${cursus.titre}`
+          : `Vous êtes invité·e à enseigner — ${cursus.titre}`,
         htmlContent: emailInvitationEnseignant({
           nom: enseignant.nom ?? "cher·e collègue",
           cursusTitre: cursus.titre,

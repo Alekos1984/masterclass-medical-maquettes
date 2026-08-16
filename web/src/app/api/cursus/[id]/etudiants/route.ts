@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess } from "@/lib/cursus";
+import { getCursusAccess, peutGerer } from "@/lib/cursus";
 import { sendEmail, emailCompteEtudiantCursus } from "@/lib/brevo";
 
 // GET : liste des étudiants + assiduité par journée
@@ -68,7 +68,7 @@ export async function POST(
   const { id } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
   if (cursus.journees.length === 0) {
     return NextResponse.json({ error: "Créez d'abord au moins une journée d'enseignement" }, { status: 400 });
   }

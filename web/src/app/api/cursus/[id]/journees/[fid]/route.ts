@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, type CursusSlot } from "@/lib/cursus";
+import { getCursusAccess, type CursusSlot, peutGerer } from "@/lib/cursus";
 
 export async function PATCH(
   req: NextRequest,
@@ -13,7 +13,7 @@ export async function PATCH(
   const { id, fid } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const journee = await prisma.formation.findFirst({ where: { id: fid, cursusId: id }, select: { id: true } });
   if (!journee) return NextResponse.json({ error: "Journée introuvable" }, { status: 404 });
@@ -58,7 +58,7 @@ export async function DELETE(
   const { id, fid } = await params;
   const { cursus, role } = await getCursusAccess(id, session.user.id);
   if (!cursus) return NextResponse.json({ error: "Cursus introuvable" }, { status: 404 });
-  if (role !== "COORDINATEUR") return NextResponse.json({ error: "Réservé au coordinateur" }, { status: 403 });
+  if (!peutGerer(role)) return NextResponse.json({ error: "Réservé au coordinateur ou à la secrétaire pédagogique" }, { status: 403 });
 
   const journee = await prisma.formation.findFirst({ where: { id: fid, cursusId: id }, select: { id: true } });
   if (!journee) return NextResponse.json({ error: "Journée introuvable" }, { status: 404 });
