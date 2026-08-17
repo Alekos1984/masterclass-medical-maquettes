@@ -40,6 +40,7 @@ export type CursusProgrammeData = {
   contactNom: string | null;
   contactEmail: string | null;
   contactTelephone: string | null;
+  volumeHoraireTotal?: string | null; // ex : "42 h" — hors pauses
   journees: {
     dateStr: string;
     heureDebut: string;
@@ -58,6 +59,7 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
         <Text style={base.docTitle}>{cursus.titre}</Text>
         <Text style={base.docSubtitle}>
           {cursus.specialite}{cursus.annee ? ` — ${cursus.annee}` : ""}
+          {cursus.volumeHoraireTotal ? `  ·  Volume horaire total : ${cursus.volumeHoraireTotal}` : ""}
         </Text>
 
         {cursus.description ? (

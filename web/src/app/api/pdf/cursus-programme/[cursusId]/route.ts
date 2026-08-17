@@ -5,6 +5,7 @@ import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings } from "@/lib/pdf/db-helpers";
 import { CursusProgrammePdf } from "@/lib/pdf/templates/cursus-programme";
 import { parseSlots, nomAvecCivilite } from "@/lib/cursus";
+import { sommeDureeSlots, formatDureeHeures } from "@/lib/duree-creneaux";
 
 export async function GET(
   _req: NextRequest,
@@ -44,6 +45,9 @@ export async function GET(
   const secretaires = cursus.enseignants
     .filter((e) => e.role === "SECRETAIRE" && e.statut === "ACCEPTE")
     .map(nomEnseignant);
+  const volumeHoraireTotal = formatDureeHeures(
+    cursus.journees.reduce((sum, j) => sum + sommeDureeSlots(parseSlots(j.programme)), 0)
+  );
   const data = {
     titre: cursus.titre,
     annee: cursus.annee,
@@ -55,6 +59,7 @@ export async function GET(
     contactNom: cursus.contactNom,
     contactEmail: cursus.contactEmail,
     contactTelephone: cursus.contactTelephone,
+    volumeHoraireTotal,
     journees: cursus.journees.map((j) => ({
       dateStr: j.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
       heureDebut: j.heureDebut,

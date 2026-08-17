@@ -3,6 +3,7 @@ import React from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCursusAccess, parseSlots, peutGerer, nomAvecCivilite } from "@/lib/cursus";
+import { sommeDureeSlots, formatDureeHeures } from "@/lib/duree-creneaux";
 import { renderPdf } from "@/lib/pdf/render";
 import { getCompanySettings } from "@/lib/pdf/db-helpers";
 import { CursusProgrammePdf } from "@/lib/pdf/templates/cursus-programme";
@@ -54,6 +55,9 @@ export async function GET(
     ...(cursus.organisateursTexte ?? "").split("\n").map((l) => l.trim()).filter(Boolean),
   ];
   const secretaires = cursus.enseignants.filter((e) => e.role === "SECRETAIRE" && e.statut === "ACCEPTE").map(nomEnseignant);
+  const volumeHoraireTotal = formatDureeHeures(
+    cursus.journees.reduce((sum, j) => sum + sommeDureeSlots(parseSlots(j.programme)), 0)
+  );
   const programmeBuffer = await renderPdf(
     React.createElement(CursusProgrammePdf, {
       company,
@@ -63,6 +67,7 @@ export async function GET(
         coordinateurNom,
         organisateurs, secretaires,
         contactNom: cursus.contactNom, contactEmail: cursus.contactEmail, contactTelephone: cursus.contactTelephone,
+        volumeHoraireTotal,
         journees: cursus.journees.map((j) => ({
           dateStr: j.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
           heureDebut: j.heureDebut, heureFin: j.heureFin,
