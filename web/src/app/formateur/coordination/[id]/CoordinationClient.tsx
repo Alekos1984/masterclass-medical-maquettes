@@ -57,6 +57,7 @@ type ApiData = {
     organisateursTexte?: string | null;
     contactNom?: string | null; contactEmail?: string | null; contactTelephone?: string | null;
     capaciteMax?: number | null;
+    volumeHoraireAttendu?: number | null;
     prerequis?: string | null; publicVise?: string | null;
     coordinateurNom: string;
   };
@@ -794,15 +795,54 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
               </div>
             )}
 
-            {data.journees.length > 0 && (
-              <div style={{ ...cardStyle, padding: "14px 22px", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#6A6A6A", textTransform: "uppercase", letterSpacing: 1 }}>⏱ Volume horaire total</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#C8102E" }}>
-                  {formatDureeHeures(data.journees.reduce((sum, j) => sum + sommeDureeSlots(getSlots(j)), 0))}
-                </span>
-                <span style={{ fontSize: 11, color: "#9A9A9A" }}>(hors pauses)</span>
-              </div>
-            )}
+            {data.journees.length > 0 && (() => {
+              const volumeActuelMin = data.journees.reduce((sum, j) => sum + sommeDureeSlots(getSlots(j)), 0);
+              const volumeAttenduMin = cursus.volumeHoraireAttendu ? Math.round(cursus.volumeHoraireAttendu * 60) : null;
+              const manquantMin = volumeAttenduMin != null ? Math.max(0, volumeAttenduMin - volumeActuelMin) : 0;
+              return (
+                <div style={{ ...cardStyle, padding: "14px 22px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#6A6A6A", textTransform: "uppercase", letterSpacing: 1 }}>⏱ Volume horaire total</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: "#C8102E" }}>{formatDureeHeures(volumeActuelMin)}</span>
+                    <span style={{ fontSize: 11, color: "#9A9A9A" }}>(hors pauses)</span>
+                    {volumeAttenduMin != null && (
+                      <span style={{ fontSize: 12, color: "#6A6A6A" }}>· attendu : {formatDureeHeures(volumeAttenduMin)}</span>
+                    )}
+                  </div>
+                  {volumeAttenduMin != null && manquantMin > 0 && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #F0F0F0" }}>
+                      <div style={{ fontSize: 13, color: "#e65100", fontWeight: 700, marginBottom: 4 }}>
+                        ⚠️ Il manque {formatDureeHeures(manquantMin)} pour atteindre le volume attendu
+                      </div>
+                      <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 10 }}>
+                        Soit environ {Math.ceil(manquantMin / 120)} créneau{Math.ceil(manquantMin / 120) > 1 ? "x" : ""} de 2h,
+                        {" "}{Math.ceil(manquantMin / 90)} créneau{Math.ceil(manquantMin / 90) > 1 ? "x" : ""} de 1h30,
+                        {" "}ou {Math.ceil(manquantMin / 60)} créneau{Math.ceil(manquantMin / 60) > 1 ? "x" : ""} de 1h.
+                      </div>
+                      {isManager && (
+                        <button
+                          style={btnRed}
+                          disabled={busy === "genererCreneaux"}
+                          onClick={async () => {
+                            setBusy("genererCreneaux");
+                            const r = await api(`/api/cursus/${cursusId}/generer-creneaux-manquants`, "POST");
+                            setBusy(null);
+                            if (r) {
+                              alert(r.crees > 0
+                                ? `${r.crees} créneau(x) à définir ont été ajoutés (${formatDureeHeures(r.minutesAjoutees)}). Pensez à leur donner un titre et un enseignant.`
+                                : "Aucun créneau libre trouvé dans les journées existantes — ajoutez de nouvelles journées si besoin.");
+                              await reload();
+                            }
+                          }}
+                        >
+                          {busy === "genererCreneaux" ? "Génération…" : "🪄 Générer les créneaux manquants"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {data.journees.map((j, idx) => {
               const slots = getSlots(j);
@@ -2602,6 +2642,7 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
     contactEmail: cursus.contactEmail ?? "",
     contactTelephone: cursus.contactTelephone ?? "",
     capaciteMax: cursus.capaciteMax?.toString() ?? "",
+    volumeHoraireAttendu: cursus.volumeHoraireAttendu?.toString() ?? "",
     prerequis: cursus.prerequis ?? "",
     publicVise: cursus.publicVise ?? "",
   });
@@ -2713,16 +2754,30 @@ function ParametresTab({ cursusId, cursus, enseignants, onSaved, onDeleted, api,
         <input type="text" placeholder="Adresse" value={form.lieuAdresse} onChange={(e) => setForm((s) => ({ ...s, lieuAdresse: e.target.value }))} style={inputStyle} />
         <input type="text" placeholder="Ville" value={form.lieuVille} onChange={(e) => setForm((s) => ({ ...s, lieuVille: e.target.value }))} style={inputStyle} />
       </div>
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Capacité maximale (étudiants)</div>
-        <input
-          type="number" min={0} placeholder="Ex : 30"
-          value={form.capaciteMax}
-          onChange={(e) => setForm((s) => ({ ...s, capaciteMax: e.target.value }))}
-          style={{ ...inputStyle, width: 140 }}
-        />
-        <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 4 }}>
-          Utilisée pour le taux de remplissage affiché sur le tableau de bord multi-DU.
+      <div style={{ display: "flex", gap: 24, marginBottom: 14, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Capacité maximale (étudiants)</div>
+          <input
+            type="number" min={0} placeholder="Ex : 30"
+            value={form.capaciteMax}
+            onChange={(e) => setForm((s) => ({ ...s, capaciteMax: e.target.value }))}
+            style={{ ...inputStyle, width: 140 }}
+          />
+          <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 4, maxWidth: 220 }}>
+            Utilisée pour le taux de remplissage affiché sur le tableau de bord multi-DU.
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Volume horaire attendu (heures)</div>
+          <input
+            type="number" min={0} step={0.5} placeholder="Ex : 42.5"
+            value={form.volumeHoraireAttendu}
+            onChange={(e) => setForm((s) => ({ ...s, volumeHoraireAttendu: e.target.value }))}
+            style={{ ...inputStyle, width: 140 }}
+          />
+          <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 4, maxWidth: 260 }}>
+            Comparé au volume réel des créneaux dans l&apos;onglet Journées &amp; créneaux.
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 18, flexWrap: "wrap" }}>

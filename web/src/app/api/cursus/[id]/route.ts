@@ -53,6 +53,7 @@ export async function GET(
       organisateursTexte: cursus.organisateursTexte,
       contactNom: cursus.contactNom, contactEmail: cursus.contactEmail, contactTelephone: cursus.contactTelephone,
       capaciteMax: cursus.capaciteMax,
+      volumeHoraireAttendu: cursus.volumeHoraireAttendu,
       prerequis: cursus.prerequis, publicVise: cursus.publicVise,
       coordinateurNom: cursus.coordinateur.user?.name ?? "—",
     },
@@ -112,6 +113,7 @@ export async function PATCH(
   if (body.contactEmail !== undefined) data.contactEmail = body.contactEmail || null;
   if (body.contactTelephone !== undefined) data.contactTelephone = body.contactTelephone || null;
   if (body.capaciteMax !== undefined) data.capaciteMax = body.capaciteMax === null || body.capaciteMax === "" ? null : parseInt(body.capaciteMax, 10);
+  if (body.volumeHoraireAttendu !== undefined) data.volumeHoraireAttendu = body.volumeHoraireAttendu === null || body.volumeHoraireAttendu === "" ? null : parseFloat(body.volumeHoraireAttendu);
   if (body.prerequis !== undefined) data.prerequis = body.prerequis || null;
   if (body.publicVise !== undefined) data.publicVise = body.publicVise || null;
 

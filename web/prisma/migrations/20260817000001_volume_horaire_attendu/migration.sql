@@ -1,0 +1,1 @@
+ALTER TABLE "Cursus" ADD COLUMN IF NOT EXISTS "volumeHoraireAttendu" DOUBLE PRECISION;
