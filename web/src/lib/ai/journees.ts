@@ -1,4 +1,5 @@
 import { getOpenAI } from "./openai";
+import { estEnVacances, detecterZoneScolaire, type ZoneScolaire } from "../vacances-scolaires";
 
 export type JourneeProposee = {
   date: string; // "YYYY-MM-DD"
@@ -53,6 +54,25 @@ function corrigerDateSelonJourAnnonce(date: string, jourAnnonce: string | undefi
   return null; // aucune date proche ne correspond au jour annoncé — proposition écartée
 }
 
+// ─── Garde-fou vacances scolaires ──────────────────────────────────────────────
+// Même défaut que pour le jour de semaine : le LLM "connaît" approximativement le
+// calendrier des vacances scolaires mais se trompe parfois. Si la consigne mentionne
+// une zone/ville identifiable et demande d'éviter les vacances, on vérifie nous-mêmes
+// contre un calendrier codé en dur (lib/vacances-scolaires.ts) et on décale la date
+// d'une semaine (en gardant le même jour de semaine) si elle tombe en pleines vacances.
+
+/** Décale par tranches de 7 jours (±1, ±2, ±3, ±4 semaines) jusqu'à sortir des vacances. */
+function corrigerDateSelonVacances(date: string, zone: ZoneScolaire | null, datesExclues: Set<string>): string | null {
+  if (!zone || !estEnVacances(date, zone)) return date; // pas de zone connue ou déjà hors vacances
+
+  for (const semaines of [1, -1, 2, -2, 3, -3, 4, -4]) {
+    const candidate = decalerDate(date, semaines * 7);
+    if (datesExclues.has(candidate)) continue;
+    if (!estEnVacances(candidate, zone)) return candidate;
+  }
+  return null; // impossible de sortir des vacances à proximité — proposition écartée
+}
+
 /**
  * Génère une proposition de calendrier de journées d'enseignement
  * à partir d'une consigne en langage naturel.
@@ -97,22 +117,31 @@ Consigne : ${consigne}`,
   const parsed = JSON.parse(content) as { journees?: (JourneeProposee & { jourSemaine?: string })[] };
   const existantes = new Set(contexte.datesExistantes);
   const aujourd = new Date().toISOString().slice(0, 10);
+  const zone = /vacances/i.test(consigne) ? detecterZoneScolaire(consigne) : null;
 
   const resultat: JourneeProposee[] = [];
   for (const j of (parsed.journees ?? []).slice(0, 30)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(j.date)) continue;
 
-    const dateCorrigee = corrigerDateSelonJourAnnonce(j.date, j.jourSemaine, existantes);
-    if (dateCorrigee === null) continue; // jour de semaine annoncé incohérent, aucune date proche ne convient
-    if (dateCorrigee <= aujourd || existantes.has(dateCorrigee)) continue;
+    let date = corrigerDateSelonJourAnnonce(j.date, j.jourSemaine, existantes);
+    if (date === null) continue; // jour de semaine annoncé incohérent, aucune date proche ne convient
 
-    existantes.add(dateCorrigee); // évite qu'une autre proposition du même lot retombe sur cette date
+    const avantVacances = date;
+    date = corrigerDateSelonVacances(date, zone, existantes);
+    if (date === null) continue; // en pleines vacances et aucune semaine proche ne convient
+
+    if (date <= aujourd || existantes.has(date)) continue;
+
+    existantes.add(date); // évite qu'une autre proposition du même lot retombe sur cette date
+    const corrige = date !== j.date;
     resultat.push({
-      date: dateCorrigee,
+      date,
       heureDebut: j.heureDebut || "09:00",
       heureFin: j.heureFin || "17:00",
       modaliteSession: ["PRESENTIEL", "VIRTUEL", "MIXTE"].includes(j.modaliteSession) ? j.modaliteSession : "PRESENTIEL",
-      commentaire: dateCorrigee !== j.date ? `${j.commentaire ?? ""} (date corrigée automatiquement)`.trim() : j.commentaire ?? "",
+      commentaire: corrige
+        ? `${j.commentaire ?? ""} (date corrigée automatiquement${date !== avantVacances ? " — hors vacances" : ""})`.trim()
+        : j.commentaire ?? "",
       slots: Array.isArray(j.slots) ? j.slots : [],
     });
   }
@@ -192,21 +221,23 @@ Retourne UNIQUEMENT un JSON :
   const parsed = JSON.parse(content) as { journees?: (JourneeDigitalisee & { jourSemaine?: string })[] };
   const aujourd = new Date().toISOString().slice(0, 10);
   const existantes = new Set(contexte.datesExistantes);
+  const zone = /vacances/i.test(consigne) ? detecterZoneScolaire(consigne) : null;
 
   const resultat: JourneeDigitalisee[] = [];
   for (const j of (parsed.journees ?? []).slice(0, 40)) {
     let date: string | null = j.date && /^\d{4}-\d{2}-\d{2}$/.test(j.date) ? j.date : null;
     const journeeExistante = typeof j.journeeExistante === "number" ? j.journeeExistante : null;
 
-    // Le garde-fou jour de semaine ne s'applique qu'aux nouvelles dates proposées
-    // (une journée qui remplit un créneau existant garde la date déjà en base).
+    // Les garde-fous jour de semaine / vacances ne s'appliquent qu'aux nouvelles dates
+    // proposées (une journée qui remplit un créneau existant garde la date déjà en base).
     if (journeeExistante === null && date) {
-      const corrigee = corrigerDateSelonJourAnnonce(date, j.jourSemaine, existantes);
-      if (corrigee === null || corrigee <= aujourd) {
-        date = null; // date non fiable : mieux vaut la laisser vide (à saisir manuellement) qu'un jour faux
+      const corrigeeJour = corrigerDateSelonJourAnnonce(date, j.jourSemaine, existantes);
+      const corrigeeVacances = corrigeeJour !== null ? corrigerDateSelonVacances(corrigeeJour, zone, existantes) : null;
+      if (corrigeeVacances === null || corrigeeVacances <= aujourd) {
+        date = null; // date non fiable : mieux vaut la laisser vide (à saisir manuellement) qu'un jour faux ou en vacances
       } else {
-        date = corrigee;
-        existantes.add(corrigee);
+        date = corrigeeVacances;
+        existantes.add(corrigeeVacances);
       }
     }
 
