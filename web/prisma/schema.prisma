@@ -686,6 +686,9 @@ model Cursus {
   // Tableau de bord multi-DU : capacité indicative pour le taux de remplissage
   capaciteMax Int?
 
+  // Volume horaire attendu (en heures, ex : 42.5) — comparé au volume horaire réel des créneaux
+  volumeHoraireAttendu Float?
+
   templateOrigineId String? // template utilisé à la création (traçabilité, optionnel)
 
   // Affichés sur la page publique du DU
