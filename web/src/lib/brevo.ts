@@ -368,3 +368,34 @@ export function emailResultatsDisponiblesCursus(data: {
     ${ctaButton(data.url, "Voir mon résultat")}
   `);
 }
+
+// ─── Proposition et confirmation de créneaux (équipe pédagogique) ─────────────
+
+/** Message libre rédigé (et modifiable) par le coordinateur — ex : proposition de créneau. */
+export function emailMessageCoordination(data: { corps: string; lienConfirmation?: string }) {
+  return baseLayout(`
+    <p style="font-size:14px;color:#444;line-height:1.7;white-space:pre-wrap;">${data.corps.replace(/\n/g, "<br/>")}</p>
+    ${data.lienConfirmation ? ctaButton(data.lienConfirmation, "Répondre en ligne") : ""}
+  `);
+}
+
+export function emailConfirmationCreneaux(data: { nom: string; cursusTitre: string; recapHtml: string }) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Merci pour votre réponse ✅</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">Bonjour ${data.nom},</p>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      Voici un récapitulatif de votre réponse concernant « <strong>${data.cursusTitre}</strong> » :</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;line-height:1.8;">${data.recapHtml}</div>
+    <p style="font-size:12px;color:#999;margin-top:14px;">
+      Vous n'êtes pas à l'origine de cette réponse ou une erreur s'est glissée ? Contactez le coordinateur du DU au plus vite.</p>
+  `);
+}
+
+export function emailNotificationReponseCreneau(data: { enseignantNom: string; cursusTitre: string; recapHtml: string }) {
+  return baseLayout(`
+    <h2 style="font-size:19px;color:#0F0F0F;margin:0 0 12px;">Réponse d'un enseignant 📩</h2>
+    <p style="font-size:14px;color:#444;line-height:1.6;">
+      <strong>${data.enseignantNom}</strong> vient de répondre à une proposition de créneau pour « <strong>${data.cursusTitre}</strong> » :</p>
+    <div style="background:#f9f7f4;border-radius:8px;padding:14px 18px;font-size:13px;color:#444;line-height:1.8;">${data.recapHtml}</div>
+  `);
+}

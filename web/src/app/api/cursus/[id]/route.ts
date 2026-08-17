@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots, computeAlertes, peutGerer } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, computeAlertes, peutGerer, nomAvecCivilite } from "@/lib/cursus";
 
 export async function GET(
   _req: NextRequest,
@@ -31,6 +31,14 @@ export async function GET(
       : Promise.resolve([]),
   ]);
 
+  const formateurIds = cursus.enseignants.map((e) => e.formateurId).filter((v): v is string => !!v);
+  const titreByFormateurId = formateurIds.length
+    ? new Map(
+        (await prisma.formateurProfile.findMany({ where: { id: { in: formateurIds } }, select: { id: true, titre: true } }))
+          .map((f) => [f.id, f.titre] as const)
+      )
+    : new Map<string, string | null>();
+
   return NextResponse.json({
     role,
     monEnseignantId: enseignant?.id ?? null,
@@ -59,6 +67,7 @@ export async function GET(
       id: e.id, email: e.email, nom: e.nom, phone: e.phone, fonction: e.fonction,
       statut: e.statut, coCoordinateur: e.coCoordinateur,
       role: e.role, estOrganisateur: e.estOrganisateur,
+      nomCivilite: nomAvecCivilite(e.nom ?? e.email, e.formateurId ? titreByFormateurId.get(e.formateurId) : null),
     })),
     supports: ressources,
     messages,

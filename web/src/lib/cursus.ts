@@ -12,6 +12,8 @@ export type CursusSlot = {
   lieuNom?: string | null; // site (ex : Hôpital Saint-Antoine) — laisse vide pour reprendre le lieu de la journée
   salle?: string | null; // ex : "206"
   enVisio?: boolean; // ce créneau précis se fait en visioconférence
+  confirmationStatut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null; // absent/null = non demandé
+  confirmationDemandeAt?: string | null;
 };
 
 export type CursusRole = "COORDINATEUR" | "SECRETAIRE" | "ENSEIGNANT" | null;
@@ -82,8 +84,22 @@ export function parseSlots(programme: unknown): CursusSlot[] {
       lieuNom: (s.lieuNom as string) ?? null,
       salle: (s.salle as string) ?? null,
       enVisio: !!s.enVisio,
+      confirmationStatut: (s.confirmationStatut as "PROPOSE" | "CONFIRME" | "DECLINE") ?? null,
+      confirmationDemandeAt: (s.confirmationDemandeAt as string) ?? null,
     };
   });
+}
+
+/** Met à jour un seul créneau (par journée + slotId) sans toucher au reste du programme. */
+export async function patchSlot(journeeId: string, slotId: string, patch: Partial<CursusSlot>): Promise<boolean> {
+  const journee = await prisma.formation.findUnique({ where: { id: journeeId }, select: { programme: true } });
+  if (!journee) return false;
+  const slots = parseSlots(journee.programme);
+  const idx = slots.findIndex((s) => s.slotId === slotId);
+  if (idx === -1) return false;
+  slots[idx] = { ...slots[idx], ...patch };
+  await prisma.formation.update({ where: { id: journeeId }, data: { programme: slots } });
+  return true;
 }
 
 /** Préfixe un nom avec sa civilité (Dr./Pr.) si connue et pas déjà présente. */
