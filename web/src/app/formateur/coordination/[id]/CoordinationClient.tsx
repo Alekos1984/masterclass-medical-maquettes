@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseContacts as parseContactsLib, type ParsedContact as ParsedContactLib } from "@/lib/parse-contacts";
 import { genererMessagePropositionCreneau } from "@/lib/proposition-message";
+import { sommeDureeSlots, formatDureeHeures } from "@/lib/duree-creneaux";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -793,6 +794,16 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
               </div>
             )}
 
+            {data.journees.length > 0 && (
+              <div style={{ ...cardStyle, padding: "14px 22px", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#6A6A6A", textTransform: "uppercase", letterSpacing: 1 }}>⏱ Volume horaire total</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#C8102E" }}>
+                  {formatDureeHeures(data.journees.reduce((sum, j) => sum + sommeDureeSlots(getSlots(j)), 0))}
+                </span>
+                <span style={{ fontSize: 11, color: "#9A9A9A" }}>(hors pauses)</span>
+              </div>
+            )}
+
             {data.journees.map((j, idx) => {
               const slots = getSlots(j);
               const insertAt = (index: number) => {
@@ -827,6 +838,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                         {j.heureDebut}–{j.heureFin} · {j.modaliteSession === "VIRTUEL" ? "🖥️ Visio" : j.modaliteSession === "MIXTE" ? "🖥️+🏛️ Mixte" : "🏛️ Présentiel"}
                         {j.visioUrl && <> · <a href={j.visioUrl} target="_blank" rel="noreferrer" style={{ color: "#C8102E" }}>lien visio</a></>}
                         {j.lieuNom && ` · ${j.lieuNom}${j.lieuVille ? `, ${j.lieuVille}` : ""}`}
+                        {` · ⏱ ${formatDureeHeures(sommeDureeSlots(slots))} de cours`}
                       </div>
                     </div>
                     <Link href={`/formateur/formations/${j.id}`} style={{ fontSize: 12, fontWeight: 700, color: "#C8102E", textDecoration: "none", border: "1.5px solid #C8102E", borderRadius: 8, padding: "5px 12px" }}>

@@ -61,38 +61,34 @@ export default function PropositionsExportPage() {
 
   const lienConfirmation = typeof window !== "undefined" ? `${window.location.origin}/cursus/confirmation/${id}` : "";
 
-  const lignes = data.enseignants
+  // Un seul bloc par enseignant, regroupant TOUS ses créneaux dans un seul email/message.
+  const blocs = data.enseignants
     .filter((e) => e.role !== "SECRETAIRE")
-    .flatMap((e) =>
-      data.journees.flatMap((j) =>
+    .map((e) => {
+      const creneaux = data.journees.flatMap((j) =>
         j.slots
           .filter((s) => s.enseignantId === e.id)
           .map((s) => {
             const lieu = s.enVisio
               ? "Visioconférence"
               : [s.lieuNom || j.lieuNom, s.salle ? `salle ${s.salle}` : null].filter(Boolean).join(" — ");
-            const message = genererMessagePropositionCreneau({
-              enseignantNomCivilite: e.nomCivilite,
-              cursusTitre: data.cursus.titre,
-              cursusAnnee: data.cursus.annee,
-              coordinateurNom: data.cursus.coordinateurNom,
-              creneaux: [{ titre: s.titre, dateStr: fdate(j.date), heureDebut: s.heureDebut, heureFin: s.heureFin }],
-            }) + `\n\nRépondre en ligne (sans compte à créer) : ${lienConfirmation}`;
             return {
-              key: `${j.id}:${s.slotId}`,
-              enseignantNom: e.nomCivilite,
-              email: e.email,
-              titre: s.titre,
-              dateStr: fdate(j.date),
-              heureDebut: s.heureDebut,
-              heureFin: s.heureFin,
-              lieu,
-              statut: s.confirmationStatut,
-              message,
+              titre: s.titre, dateStr: fdate(j.date), heureDebut: s.heureDebut, heureFin: s.heureFin,
+              lieu, statut: s.confirmationStatut,
             };
           })
-      )
-    );
+      );
+      if (creneaux.length === 0) return null;
+      const message = genererMessagePropositionCreneau({
+        enseignantNomCivilite: e.nomCivilite,
+        cursusTitre: data.cursus.titre,
+        cursusAnnee: data.cursus.annee,
+        coordinateurNom: data.cursus.coordinateurNom,
+        creneaux,
+      }) + `\n\nRépondre en ligne (sans compte à créer) : ${lienConfirmation}`;
+      return { key: e.id, enseignantNom: e.nomCivilite, email: e.email, creneaux, message };
+    })
+    .filter((b): b is NonNullable<typeof b> => b !== null);
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9F7F4", fontFamily: "var(--font-sans, 'DM Sans', sans-serif)" }}>
@@ -102,52 +98,56 @@ export default function PropositionsExportPage() {
           Propositions de créneaux — {data.cursus.titre}{data.cursus.annee ? ` · ${data.cursus.annee}` : ""}
         </h1>
         <p style={{ fontSize: 13, color: "#6A6A6A", marginBottom: 24, lineHeight: 1.6 }}>
-          Un message prêt à l&apos;emploi par créneau — copiez l&apos;email et le message, puis collez-les dans votre client de messagerie habituel.
+          Un message par enseignant, regroupant tous ses créneaux — copiez l&apos;email et le message, puis collez-les dans votre client de messagerie habituel.
         </p>
 
-        {lignes.length === 0 && (
+        {blocs.length === 0 && (
           <div style={{ background: "white", borderRadius: 14, border: "1px dashed #E0E0E0", padding: "36px 24px", textAlign: "center", color: "#6A6A6A" }}>
             Aucun créneau affecté à un enseignant pour l&apos;instant.
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {lignes.map((l) => {
-            const pill = statutLabel(l.statut);
-            return (
-              <div key={l.key} style={{ background: "white", borderRadius: 14, border: "1px solid #E0E0E0", padding: "18px 22px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#0F0F0F" }}>{l.enseignantNom}</div>
-                  <span className={`pill ${pill.className}`}>{pill.label}</span>
-                </div>
+          {blocs.map((b) => (
+            <div key={b.key} style={{ background: "white", borderRadius: 14, border: "1px solid #E0E0E0", padding: "18px 22px" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#0F0F0F", marginBottom: 10 }}>{b.enseignantNom}</div>
 
-                <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 2 }}>Cours prévu</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0F0F", marginBottom: 10 }}>{l.titre}</div>
-
-                <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 2 }}>Créneau prévu</div>
-                <div style={{ fontSize: 13, color: "#444", marginBottom: 14 }}>
-                  📅 {l.dateStr} · 🕐 {l.heureDebut}–{l.heureFin}{l.lieu ? ` · 📍 ${l.lieu}` : ""}
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 13, color: "#0F0F0F", flex: 1, minWidth: 180 }}>✉️ {l.email}</div>
-                  <button style={btnGhost} onClick={() => copier(`email-${l.key}`, l.email)}>
-                    {copiedKey === `email-${l.key}` ? "✓ Copié" : "📋 Copier l'email"}
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, color: "#6A6A6A" }}>Message</div>
-                  <button style={btnGhost} onClick={() => copier(`msg-${l.key}`, l.message)}>
-                    {copiedKey === `msg-${l.key}` ? "✓ Copié" : "📋 Copier le message"}
-                  </button>
-                </div>
-                <div style={{ background: "#F9F7F4", borderRadius: 8, padding: "12px 14px", fontSize: 12.5, color: "#444", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                  {l.message}
-                </div>
+              <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 4 }}>
+                {b.creneaux.length > 1 ? `Cours prévus (${b.creneaux.length})` : "Cours prévu"}
               </div>
-            );
-          })}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                {b.creneaux.map((c, i) => {
+                  const pill = statutLabel(c.statut);
+                  return (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#F9F7F4", borderRadius: 8, padding: "8px 12px" }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F" }}>{c.titre}</div>
+                        <div style={{ fontSize: 12, color: "#6A6A6A" }}>📅 {c.dateStr} · 🕐 {c.heureDebut}–{c.heureFin}{c.lieu ? ` · 📍 ${c.lieu}` : ""}</div>
+                      </div>
+                      <span className={`pill ${pill.className}`}>{pill.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 13, color: "#0F0F0F", flex: 1, minWidth: 180 }}>✉️ {b.email}</div>
+                <button style={btnGhost} onClick={() => copier(`email-${b.key}`, b.email)}>
+                  {copiedKey === `email-${b.key}` ? "✓ Copié" : "📋 Copier l'email"}
+                </button>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: "#6A6A6A" }}>Message</div>
+                <button style={btnGhost} onClick={() => copier(`msg-${b.key}`, b.message)}>
+                  {copiedKey === `msg-${b.key}` ? "✓ Copié" : "📋 Copier le message"}
+                </button>
+              </div>
+              <div style={{ background: "#F9F7F4", borderRadius: 8, padding: "12px 14px", fontSize: 12.5, color: "#444", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {b.message}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
