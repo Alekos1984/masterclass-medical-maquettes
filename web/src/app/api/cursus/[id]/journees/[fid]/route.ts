@@ -47,6 +47,9 @@ export async function PATCH(
       lieuNom: s.lieuNom || null,
       salle: s.salle || null,
       enVisio: !!s.enVisio,
+      // Sans enseignant affecté, une éventuelle confirmation précédente n'a plus de sens.
+      confirmationStatut: s.enseignantId ? (s.confirmationStatut ?? null) : null,
+      confirmationDemandeAt: s.enseignantId ? (s.confirmationDemandeAt ?? null) : null,
     }));
     data.programme = slots;
   }

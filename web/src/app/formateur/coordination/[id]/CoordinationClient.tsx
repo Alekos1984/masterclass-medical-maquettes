@@ -12,6 +12,8 @@ type Slot = {
   titre: string; description: string; type: string; enseignantId: string | null;
   intervenantRaw?: string | null;
   lieuNom?: string | null; salle?: string | null; enVisio?: boolean;
+  confirmationStatut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null;
+  confirmationDemandeAt?: string | null;
 };
 type Journee = {
   id: string; date: string; heureDebut: string; heureFin: string;
@@ -21,6 +23,7 @@ type Journee = {
 type Enseignant = {
   id: string; email: string; nom: string | null; phone: string | null; fonction: string | null;
   statut: string; coCoordinateur: boolean; role: string; estOrganisateur: boolean;
+  nomCivilite: string;
 };
 type PieceJointe = { nom: string; base64: string; taille: number | null };
 type Prospect = {
@@ -229,6 +232,10 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [oneProspect, setOneProspect] = useState({ email: "", prenom: "", nom: "", fonction: "" });
   const [dossierProspectId, setDossierProspectId] = useState<string | null>(null);
   const [pieceBusy, setPieceBusy] = useState<string | null>(null);
+  const [proposerEnseignantId, setProposerEnseignantId] = useState<string | null>(null);
+  const [proposerForm, setProposerForm] = useState({ subject: "", message: "" });
+  const [proposerSel, setProposerSel] = useState<string[]>([]);
+  const [proposerBusy, setProposerBusy] = useState(false);
 
   // Génération IA du calendrier (consigne libre et/ou digitalisation d'un programme existant)
   type JourneeProposee = {
@@ -294,6 +301,53 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const supportByKey = new Map(data.supports.map((s) => [`${s.formationId}:${s.slotId}`, s]));
   const getSlots = (j: Journee) => slotsEdit[j.id] ?? j.slots;
   const echangesPourMoi = data.echanges.filter((e) => e.statut === "EN_ATTENTE" && e.versEnseignantId === data.monEnseignantId);
+
+  // Créneaux affectés à un enseignant, avec le contexte de leur journée (date, formationId).
+  const journees = data.journees;
+  function enseignantCreneaux(enseignantId: string) {
+    return journees.flatMap((j) =>
+      j.slots
+        .filter((s) => s.enseignantId === enseignantId)
+        .map((s) => ({ journeeId: j.id, date: j.date, slot: s }))
+    );
+  }
+
+  function genererMessageProposition(enseignant: Enseignant, slots: { journeeId: string; date: string; slot: Slot }[]): string {
+    const anneeTxt = cursus.annee ? ` pour la session ${cursus.annee}` : "";
+    const ligneCreneau = (c: { date: string; slot: Slot }) =>
+      `${c.slot.titre} — le ${fdate(c.date)} à ${c.slot.heureDebut}–${c.slot.heureFin}`;
+    const corpsCours = slots.length === 1
+      ? `Accepteriez-vous de faire le cours « ${slots[0].slot.titre} » le ${fdate(slots[0].date)} à ${slots[0].slot.heureDebut}–${slots[0].slot.heureFin} ?`
+      : `Accepteriez-vous de faire les cours suivants ?\n${slots.map((c) => `- ${ligneCreneau(c)}`).join("\n")}`;
+    return [
+      `Cher·ère ${enseignant.nomCivilite},`,
+      ``,
+      `J'espère que vous allez bien,`,
+      ``,
+      `Le DU ${cursus.titre} redémarre${anneeTxt} et nous serions honorés si vous pouviez y participer de nouveau.`,
+      ``,
+      corpsCours,
+      ``,
+      `Un immense merci par avance,`,
+      ``,
+      `Bien à vous,`,
+      cursus.coordinateurNom,
+    ].join("\n");
+  }
+
+  function openProposer(enseignantId: string) {
+    const enseignant = enseignantsById.get(enseignantId);
+    if (!enseignant) return;
+    const creneaux = enseignantCreneaux(enseignantId);
+    const aConfirmer = creneaux.filter((c) => !c.slot.confirmationStatut || c.slot.confirmationStatut === "PROPOSE");
+    const cible = aConfirmer.length > 0 ? aConfirmer : creneaux;
+    setProposerSel(cible.map((c) => `${c.journeeId}:${c.slot.slotId}`));
+    setProposerForm({
+      subject: `${cursus.titre} — proposition de créneau${cible.length > 1 ? "x" : ""}`,
+      message: genererMessageProposition(enseignant, cible),
+    });
+    setProposerEnseignantId(enseignantId);
+  }
 
   async function api(path: string, method: string, body?: unknown) {
     const res = await fetch(path, {
@@ -1220,7 +1274,9 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             <div style={cardStyle}>
               {data.enseignants.filter((e) => e.role !== "SECRETAIRE").length === 0 && <div style={{ padding: "30px 22px", textAlign: "center", color: "#6A6A6A", fontSize: 13 }}>Aucun enseignant pour l&apos;instant.</div>}
               {data.enseignants.filter((e) => e.role !== "SECRETAIRE").map((e) => {
-                const nbCreneaux = data.journees.reduce((s, j) => s + j.slots.filter((sl) => sl.enseignantId === e.id).length, 0);
+                const mesCreneaux = enseignantCreneaux(e.id);
+                const nbCreneaux = mesCreneaux.length;
+                const nbAConfirmer = mesCreneaux.filter((c) => !c.slot.confirmationStatut || c.slot.confirmationStatut === "PROPOSE").length;
                 return (
                 <div key={e.id} style={{ borderBottom: "1px solid #F5F5F5" }}>
                   <div style={{ padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -1232,6 +1288,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       </div>
                       <div style={{ fontSize: 12, color: "#6A6A6A" }}>
                         {e.email}{e.phone ? ` · 📞 ${e.phone}` : ""} · {nbCreneaux} créneau{nbCreneaux > 1 ? "x" : ""}
+                        {nbCreneaux > 0 && nbAConfirmer === 0 && <span style={{ color: "#2e7d32", fontWeight: 600 }}> · tous confirmés</span>}
                       </div>
                     </div>
                     {e.statut === "ACCEPTE"
@@ -1239,6 +1296,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       : e.statut === "EN_ATTENTE"
                       ? <span className="pill pill-orange">Invitation en attente</span>
                       : <span className="pill pill-gray">Enregistré · non invité</span>}
+                    {isManager && nbCreneaux > 0 && (
+                      <button
+                        style={nbAConfirmer > 0 ? btnRed : btnGhost}
+                        onClick={() => openProposer(e.id)}
+                      >
+                        ✉️ Proposer{nbAConfirmer > 0 ? ` (${nbAConfirmer})` : ""}
+                      </button>
+                    )}
                     {isManager && (
                       <>
                         {e.statut === "NON_INVITE" && (
@@ -1298,6 +1363,103 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 );
               })}
             </div>
+
+            {proposerEnseignantId && (() => {
+              const enseignant = enseignantsById.get(proposerEnseignantId);
+              if (!enseignant) return null;
+              const creneaux = enseignantCreneaux(proposerEnseignantId);
+              const lienPortail = typeof window !== "undefined" ? `${window.location.origin}/cursus/confirmation/${cursusId}` : "";
+              const statutPill = (statut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null) => {
+                if (statut === "CONFIRME") return <span className="pill pill-green">Confirmé</span>;
+                if (statut === "DECLINE") return <span className="pill pill-gray">Décliné</span>;
+                if (statut === "PROPOSE") return <span className="pill pill-orange">Proposé</span>;
+                return <span className="pill pill-gray">Non demandé</span>;
+              };
+              return (
+                <div onClick={() => setProposerEnseignantId(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                  <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: 16, padding: "24px 28px", width: 620, maxWidth: "100%", maxHeight: "88vh", overflowY: "auto" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ fontSize: 16, fontWeight: 800 }}>✉️ Proposer un créneau</div>
+                      <button onClick={() => setProposerEnseignantId(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#6A6A6A" }}>✕</button>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 16 }}>{enseignant.nomCivilite} · {enseignant.email}</div>
+
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#6A6A6A", marginBottom: 6 }}>Créneaux à inclure dans le message</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+                      {creneaux.map((c) => {
+                        const key = `${c.journeeId}:${c.slot.slotId}`;
+                        const checked = proposerSel.includes(key);
+                        return (
+                          <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #EBEBEB", borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(ev) => setProposerSel((s) => ev.target.checked ? [...s, key] : s.filter((k) => k !== key))}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>{c.slot.titre}</div>
+                              <div style={{ fontSize: 11, color: "#9A9A9A" }}>{fdate(c.date)} · {c.slot.heureDebut}–{c.slot.heureFin}</div>
+                            </div>
+                            {statutPill(c.slot.confirmationStatut)}
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#6A6A6A", marginBottom: 4 }}>Sujet</div>
+                    <input
+                      value={proposerForm.subject}
+                      onChange={(e) => setProposerForm((s) => ({ ...s, subject: e.target.value }))}
+                      style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 12 }}
+                    />
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#6A6A6A", marginBottom: 4 }}>Message (pré-rempli, modifiable)</div>
+                    <textarea
+                      value={proposerForm.message}
+                      onChange={(e) => setProposerForm((s) => ({ ...s, message: e.target.value }))}
+                      style={{ ...inputStyle, width: "100%", boxSizing: "border-box", minHeight: 220, resize: "vertical", fontFamily: "inherit", lineHeight: 1.6 }}
+                    />
+                    <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 6, marginBottom: 16 }}>
+                      Un lien de confirmation en ligne (sans compte à créer) sera ajouté automatiquement si vous envoyez via la plateforme,
+                      ou peut être copié ci-dessous pour l&apos;ajouter vous-même.
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        style={btnRed}
+                        disabled={proposerBusy || proposerSel.length === 0}
+                        onClick={async () => {
+                          setProposerBusy(true);
+                          const slots = proposerSel.map((key) => { const [journeeId, slotId] = key.split(":"); return { journeeId, slotId }; });
+                          const r = await api(`/api/cursus/${cursusId}/proposer-creneau`, "POST", {
+                            enseignantId: proposerEnseignantId, subject: proposerForm.subject, message: proposerForm.message, slots,
+                          });
+                          setProposerBusy(false);
+                          if (r) { alert("Proposition envoyée !"); setProposerEnseignantId(null); await reload(); }
+                        }}
+                      >
+                        {proposerBusy ? "Envoi…" : "📧 Envoyer via la plateforme"}
+                      </button>
+                      <button
+                        style={btnGhost}
+                        onClick={() => {
+                          const texte = `À : ${enseignant.email}\nObjet : ${proposerForm.subject}\n\n${proposerForm.message}\n\nRépondre en ligne : ${lienPortail}`;
+                          navigator.clipboard.writeText(texte);
+                          alert("Message copié — collez-le dans votre client email habituel.");
+                        }}
+                      >
+                        📋 Copier le message
+                      </button>
+                      <button
+                        style={btnGhost}
+                        onClick={() => { navigator.clipboard.writeText(lienPortail); alert("Lien copié !"); }}
+                      >
+                        🔗 Copier le lien du portail
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── Secrétariat pédagogique ── */}
             <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", margin: "24px 0 10px" }}>
