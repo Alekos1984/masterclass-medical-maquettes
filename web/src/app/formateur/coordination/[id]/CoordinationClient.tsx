@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseContacts as parseContactsLib, type ParsedContact as ParsedContactLib } from "@/lib/parse-contacts";
+import { genererMessagePropositionCreneau } from "@/lib/proposition-message";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -313,26 +314,13 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   }
 
   function genererMessageProposition(enseignant: Enseignant, slots: { journeeId: string; date: string; slot: Slot }[]): string {
-    const anneeTxt = cursus.annee ? ` pour la session ${cursus.annee}` : "";
-    const ligneCreneau = (c: { date: string; slot: Slot }) =>
-      `${c.slot.titre} — le ${fdate(c.date)} à ${c.slot.heureDebut}–${c.slot.heureFin}`;
-    const corpsCours = slots.length === 1
-      ? `Accepteriez-vous de faire le cours « ${slots[0].slot.titre} » le ${fdate(slots[0].date)} à ${slots[0].slot.heureDebut}–${slots[0].slot.heureFin} ?`
-      : `Accepteriez-vous de faire les cours suivants ?\n${slots.map((c) => `- ${ligneCreneau(c)}`).join("\n")}`;
-    return [
-      `Cher·ère ${enseignant.nomCivilite},`,
-      ``,
-      `J'espère que vous allez bien,`,
-      ``,
-      `Le DU ${cursus.titre} redémarre${anneeTxt} et nous serions honorés si vous pouviez y participer de nouveau.`,
-      ``,
-      corpsCours,
-      ``,
-      `Un immense merci par avance,`,
-      ``,
-      `Bien à vous,`,
-      cursus.coordinateurNom,
-    ].join("\n");
+    return genererMessagePropositionCreneau({
+      enseignantNomCivilite: enseignant.nomCivilite,
+      cursusTitre: cursus.titre,
+      cursusAnnee: cursus.annee,
+      coordinateurNom: cursus.coordinateurNom,
+      creneaux: slots.map((c) => ({ titre: c.slot.titre, dateStr: fdate(c.date), heureDebut: c.slot.heureDebut, heureFin: c.slot.heureFin })),
+    });
   }
 
   function openProposer(enseignantId: string) {
@@ -1269,6 +1257,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                   {equipeResult && <div style={{ fontSize: 12, color: "#2e7d32", marginTop: 8 }}>{equipeResult}</div>}
                 </div>
               </>
+            )}
+
+            {isManager && data.enseignants.some((e) => e.role !== "SECRETAIRE") && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                <Link href={`/formateur/coordination/${cursusId}/propositions`} target="_blank" style={{ textDecoration: "none" }}>
+                  <span style={{ ...btnGhost, display: "inline-block" }}>📤 Exporter toutes les propositions</span>
+                </Link>
+              </div>
             )}
 
             <div style={cardStyle}>
