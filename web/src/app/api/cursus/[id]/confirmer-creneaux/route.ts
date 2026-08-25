@@ -65,7 +65,9 @@ export async function POST(
       subject: `Récapitulatif de votre réponse — ${cursus.titre}`,
       htmlContent: emailConfirmationCreneaux({ nom: enseignant.nom ?? enseignant.email, cursusTitre: cursus.titre, recapHtml }),
     });
-  } catch { /* best-effort */ }
+  } catch (e) {
+    console.error("[confirmer-creneaux] échec envoi email enseignant", enseignant.email, e);
+  }
 
   const coordinateurEmail = cursus.contactEmail || cursus.coordinateur.user?.email;
   if (coordinateurEmail) {
@@ -75,7 +77,9 @@ export async function POST(
         subject: `Réponse de ${enseignant.nom ?? enseignant.email} — ${cursus.titre}`,
         htmlContent: emailNotificationReponseCreneau({ enseignantNom: enseignant.nom ?? enseignant.email, cursusTitre: cursus.titre, recapHtml }),
       });
-    } catch { /* best-effort */ }
+    } catch (e) {
+      console.error("[confirmer-creneaux] échec envoi email coordinateur", coordinateurEmail, e);
+    }
   }
 
   return NextResponse.json({ ok: true, recap });
