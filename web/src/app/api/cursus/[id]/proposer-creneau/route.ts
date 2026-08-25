@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getCursusAccess, peutGerer, parseSlots, patchSlot } from "@/lib/cursus";
 import { sendEmail, emailMessageCoordination } from "@/lib/brevo";
 
@@ -33,6 +34,16 @@ export async function POST(
     to: [{ email: enseignant.email, name: enseignant.nom ?? undefined }],
     subject: body.subject.trim(),
     htmlContent: emailMessageCoordination({ corps: body.message.trim(), lienConfirmation }),
+  });
+
+  const auteur = await prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } });
+  await prisma.cursusMessage.create({
+    data: {
+      cursusId: id,
+      auteurEmail: auteur?.email ?? "—",
+      auteurNom: auteur?.name ?? "—",
+      texte: `📧 Proposition envoyée à ${enseignant.nom ?? enseignant.email} (${enseignant.email}) :\n\n${body.message.trim().slice(0, 4000)}`,
+    },
   });
 
   let marques = 0;
