@@ -946,17 +946,26 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 <span style={{ fontSize: 11, color: "#6A6A6A" }}>→</span>
                                 <input type="time" value={slot.heureFin} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureFin: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
                                 <input type="text" placeholder="Titre du cours" value={slot.titre} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, titre: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 9px", fontSize: 12, flex: 1, minWidth: 160 }} />
-                                <select value={slot.type} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, type: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }}>
+                                <select
+                                  value={slot.type}
+                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? {
+                                    ...x, type: e.target.value,
+                                    ...(e.target.value === "pause" ? { enseignantId: null, intervenantRaw: null, confirmationStatut: null } : {}),
+                                  } : x))}
+                                  style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }}
+                                >
                                   {SLOT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
-                                <select
-                                  value={slot.enseignantId ?? ""}
-                                  onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null, intervenantRaw: e.target.value ? null : x.intervenantRaw } : x))}
-                                  style={{ ...inputStyle, padding: "5px 7px", fontSize: 12, borderColor: slot.enseignantId || slot.type === "pause" ? "#E0E0E0" : "#e65100" }}
-                                >
-                                  <option value="">— Enseignant —</option>
-                                  {data.enseignants.map((e) => <option key={e.id} value={e.id}>{e.nom ?? e.email}{e.statut === "EN_ATTENTE" ? " (invité)" : ""}</option>)}
-                                </select>
+                                {slot.type !== "pause" && (
+                                  <select
+                                    value={slot.enseignantId ?? ""}
+                                    onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null, intervenantRaw: e.target.value ? null : x.intervenantRaw } : x))}
+                                    style={{ ...inputStyle, padding: "5px 7px", fontSize: 12, borderColor: slot.enseignantId ? "#E0E0E0" : "#e65100" }}
+                                  >
+                                    <option value="">— Enseignant —</option>
+                                    {data.enseignants.map((e) => <option key={e.id} value={e.id}>{e.nom ?? e.email}{e.statut === "EN_ATTENTE" ? " (invité)" : ""}</option>)}
+                                  </select>
+                                )}
                                 {slot.type !== "pause" && slot.enseignantId && (
                                   <>
                                     {confirmationDot(slot.confirmationStatut)}
