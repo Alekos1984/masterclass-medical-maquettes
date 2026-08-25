@@ -98,7 +98,9 @@ const CONFIRMATION_LABELS: Record<string, string> = {
 };
 
 function confirmationDot(statut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null) {
-  const color = statut === "CONFIRME" ? "#2e7d32" : statut === "PROPOSE" ? "#e65100" : statut === "DECLINE" ? "#c62828" : "#D0D0D0";
+  // Confirmé se voit déjà à la couleur de fond (vert pâle) de toute la ligne — pas besoin d'un point en plus.
+  if (statut === "CONFIRME") return null;
+  const color = statut === "PROPOSE" ? "#e65100" : statut === "DECLINE" ? "#c62828" : "#D0D0D0";
   return <span title={CONFIRMATION_LABELS[statut ?? ""]} style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />;
 }
 
@@ -933,7 +935,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               isDropTarget={!!dragSlot && dragSlot.journeeId === j.id}
                             />
                           )}
-                        <div style={{ padding: "12px 22px", borderBottom: "1px solid #F5F5F5", background: estMonSlot ? "#fff5f6" : "white", opacity: enCoursDeDrag ? 0.4 : 1 }}>
+                        <div style={{ padding: "12px 22px", borderBottom: "1px solid #F5F5F5", background: slot.confirmationStatut === "CONFIRME" ? "#e8f5e9" : estMonSlot ? "#fff5f6" : "white", opacity: enCoursDeDrag ? 0.4 : 1 }}>
                           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: peutEditer ? 6 : 0 }}>
                             {peutEditer ? (
                               <>
@@ -989,15 +991,20 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                     </select>
                                   </>
                                 )}
-                                {estVerrouille ? (
+                                {slot.confirmationStatut === "CONFIRME" && (
                                   <button
-                                    title="Créneau confirmé par l'enseignant — cliquez pour déverrouiller et modifier"
+                                    title={estVerrouille ? "Créneau confirmé par l'enseignant — cliquez pour déverrouiller et modifier" : "Cliquez pour reverrouiller"}
                                     style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
-                                    onClick={() => setSlotsDeverrouilles((s) => new Set(s).add(cleVerrou))}
+                                    onClick={() => setSlotsDeverrouilles((s) => {
+                                      const next = new Set(s);
+                                      if (next.has(cleVerrou)) next.delete(cleVerrou); else next.add(cleVerrou);
+                                      return next;
+                                    })}
                                   >
-                                    🔒
+                                    {estVerrouille ? "🔒" : "🔓"}
                                   </button>
-                                ) : (
+                                )}
+                                {!estVerrouille && (
                                   <button
                                     style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
                                     onClick={() => updateSlots(j.id, slots.filter((_, k) => k !== si))}
