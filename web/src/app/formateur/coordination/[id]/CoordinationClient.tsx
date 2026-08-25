@@ -228,6 +228,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
   // Journées : édition de slots (état local par journée)
   const [slotsEdit, setSlotsEdit] = useState<Record<string, Slot[]>>({});
+  // Créneaux confirmés déverrouillés manuellement pour cette visite (via le cadenas) — évite de modifier par erreur un créneau déjà validé par l'enseignant.
+  const [slotsDeverrouilles, setSlotsDeverrouilles] = useState<Set<string>>(new Set());
   const [newJournee, setNewJournee] = useState({ date: "", heureDebut: "09:00", heureFin: "17:00", modaliteSession: "PRESENTIEL", visioUrl: "" });
   const [addOpen, setAddOpen] = useState(false);
   const [newEns, setNewEns] = useState({ prenom: "", nom: "", email: "", fonction: "" });
@@ -920,6 +922,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       const estMonSlot = slot.enseignantId === data.monEnseignantId;
                       const peutEditer = isManager;
                       const enCoursDeDrag = dragSlot?.journeeId === j.id && dragSlot.index === si;
+                      const cleVerrou = `${j.id}:${slot.slotId}`;
+                      const estVerrouille = slot.confirmationStatut === "CONFIRME" && !slotsDeverrouilles.has(cleVerrou);
                       return (
                         <div key={slot.slotId}>
                           {isManager && (
@@ -942,11 +946,12 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 >
                                   ⠿
                                 </span>
-                                <input type="time" value={slot.heureDebut} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureDebut: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
+                                <input disabled={estVerrouille} type="time" value={slot.heureDebut} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureDebut: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
                                 <span style={{ fontSize: 11, color: "#6A6A6A" }}>→</span>
-                                <input type="time" value={slot.heureFin} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureFin: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
-                                <input type="text" placeholder="Titre du cours" value={slot.titre} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, titre: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 9px", fontSize: 12, flex: 1, minWidth: 160 }} />
+                                <input disabled={estVerrouille} type="time" value={slot.heureFin} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, heureFin: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }} />
+                                <input disabled={estVerrouille} type="text" placeholder="Titre du cours" value={slot.titre} onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, titre: e.target.value } : x))} style={{ ...inputStyle, padding: "5px 9px", fontSize: 12, flex: 1, minWidth: 160 }} />
                                 <select
+                                  disabled={estVerrouille}
                                   value={slot.type}
                                   onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? {
                                     ...x, type: e.target.value,
@@ -958,6 +963,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 </select>
                                 {slot.type !== "pause" && (
                                   <select
+                                    disabled={estVerrouille}
                                     value={slot.enseignantId ?? ""}
                                     onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null, intervenantRaw: e.target.value ? null : x.intervenantRaw } : x))}
                                     style={{ ...inputStyle, padding: "5px 7px", fontSize: 12, borderColor: slot.enseignantId ? "#E0E0E0" : "#e65100" }}
@@ -970,6 +976,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                   <>
                                     {confirmationDot(slot.confirmationStatut)}
                                     <select
+                                      disabled={estVerrouille}
                                       value={slot.confirmationStatut ?? ""}
                                       title="Statut de confirmation de l'enseignant — modifiable manuellement"
                                       onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, confirmationStatut: (e.target.value || null) as Slot["confirmationStatut"] } : x))}
@@ -982,12 +989,22 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                     </select>
                                   </>
                                 )}
-                                <button
-                                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
-                                  onClick={() => updateSlots(j.id, slots.filter((_, k) => k !== si))}
-                                >
-                                  ✕
-                                </button>
+                                {estVerrouille ? (
+                                  <button
+                                    title="Créneau confirmé par l'enseignant — cliquez pour déverrouiller et modifier"
+                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
+                                    onClick={() => setSlotsDeverrouilles((s) => new Set(s).add(cleVerrou))}
+                                  >
+                                    🔒
+                                  </button>
+                                ) : (
+                                  <button
+                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
+                                    onClick={() => updateSlots(j.id, slots.filter((_, k) => k !== si))}
+                                  >
+                                    ✕
+                                  </button>
+                                )}
                               </>
                             ) : (
                               <>
@@ -1006,12 +1023,14 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                             peutEditer ? (
                               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 4, marginLeft: 23 }}>
                                 <input
+                                  disabled={estVerrouille}
                                   type="text" placeholder="Site (ex : Hôpital Saint-Antoine)"
                                   value={slot.lieuNom ?? ""}
                                   onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, lieuNom: e.target.value } : x))}
                                   style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 190 }}
                                 />
                                 <input
+                                  disabled={estVerrouille}
                                   type="text" placeholder="Salle (ex : 206)"
                                   value={slot.salle ?? ""}
                                   onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, salle: e.target.value } : x))}
@@ -1019,6 +1038,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                 />
                                 <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6A6A6A", cursor: "pointer" }}>
                                   <input
+                                    disabled={estVerrouille}
                                     type="checkbox"
                                     checked={!!slot.enVisio}
                                     onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enVisio: e.target.checked } : x))}
