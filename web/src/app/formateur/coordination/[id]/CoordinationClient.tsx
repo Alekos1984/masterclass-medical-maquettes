@@ -239,6 +239,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [proposerForm, setProposerForm] = useState({ subject: "", message: "" });
   const [proposerSel, setProposerSel] = useState<string[]>([]);
   const [proposerBusy, setProposerBusy] = useState(false);
+  const [proposerRegistre, setProposerRegistre] = useState<"vouvoiement" | "tutoiement">("vouvoiement");
 
   // Génération IA du calendrier (consigne libre et/ou digitalisation d'un programme existant)
   type JourneeProposee = {
@@ -315,13 +316,15 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
     );
   }
 
-  function genererMessageProposition(enseignant: Enseignant, slots: { journeeId: string; date: string; slot: Slot }[]): string {
+  function genererMessageProposition(enseignant: Enseignant, slots: { journeeId: string; date: string; slot: Slot }[], registre: "vouvoiement" | "tutoiement" = "vouvoiement"): string {
     return genererMessagePropositionCreneau({
+      enseignantNom: enseignant.nom ?? enseignant.email,
       enseignantNomCivilite: enseignant.nomCivilite,
       cursusTitre: cursus.titre,
       cursusAnnee: cursus.annee,
       coordinateurNom: cursus.coordinateurNom,
       creneaux: slots.map((c) => ({ titre: c.slot.titre, dateStr: fdate(c.date), heureDebut: c.slot.heureDebut, heureFin: c.slot.heureFin })),
+      registre,
     });
   }
 
@@ -332,9 +335,10 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
     const aConfirmer = creneaux.filter((c) => !c.slot.confirmationStatut || c.slot.confirmationStatut === "PROPOSE");
     const cible = aConfirmer.length > 0 ? aConfirmer : creneaux;
     setProposerSel(cible.map((c) => `${c.journeeId}:${c.slot.slotId}`));
+    setProposerRegistre("vouvoiement");
     setProposerForm({
       subject: `${cursus.titre} — proposition de créneau${cible.length > 1 ? "x" : ""}`,
-      message: genererMessageProposition(enseignant, cible),
+      message: genererMessageProposition(enseignant, cible, "vouvoiement"),
     });
     setProposerEnseignantId(enseignantId);
   }
@@ -1314,7 +1318,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             {isManager && data.enseignants.some((e) => e.role !== "SECRETAIRE") && (
               <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
                 <Link href={`/formateur/coordination/${cursusId}/propositions`} target="_blank" style={{ textDecoration: "none" }}>
-                  <span style={{ ...btnGhost, display: "inline-block" }}>📤 Exporter toutes les propositions</span>
+                  <span style={{ ...btnGhost, display: "inline-block" }}>📋 Voir toutes les propositions</span>
                 </Link>
               </div>
             )}
@@ -1460,7 +1464,21 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       onChange={(e) => setProposerForm((s) => ({ ...s, subject: e.target.value }))}
                       style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 12 }}
                     />
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#6A6A6A", marginBottom: 4 }}>Message (pré-rempli, modifiable)</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#6A6A6A" }}>Message (pré-rempli, modifiable)</div>
+                      <button
+                        title="Basculer vouvoiement / tutoiement — régénère le message ci-dessous"
+                        style={{ background: proposerRegistre === "tutoiement" ? "#fff5f6" : "white", border: `1.5px solid ${proposerRegistre === "tutoiement" ? "#C8102E" : "#E0E0E0"}`, borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", color: proposerRegistre === "tutoiement" ? "#C8102E" : "#6A6A6A" }}
+                        onClick={() => {
+                          const next = proposerRegistre === "tutoiement" ? "vouvoiement" : "tutoiement";
+                          const cible = creneaux.filter((c) => proposerSel.includes(`${c.journeeId}:${c.slot.slotId}`));
+                          setProposerRegistre(next);
+                          setProposerForm((s) => ({ ...s, message: genererMessageProposition(enseignant, cible, next) }));
+                        }}
+                      >
+                        🗣️ Tutoiement {proposerRegistre === "tutoiement" ? "activé" : ""}
+                      </button>
+                    </div>
                     <textarea
                       value={proposerForm.message}
                       onChange={(e) => setProposerForm((s) => ({ ...s, message: e.target.value }))}
@@ -1489,10 +1507,12 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                       </button>
                       <button
                         style={btnGhost}
-                        onClick={() => {
+                        onClick={async () => {
                           const texte = `À : ${enseignant.email}\nObjet : ${proposerForm.subject}\n\n${proposerForm.message}\n\nRépondre en ligne : ${lienPortail}`;
                           navigator.clipboard.writeText(texte);
                           alert("Message copié — collez-le dans votre client email habituel.");
+                          await api(`/api/cursus/${cursusId}/log-proposition`, "POST", { enseignantId: proposerEnseignantId, mode: "copie", message: proposerForm.message });
+                          await reload();
                         }}
                       >
                         📋 Copier le message

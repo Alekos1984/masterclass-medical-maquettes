@@ -39,6 +39,7 @@ export default function PropositionsExportPage() {
   const [data, setData] = useState<ApiData | null>(null);
   const [error, setError] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [registres, setRegistres] = useState<Record<string, "vouvoiement" | "tutoiement">>({});
 
   useEffect(() => {
     fetch(`/api/cursus/${id}`)
@@ -54,6 +55,16 @@ export default function PropositionsExportPage() {
     navigator.clipboard.writeText(texte);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1500);
+  }
+
+  async function logCopie(enseignantId: string, message: string) {
+    try {
+      await fetch(`/api/cursus/${id}/log-proposition`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enseignantId, mode: "copie", message }),
+      });
+    } catch { /* best-effort */ }
   }
 
   if (error) return <div style={{ padding: 60, textAlign: "center", color: "#c62828" }}>{error}</div>;
@@ -79,14 +90,17 @@ export default function PropositionsExportPage() {
           })
       );
       if (creneaux.length === 0) return null;
+      const registre = registres[e.id] ?? "vouvoiement";
       const message = genererMessagePropositionCreneau({
+        enseignantNom: e.nom ?? e.email,
         enseignantNomCivilite: e.nomCivilite,
         cursusTitre: data.cursus.titre,
         cursusAnnee: data.cursus.annee,
         coordinateurNom: data.cursus.coordinateurNom,
         creneaux,
+        registre,
       }) + `\n\nRépondre en ligne (sans compte à créer) : ${lienConfirmation}`;
-      return { key: e.id, enseignantNom: e.nomCivilite, email: e.email, creneaux, message };
+      return { key: e.id, enseignantId: e.id, enseignantNom: e.nomCivilite, email: e.email, creneaux, message, registre };
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
 
@@ -137,11 +151,26 @@ export default function PropositionsExportPage() {
                 </button>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 10, flexWrap: "wrap" }}>
                 <div style={{ fontSize: 12, color: "#6A6A6A" }}>Message</div>
-                <button style={btnGhost} onClick={() => copier(`msg-${b.key}`, b.message)}>
-                  {copiedKey === `msg-${b.key}` ? "✓ Copié" : "📋 Copier le message"}
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    title="Basculer vouvoiement / tutoiement"
+                    style={{ background: b.registre === "tutoiement" ? "#fff5f6" : "white", border: `1.5px solid ${b.registre === "tutoiement" ? "#C8102E" : "#E0E0E0"}`, borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", color: b.registre === "tutoiement" ? "#C8102E" : "#6A6A6A" }}
+                    onClick={() => setRegistres((s) => ({ ...s, [b.enseignantId]: b.registre === "tutoiement" ? "vouvoiement" : "tutoiement" }))}
+                  >
+                    🗣️ Tutoiement {b.registre === "tutoiement" ? "activé" : ""}
+                  </button>
+                  <button
+                    style={btnGhost}
+                    onClick={async () => {
+                      copier(`msg-${b.key}`, b.message);
+                      await logCopie(b.enseignantId, b.message);
+                    }}
+                  >
+                    {copiedKey === `msg-${b.key}` ? "✓ Copié" : "📋 Copier le message"}
+                  </button>
+                </div>
               </div>
               <div style={{ background: "#F9F7F4", borderRadius: 8, padding: "12px 14px", fontSize: 12.5, color: "#444", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                 {b.message}
