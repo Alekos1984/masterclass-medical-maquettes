@@ -93,6 +93,15 @@ function fdate(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
+const CONFIRMATION_LABELS: Record<string, string> = {
+  "": "Non demandé", PROPOSE: "Proposé", CONFIRME: "Confirmé", DECLINE: "Décliné",
+};
+
+function confirmationDot(statut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null) {
+  const color = statut === "CONFIRME" ? "#2e7d32" : statut === "PROPOSE" ? "#e65100" : statut === "DECLINE" ? "#c62828" : "#D0D0D0";
+  return <span title={CONFIRMATION_LABELS[statut ?? ""]} style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />;
+}
+
 // Fine ligne d'insertion entre deux créneaux (+ au survol, cible de drop)
 function InsertLine({ onInsert, onDropSlot, isDropTarget }: {
   onInsert: () => void;
@@ -283,6 +292,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
   const [etudiants, setEtudiants] = useState<Etudiant[] | null>(null);
   const [etudiantsJournees, setEtudiantsJournees] = useState<{ id: string; date: string }[]>([]);
   const [messageText, setMessageText] = useState("");
+  const [messagesDeplies, setMessagesDeplies] = useState<Set<string>>(new Set());
   const [echangeFor, setEchangeFor] = useState<{ journeeId: string; slot: Slot } | null>(null);
 
   useEffect(() => {
@@ -947,6 +957,22 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                   <option value="">— Enseignant —</option>
                                   {data.enseignants.map((e) => <option key={e.id} value={e.id}>{e.nom ?? e.email}{e.statut === "EN_ATTENTE" ? " (invité)" : ""}</option>)}
                                 </select>
+                                {slot.type !== "pause" && slot.enseignantId && (
+                                  <>
+                                    {confirmationDot(slot.confirmationStatut)}
+                                    <select
+                                      value={slot.confirmationStatut ?? ""}
+                                      title="Statut de confirmation de l'enseignant — modifiable manuellement"
+                                      onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, confirmationStatut: (e.target.value || null) as Slot["confirmationStatut"] } : x))}
+                                      style={{ ...inputStyle, padding: "5px 7px", fontSize: 11, width: 116 }}
+                                    >
+                                      <option value="">Non demandé</option>
+                                      <option value="PROPOSE">Proposé</option>
+                                      <option value="CONFIRME">Confirmé</option>
+                                      <option value="DECLINE">Décliné</option>
+                                    </select>
+                                  </>
+                                )}
                                 <button
                                   style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6A6A6A" }}
                                   onClick={() => updateSlots(j.id, slots.filter((_, k) => k !== si))}
@@ -958,6 +984,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               <>
                                 <span style={{ fontSize: 12, color: "#6A6A6A", whiteSpace: "nowrap" }}>{slot.heureDebut}–{slot.heureFin}</span>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F", flex: 1 }}>{slot.titre}</span>
+                                {slot.type !== "pause" && slot.enseignantId && confirmationDot(slot.confirmationStatut)}
                                 <span style={{ fontSize: 12, color: slot.enseignantId ? "#C8102E" : "#e65100", fontWeight: 600 }}>
                                   {slot.type === "pause" ? "☕" : slot.enseignantId ? (enseignantsById.get(slot.enseignantId)?.nom ?? enseignantsById.get(slot.enseignantId)?.email) : "Non affecté"}
                                   {estMonSlot && " (vous)"}
@@ -2011,15 +2038,41 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
             </div>
             <div style={{ maxHeight: 420, overflowY: "auto", padding: "10px 22px" }}>
               {data.messages.length === 0 && <div style={{ padding: 20, textAlign: "center", color: "#9A9A9A", fontSize: 13 }}>Aucun message. Lancez la discussion !</div>}
-              {data.messages.map((m) => (
-                <div key={m.id} style={{ padding: "10px 0", borderBottom: "1px solid #F5F5F5" }}>
-                  <div style={{ fontSize: 12, marginBottom: 3 }}>
-                    <strong style={{ color: "#0F0F0F" }}>{m.auteurNom}</strong>
-                    <span style={{ color: "#9A9A9A", marginLeft: 8 }}>{new Date(m.createdAt).toLocaleString("fr-FR")}</span>
+              {data.messages.map((m) => {
+                const deplie = messagesDeplies.has(m.id);
+                const premiereLigne = m.texte.split("\n")[0];
+                const aPlusDeContenu = m.texte.length > premiereLigne.length;
+                return (
+                  <div
+                    key={m.id}
+                    style={{ padding: "10px 0", borderBottom: "1px solid #F5F5F5", cursor: aPlusDeContenu ? "pointer" : "default" }}
+                    onClick={() => {
+                      if (!aPlusDeContenu) return;
+                      setMessagesDeplies((s) => {
+                        const next = new Set(s);
+                        if (next.has(m.id)) next.delete(m.id); else next.add(m.id);
+                        return next;
+                      });
+                    }}
+                  >
+                    <div style={{ fontSize: 12, marginBottom: 3, display: "flex", alignItems: "center", gap: 8 }}>
+                      <strong style={{ color: "#0F0F0F" }}>{m.auteurNom}</strong>
+                      <span style={{ color: "#9A9A9A" }}>{new Date(m.createdAt).toLocaleString("fr-FR")}</span>
+                      {aPlusDeContenu && <span style={{ color: "#C8102E", fontSize: 11 }}>{deplie ? "▾ réduire" : "▸ voir plus"}</span>}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13, color: "#444", lineHeight: 1.5,
+                        whiteSpace: deplie ? "pre-wrap" : "nowrap",
+                        overflow: deplie ? "visible" : "hidden",
+                        textOverflow: deplie ? "clip" : "ellipsis",
+                      }}
+                    >
+                      {deplie ? m.texte : premiereLigne}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 13, color: "#444", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{m.texte}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div style={{ padding: "14px 22px", borderTop: "1px solid #EBEBEB", display: "flex", gap: 10 }}>
               <input
