@@ -579,8 +579,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
         {/* ═══ JOURNÉES ═══ */}
         {tab === "journees" && (
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div>
+          <div style={{ marginRight: data.journees.length > 0 ? 240 : 0 }}>
             {/* Génération IA du calendrier */}
             {isManager && (
               <div style={{ ...cardStyle, padding: "16px 22px", border: iaOpen ? "1.5px solid #C8102E" : "1px solid #E0E0E0" }}>
@@ -1142,7 +1142,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
           </div>
 
           {data.journees.length > 0 && (
-            <aside style={{ width: 220, flexShrink: 0, position: "sticky", top: 72, maxHeight: "calc(100vh - 92px)", overflowY: "auto" }}>
+            <aside style={{ width: 220, position: "fixed", top: 72, right: 28, maxHeight: "calc(100vh - 92px)", overflowY: "auto", zIndex: 40 }}>
               <div style={{ ...cardStyle, padding: "12px 14px", marginBottom: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 8 }}>
                   Journées
