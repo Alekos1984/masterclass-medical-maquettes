@@ -579,7 +579,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
 
         {/* ═══ JOURNÉES ═══ */}
         {tab === "journees" && (
-          <div>
+          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             {/* Génération IA du calendrier */}
             {isManager && (
               <div style={{ ...cardStyle, padding: "16px 22px", border: iaOpen ? "1.5px solid #C8102E" : "1px solid #E0E0E0" }}>
@@ -886,7 +887,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 updateSlots(j.id, arr);
               };
               return (
-                <div key={j.id} style={cardStyle}>
+                <div key={j.id} id={`journee-${j.id}`} style={{ ...cardStyle, border: "1.5px solid #B0B0B0", scrollMarginTop: 20 }}>
                   <div style={{ padding: "14px 22px", borderBottom: "1px solid #EBEBEB", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 220 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0F0F" }}>
@@ -1138,6 +1139,39 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                 </div>
               );
             })}
+          </div>
+
+          {data.journees.length > 0 && (
+            <aside style={{ width: 220, flexShrink: 0, position: "sticky", top: 72, maxHeight: "calc(100vh - 92px)", overflowY: "auto" }}>
+              <div style={{ ...cardStyle, padding: "12px 14px", marginBottom: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#6A6A6A", marginBottom: 8 }}>
+                  Journées
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {data.journees.map((j, idx) => (
+                    <a
+                      key={j.id}
+                      href={`#journee-${j.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        document.getElementById(`journee-${j.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      style={{
+                        display: "block", textDecoration: "none", color: "#444", fontSize: 12,
+                        padding: "7px 10px", borderRadius: 8, background: "transparent",
+                        border: "1px solid transparent", lineHeight: 1.35,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "#F9F7F4"; e.currentTarget.style.borderColor = "#E0E0E0"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
+                    >
+                      <div style={{ fontWeight: 700, color: "#0F0F0F" }}>Journée {idx + 1}</div>
+                      <div style={{ color: "#9A9A9A", fontSize: 11 }}>{fdate(j.date)}</div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          )}
           </div>
         )}
 
