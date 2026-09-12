@@ -123,7 +123,7 @@ export default function PropositionsExportPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {blocs.map((b) => (
-            <div key={b.key} style={{ background: "white", borderRadius: 14, border: "1px solid #E0E0E0", padding: "18px 22px" }}>
+            <div key={b.key} id={`enseignant-${b.enseignantId}`} style={{ background: "white", borderRadius: 14, border: "1px solid #E0E0E0", padding: "18px 22px", scrollMarginTop: 20 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: "#0F0F0F", marginBottom: 10 }}>{b.enseignantNom}</div>
 
               <div style={{ fontSize: 12, color: "#6A6A6A", marginBottom: 4 }}>

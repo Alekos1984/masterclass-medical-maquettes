@@ -104,6 +104,16 @@ function confirmationDot(statut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null) {
   return <span title={CONFIRMATION_LABELS[statut ?? ""]} style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />;
 }
 
+// Statut d'ensemble d'une journée pour le sommaire de droite : orange dès qu'un créneau est
+// proposé/décliné (encore en attente d'action), vert seulement si tout est confirmé.
+function journeeStatutCouleur(slots: Slot[]): string | null {
+  const pertinents = slots.filter((s) => s.type !== "pause" && s.enseignantId);
+  if (pertinents.length === 0) return null;
+  if (pertinents.some((s) => s.confirmationStatut === "PROPOSE" || s.confirmationStatut === "DECLINE")) return "#e65100";
+  if (pertinents.every((s) => s.confirmationStatut === "CONFIRME")) return "#2e7d32";
+  return null;
+}
+
 // Fine ligne d'insertion entre deux créneaux (+ au survol, cible de drop)
 function InsertLine({ onInsert, onDropSlot, isDropTarget }: {
   onInsert: () => void;
@@ -992,6 +1002,15 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                     </select>
                                   </>
                                 )}
+                                {slot.type !== "pause" && slot.enseignantId && !slot.confirmationStatut && (
+                                  <Link
+                                    href={`/formateur/coordination/${cursusId}/propositions#enseignant-${slot.enseignantId}`}
+                                    title="Aller directement proposer ce créneau à l'enseignant"
+                                    style={{ fontSize: 11, fontWeight: 700, color: "#C8102E", textDecoration: "none", border: "1px solid #C8102E", borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap" }}
+                                  >
+                                    📤 Proposer
+                                  </Link>
+                                )}
                                 {slot.confirmationStatut === "CONFIRME" && (
                                   <button
                                     title={estVerrouille ? "Créneau confirmé par l'enseignant — cliquez pour déverrouiller et modifier" : "Cliquez pour reverrouiller"}
@@ -1148,26 +1167,37 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                   Journées
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {data.journees.map((j, idx) => (
-                    <a
-                      key={j.id}
-                      href={`#journee-${j.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        document.getElementById(`journee-${j.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      style={{
-                        display: "block", textDecoration: "none", color: "#444", fontSize: 12,
-                        padding: "7px 10px", borderRadius: 8, background: "transparent",
-                        border: "1px solid transparent", lineHeight: 1.35,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "#F9F7F4"; e.currentTarget.style.borderColor = "#E0E0E0"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
-                    >
-                      <div style={{ fontWeight: 700, color: "#0F0F0F" }}>Journée {idx + 1}</div>
-                      <div style={{ color: "#9A9A9A", fontSize: 11 }}>{fdate(j.date)}</div>
-                    </a>
-                  ))}
+                  {data.journees.map((j, idx) => {
+                    const couleur = journeeStatutCouleur(getSlots(j));
+                    return (
+                      <a
+                        key={j.id}
+                        href={`#journee-${j.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document.getElementById(`journee-${j.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8, textDecoration: "none", color: "#444", fontSize: 12,
+                          padding: "7px 10px", borderRadius: 8, background: "transparent",
+                          border: "1px solid transparent", lineHeight: 1.35,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#F9F7F4"; e.currentTarget.style.borderColor = "#E0E0E0"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
+                      >
+                        {couleur && (
+                          <span
+                            title={couleur === "#2e7d32" ? "Tous les créneaux sont confirmés" : "Des créneaux sont en attente de confirmation"}
+                            style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: couleur, flexShrink: 0 }}
+                          />
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 700, color: "#0F0F0F" }}>Journée {idx + 1}</div>
+                          <div style={{ color: "#9A9A9A", fontSize: 11 }}>{fdate(j.date)}</div>
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </aside>
