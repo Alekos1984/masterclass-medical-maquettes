@@ -42,6 +42,9 @@ export async function PATCH(
       description: s.description ?? "",
       type: s.type ?? "cours",
       enseignantId: s.enseignantId ?? null,
+      coEnseignantIds: Array.isArray(s.coEnseignantIds)
+        ? [...new Set(s.coEnseignantIds.filter((v): v is string => typeof v === "string" && !!v && v !== s.enseignantId))]
+        : [],
       // Un enseignant affecté vide toujours l'intervenantRaw (nom brut de digitalisation)
       intervenantRaw: s.enseignantId ? null : (s.intervenantRaw ?? null),
       lieuNom: s.lieuNom || null,

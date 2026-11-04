@@ -7,9 +7,14 @@ import { genererMessagePropositionCreneau } from "@/lib/proposition-message";
 
 type Slot = {
   slotId: string; heureDebut: string; heureFin: string; titre: string; type: string;
-  enseignantId: string | null; lieuNom?: string | null; salle?: string | null; enVisio?: boolean;
+  enseignantId: string | null; coEnseignantIds?: string[] | null;
+  lieuNom?: string | null; salle?: string | null; enVisio?: boolean;
   confirmationStatut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null;
 };
+
+function slotEnseignantIds(slot: Slot): string[] {
+  return [...new Set([slot.enseignantId, ...(slot.coEnseignantIds ?? [])].filter((v): v is string => !!v))];
+}
 type Journee = { id: string; date: string; lieuNom: string | null; lieuVille: string | null; slots: Slot[] };
 type Enseignant = { id: string; email: string; nom: string | null; role: string; nomCivilite: string };
 type ApiData = {
@@ -78,7 +83,7 @@ export default function PropositionsExportPage() {
     .map((e) => {
       const creneaux = data.journees.flatMap((j) =>
         j.slots
-          .filter((s) => s.enseignantId === e.id)
+          .filter((s) => slotEnseignantIds(s).includes(e.id))
           .map((s) => {
             const lieu = s.enVisio
               ? "Visioconférence"

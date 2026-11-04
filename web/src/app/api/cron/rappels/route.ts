@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { parseSlots } from "@/lib/cursus";
+import { parseSlots, slotEnseignantIds } from "@/lib/cursus";
 import { generateIcs, icsToBase64 } from "@/lib/ics";
 import { sendEmail, emailRappelEnseignement, emailRappelEtudiantCursus } from "@/lib/brevo";
 
@@ -44,9 +44,11 @@ export async function GET(req: NextRequest) {
     const slots = parseSlots(j.programme);
     const enseignantsAffectes = new Map<string, typeof slots>();
     for (const s of slots) {
-      if (!s.enseignantId || s.type === "pause") continue;
-      if (!enseignantsAffectes.has(s.enseignantId)) enseignantsAffectes.set(s.enseignantId, []);
-      enseignantsAffectes.get(s.enseignantId)!.push(s);
+      if (s.type === "pause") continue;
+      for (const enseignantId of slotEnseignantIds(s)) {
+        if (!enseignantsAffectes.has(enseignantId)) enseignantsAffectes.set(enseignantId, []);
+        enseignantsAffectes.get(enseignantId)!.push(s);
+      }
     }
 
     const dateStr = j.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

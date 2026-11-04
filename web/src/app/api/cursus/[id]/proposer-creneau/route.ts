@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, peutGerer, parseSlots, patchSlot } from "@/lib/cursus";
+import { getCursusAccess, peutGerer, parseSlots, patchSlot, slotEnseignantIds } from "@/lib/cursus";
 import { sendEmail, emailMessageCoordination } from "@/lib/brevo";
 
 // POST : envoie (via la plateforme) une proposition de créneau à un enseignant,
@@ -51,7 +51,7 @@ export async function POST(
     const journee = cursus.journees.find((j) => j.id === ref.journeeId);
     if (!journee) continue;
     const slot = parseSlots(journee.programme).find((s) => s.slotId === ref.slotId);
-    if (!slot || slot.enseignantId !== enseignant.id) continue; // évite de marquer le créneau d'un autre
+    if (!slot || !slotEnseignantIds(slot).includes(enseignant.id)) continue; // évite de marquer le créneau d'un autre
     const ok = await patchSlot(ref.journeeId, ref.slotId, {
       confirmationStatut: "PROPOSE",
       confirmationDemandeAt: new Date().toISOString(),

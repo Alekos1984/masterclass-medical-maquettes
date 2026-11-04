@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { parseSlots } from "@/lib/cursus";
+import { parseSlots, slotEnseignantIds } from "@/lib/cursus";
 
 // GET : portail public (sans connexion) — un enseignant retrouve ses créneaux proposés
 // pour ce DU à partir de son email, afin de les confirmer ou décliner.
@@ -23,7 +23,7 @@ export async function GET(
 
   const creneaux = cursus.journees.flatMap((j) =>
     parseSlots(j.programme)
-      .filter((s) => s.enseignantId === enseignant.id)
+      .filter((s) => slotEnseignantIds(s).includes(enseignant.id))
       .map((s) => ({
         journeeId: j.id,
         slotId: s.slotId,

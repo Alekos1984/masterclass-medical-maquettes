@@ -77,6 +77,7 @@ export async function POST(
           ...s,
           slotId: `slot-${Date.now()}-${idx}-${i}`,
           enseignantId: s.enseignantId ? mapping.get(s.enseignantId) ?? null : null,
+          coEnseignantIds: (s.coEnseignantIds ?? []).map((coId) => mapping.get(coId)).filter((v): v is string => !!v),
         })),
         date: newDate,
         heureDebut: j.heureDebut,

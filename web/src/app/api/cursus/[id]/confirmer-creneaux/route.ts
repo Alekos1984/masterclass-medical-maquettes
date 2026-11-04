@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { parseSlots, patchSlot } from "@/lib/cursus";
+import { parseSlots, patchSlot, slotEnseignantIds } from "@/lib/cursus";
 import { sendEmail, emailConfirmationCreneaux, emailNotificationReponseCreneau } from "@/lib/brevo";
 
 // POST : portail public — un enseignant confirme ou décline les créneaux qui lui ont été
@@ -42,7 +42,7 @@ export async function POST(
     const journee = cursus.journees.find((j) => j.id === rep.journeeId);
     if (!journee) continue;
     const slot = parseSlots(journee.programme).find((s) => s.slotId === rep.slotId);
-    if (!slot || slot.enseignantId !== enseignant.id) continue; // ignore toute tentative sur le créneau d'un autre
+    if (!slot || !slotEnseignantIds(slot).includes(enseignant.id)) continue; // ignore toute tentative sur le créneau d'un autre
 
     const ok = await patchSlot(rep.journeeId, rep.slotId, { confirmationStatut: rep.statut });
     if (ok) {
