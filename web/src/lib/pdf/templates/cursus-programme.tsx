@@ -26,6 +26,7 @@ const s = StyleSheet.create({
   titrePause: { fontSize: 8, fontFamily: "Helvetica-Oblique", color: GRAY },
   desc: { fontSize: 8, color: GRAY, marginTop: 1, lineHeight: 1.4 },
   prof: { width: 120, paddingVertical: 6, fontSize: 8, color: RED, textAlign: "right" },
+  profAConfirmer: { fontSize: 6.5, color: "#e65100", fontFamily: "Helvetica-Oblique", textAlign: "right", marginTop: 1 },
   infoBox: { backgroundColor: OFF_WHITE, borderRadius: 6, padding: 10, marginBottom: 6 },
 });
 
@@ -47,7 +48,7 @@ export type CursusProgrammeData = {
     heureFin: string;
     modalite: string;
     lieu: string;
-    slots: { heureDebut: string; heureFin: string; titre: string; description: string; type: string; enseignantNom: string | null; lieuNom?: string | null; salle?: string | null; enVisio?: boolean }[];
+    slots: { heureDebut: string; heureFin: string; titre: string; description: string; type: string; enseignantNom: string | null; confirmationStatut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null; lieuNom?: string | null; salle?: string | null; enVisio?: boolean }[];
   }[];
 };
 
@@ -120,7 +121,16 @@ export function CursusProgrammePdf({ company, cursus, branding }: { company: Com
                     </Text>
                   ) : <View style={{ height: 0 }} />}
                 </View>
-                <Text style={s.prof}>{slot.type === "pause" ? "" : (slot.enseignantNom ?? "À confirmer")}</Text>
+                {slot.type === "pause" ? (
+                  <Text style={s.prof} />
+                ) : (
+                  <View style={{ width: 120, paddingVertical: 6 }}>
+                    <Text style={[s.prof, { width: "auto" }]}>{slot.enseignantNom ?? "À confirmer"}</Text>
+                    {slot.enseignantNom && slot.confirmationStatut !== "CONFIRME" ? (
+                      <Text style={s.profAConfirmer}>à confirmer</Text>
+                    ) : <View style={{ height: 0 }} />}
+                  </View>
+                )}
               </View>
             ))}
           </View>
