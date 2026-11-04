@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { renderPdf, pdfResponse } from "@/lib/pdf/render";
 import { getCompanySettings } from "@/lib/pdf/db-helpers";
 import { CursusProgrammePdf } from "@/lib/pdf/templates/cursus-programme";
-import { parseSlots, nomAvecCivilite } from "@/lib/cursus";
+import { parseSlots, nomAvecCivilite, slotEnseignantIds } from "@/lib/cursus";
 import { sommeDureeSlots, formatDureeHeures } from "@/lib/duree-creneaux";
 
 export async function GET(
@@ -72,7 +72,7 @@ export async function GET(
         titre: s.titre,
         description: s.description,
         type: s.type,
-        enseignantNom: s.enseignantId ? enseignantsById.get(s.enseignantId) ?? null : null,
+        enseignantNom: slotEnseignantIds(s).map((eid) => enseignantsById.get(eid)).filter((v): v is string => !!v).join(" & ") || null,
         confirmationStatut: s.confirmationStatut ?? null,
         lieuNom: s.lieuNom, salle: s.salle, enVisio: s.enVisio,
       })),

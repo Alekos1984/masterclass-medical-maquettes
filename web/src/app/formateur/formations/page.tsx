@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { StatutInscription } from "@/generated/prisma/enums";
-import { parseSlots } from "@/lib/cursus";
+import { parseSlots, slotEnseignantIds } from "@/lib/cursus";
 import FormationsClient from "./FormationsClient";
 
 export default async function FormateurFormationsPage() {
@@ -83,7 +83,7 @@ export default async function FormateurFormationsPage() {
     const suisCoord = j.cursus.coordinateurId === formateurId;
     for (const slot of parseSlots(j.programme)) {
       if (slot.type === "pause" || !slot.titre) continue;
-      const suisAffecte = slot.enseignantId && idsEnseignant.has(slot.enseignantId);
+      const suisAffecte = slotEnseignantIds(slot).some((eid) => idsEnseignant.has(eid));
       if (!suisAffecte && !suisCoord) continue;
       // Le coordinateur voit aussi les cours des autres enseignants (aperçu de la vue enseignant),
       // marqués comme tels via le champ role — utile en mode brouillon pour vérifier le rendu.

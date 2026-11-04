@@ -92,13 +92,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Seul le coordinateur peut retirer un co-coordinateur ou une secrétaire" }, { status: 403 });
   }
 
-  // Désaffecter ses créneaux avant de le retirer
+  // Désaffecter ses créneaux (en tant que principal ou co-enseignant) avant de le retirer
   for (const j of cursus.journees) {
     const slots = parseSlots(j.programme);
-    if (slots.some((s) => s.enseignantId === eid)) {
+    const concerne = slots.some((s) => s.enseignantId === eid || s.coEnseignantIds?.includes(eid));
+    if (concerne) {
       await prisma.formation.update({
         where: { id: j.id },
-        data: { programme: slots.map((s) => (s.enseignantId === eid ? { ...s, enseignantId: null } : s)) },
+        data: {
+          programme: slots.map((s) => ({
+            ...s,
+            enseignantId: s.enseignantId === eid ? null : s.enseignantId,
+            coEnseignantIds: (s.coEnseignantIds ?? []).filter((coId) => coId !== eid),
+          })),
+        },
       });
     }
   }

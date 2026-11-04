@@ -12,6 +12,7 @@ import Link from "next/link";
 type Slot = {
   slotId: string; heureDebut: string; heureFin: string;
   titre: string; description: string; type: string; enseignantId: string | null;
+  coEnseignantIds?: string[] | null;
   intervenantRaw?: string | null;
   lieuNom?: string | null; salle?: string | null; enVisio?: boolean;
   confirmationStatut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null;
@@ -104,10 +105,15 @@ function confirmationDot(statut?: "PROPOSE" | "CONFIRME" | "DECLINE" | null) {
   return <span title={CONFIRMATION_LABELS[statut ?? ""]} style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color, flexShrink: 0 }} />;
 }
 
+// Tous les enseignants affectés à un créneau (principal + co-enseignants en binôme/trinôme), sans doublon.
+function slotEnseignantIds(slot: Slot): string[] {
+  return [...new Set([slot.enseignantId, ...(slot.coEnseignantIds ?? [])].filter((v): v is string => !!v))];
+}
+
 // Statut d'ensemble d'une journée pour le sommaire de droite : orange dès qu'un créneau est
 // proposé/décliné (encore en attente d'action), vert seulement si tout est confirmé.
 function journeeStatutCouleur(slots: Slot[]): string | null {
-  const pertinents = slots.filter((s) => s.type !== "pause" && s.enseignantId);
+  const pertinents = slots.filter((s) => s.type !== "pause" && slotEnseignantIds(s).length > 0);
   if (pertinents.length === 0) return null;
   if (pertinents.some((s) => s.confirmationStatut === "PROPOSE" || s.confirmationStatut === "DECLINE")) return "#e65100";
   if (pertinents.every((s) => s.confirmationStatut === "CONFIRME")) return "#2e7d32";
@@ -492,7 +498,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
         </div>
       </div>
 
-      <div className="content" style={{ maxWidth: 1100 }}>
+      <div className="content" style={{ maxWidth: tab === "journees" ? 1500 : 1100 }}>
         {/* Bandeau échanges à traiter (enseignant sollicité) */}
         {echangesPourMoi.map((e) => {
           const jA = data.journees.find((j) => j.id === e.journeeAId);
@@ -932,7 +938,8 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                   <div>
                     {slots.map((slot, si) => {
                       const support = supportByKey.get(`${j.id}:${slot.slotId}`);
-                      const estMonSlot = slot.enseignantId === data.monEnseignantId;
+                      const idsAffectes = slotEnseignantIds(slot);
+                      const estMonSlot = !!data.monEnseignantId && idsAffectes.includes(data.monEnseignantId);
                       const peutEditer = isManager;
                       const enCoursDeDrag = dragSlot?.journeeId === j.id && dragSlot.index === si;
                       const cleVerrou = `${j.id}:${slot.slotId}`;
@@ -968,7 +975,7 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                   value={slot.type}
                                   onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? {
                                     ...x, type: e.target.value,
-                                    ...(e.target.value === "pause" ? { enseignantId: null, intervenantRaw: null, confirmationStatut: null } : {}),
+                                    ...(e.target.value === "pause" ? { enseignantId: null, coEnseignantIds: [], intervenantRaw: null, confirmationStatut: null } : {}),
                                   } : x))}
                                   style={{ ...inputStyle, padding: "5px 7px", fontSize: 12 }}
                                 >
@@ -978,14 +985,49 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                   <select
                                     disabled={estVerrouille}
                                     value={slot.enseignantId ?? ""}
-                                    onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, enseignantId: e.target.value || null, intervenantRaw: e.target.value ? null : x.intervenantRaw } : x))}
+                                    onChange={(e) => updateSlots(j.id, slots.map((x, k) => k === si ? {
+                                      ...x, enseignantId: e.target.value || null, intervenantRaw: e.target.value ? null : x.intervenantRaw,
+                                      coEnseignantIds: (x.coEnseignantIds ?? []).filter((v) => v !== e.target.value),
+                                    } : x))}
                                     style={{ ...inputStyle, padding: "5px 7px", fontSize: 12, borderColor: slot.enseignantId ? "#E0E0E0" : "#e65100" }}
                                   >
                                     <option value="">— Enseignant —</option>
                                     {data.enseignants.map((e) => <option key={e.id} value={e.id}>{e.nom ?? e.email}{e.statut === "EN_ATTENTE" ? " (invité)" : ""}</option>)}
                                   </select>
                                 )}
-                                {slot.type !== "pause" && slot.enseignantId && (
+                                {slot.type !== "pause" && (slot.coEnseignantIds ?? []).map((coId) => (
+                                  <span key={coId} style={{ display: "flex", alignItems: "center", gap: 3, background: "#F5F5F5", border: "1px solid #E0E0E0", borderRadius: 6, padding: "4px 7px", fontSize: 11, color: "#444", whiteSpace: "nowrap" }}>
+                                    + {enseignantsById.get(coId)?.nom ?? enseignantsById.get(coId)?.email ?? "?"}
+                                    {!estVerrouille && (
+                                      <button
+                                        type="button"
+                                        title="Retirer ce co-enseignant"
+                                        onClick={() => updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, coEnseignantIds: (x.coEnseignantIds ?? []).filter((v) => v !== coId) } : x))}
+                                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#6A6A6A", padding: 0, lineHeight: 1 }}
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                  </span>
+                                ))}
+                                {slot.type !== "pause" && !estVerrouille && (
+                                  <select
+                                    value=""
+                                    title="Ajouter un co-enseignant (cours donné en binôme/trinôme)"
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      if (!v) return;
+                                      updateSlots(j.id, slots.map((x, k) => k === si ? { ...x, coEnseignantIds: [...new Set([...(x.coEnseignantIds ?? []), v])] } : x));
+                                    }}
+                                    style={{ ...inputStyle, padding: "5px 4px", fontSize: 12, width: 34, color: "#6A6A6A", textAlign: "center" }}
+                                  >
+                                    <option value="">+</option>
+                                    {data.enseignants
+                                      .filter((e) => e.id !== slot.enseignantId && !(slot.coEnseignantIds ?? []).includes(e.id))
+                                      .map((e) => <option key={e.id} value={e.id}>{e.nom ?? e.email}</option>)}
+                                  </select>
+                                )}
+                                {slot.type !== "pause" && idsAffectes.length > 0 && (
                                   <>
                                     {confirmationDot(slot.confirmationStatut)}
                                     <select
@@ -1002,9 +1044,9 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                                     </select>
                                   </>
                                 )}
-                                {slot.type !== "pause" && slot.enseignantId && !slot.confirmationStatut && (
+                                {slot.type !== "pause" && idsAffectes.length > 0 && !slot.confirmationStatut && (
                                   <Link
-                                    href={`/formateur/coordination/${cursusId}/propositions#enseignant-${slot.enseignantId}`}
+                                    href={`/formateur/coordination/${cursusId}/propositions#enseignant-${idsAffectes[0]}`}
                                     title="Aller directement proposer ce créneau à l'enseignant"
                                     style={{ fontSize: 11, fontWeight: 700, color: "#C8102E", textDecoration: "none", border: "1px solid #C8102E", borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap" }}
                                   >
@@ -1037,9 +1079,9 @@ export default function CoordinationClient({ cursusId }: { cursusId: string }) {
                               <>
                                 <span style={{ fontSize: 12, color: "#6A6A6A", whiteSpace: "nowrap" }}>{slot.heureDebut}–{slot.heureFin}</span>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: "#0F0F0F", flex: 1 }}>{slot.titre}</span>
-                                {slot.type !== "pause" && slot.enseignantId && confirmationDot(slot.confirmationStatut)}
-                                <span style={{ fontSize: 12, color: slot.enseignantId ? "#C8102E" : "#e65100", fontWeight: 600 }}>
-                                  {slot.type === "pause" ? "☕" : slot.enseignantId ? (enseignantsById.get(slot.enseignantId)?.nom ?? enseignantsById.get(slot.enseignantId)?.email) : "Non affecté"}
+                                {slot.type !== "pause" && idsAffectes.length > 0 && confirmationDot(slot.confirmationStatut)}
+                                <span style={{ fontSize: 12, color: idsAffectes.length > 0 ? "#C8102E" : "#e65100", fontWeight: 600 }}>
+                                  {slot.type === "pause" ? "☕" : idsAffectes.length > 0 ? idsAffectes.map((eid) => enseignantsById.get(eid)?.nom ?? enseignantsById.get(eid)?.email).join(" & ") : "Non affecté"}
                                   {estMonSlot && " (vous)"}
                                 </span>
                               </>

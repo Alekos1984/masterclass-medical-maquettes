@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots, peutGerer } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, peutGerer, slotEnseignantIds } from "@/lib/cursus";
 import { sendEmail, emailProgrammeCursus } from "@/lib/brevo";
 
 export async function POST(
@@ -26,7 +26,8 @@ export async function POST(
     programmeHtml += `<p style="font-size:14px;font-weight:700;color:#0F0F0F;margin:18px 0 6px;">📅 ${dateStr} (${j.heureDebut}–${j.heureFin})${j.modaliteSession === "VIRTUEL" ? " · Visioconférence" : j.modaliteSession === "MIXTE" ? " · Mixte" : ""}</p>`;
     programmeHtml += `<table style="width:100%;border-collapse:collapse;font-size:12px;color:#444;">`;
     for (const s of parseSlots(j.programme)) {
-      const prof = s.enseignantId ? enseignantsById.get(s.enseignantId) ?? "—" : "—";
+      const noms = slotEnseignantIds(s).map((eid) => enseignantsById.get(eid)).filter((v): v is string => !!v);
+      const prof = noms.length > 0 ? noms.join(" & ") : "—";
       programmeHtml += `<tr style="border-bottom:1px solid #f0f0f0;">
         <td style="padding:5px 8px;white-space:nowrap;color:#999;">${s.heureDebut}–${s.heureFin}</td>
         <td style="padding:5px 8px;font-weight:600;">${s.titre}</td>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import React from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCursusAccess, parseSlots, peutGerer, nomAvecCivilite } from "@/lib/cursus";
+import { getCursusAccess, parseSlots, peutGerer, nomAvecCivilite, slotEnseignantIds } from "@/lib/cursus";
 import { sommeDureeSlots, formatDureeHeures } from "@/lib/duree-creneaux";
 import { renderPdf } from "@/lib/pdf/render";
 import { getCompanySettings } from "@/lib/pdf/db-helpers";
@@ -75,7 +75,8 @@ export async function GET(
           lieu: j.modaliteSession === "VIRTUEL" ? "En ligne" : [j.lieuNom, j.lieuVille].filter(Boolean).join(", ") || "À confirmer",
           slots: parseSlots(j.programme).map((s) => ({
             heureDebut: s.heureDebut, heureFin: s.heureFin, titre: s.titre, description: s.description, type: s.type,
-            enseignantNom: s.enseignantId ? enseignantsById.get(s.enseignantId) ?? null : null,
+            enseignantNom: slotEnseignantIds(s).map((eid) => enseignantsById.get(eid)).filter((v): v is string => !!v).join(" & ") || null,
+            confirmationStatut: s.confirmationStatut ?? null,
             lieuNom: s.lieuNom, salle: s.salle, enVisio: s.enVisio,
           })),
         })),

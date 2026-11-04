@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { parseSlots } from "@/lib/cursus";
+import { parseSlots, slotEnseignantIds } from "@/lib/cursus";
 import DuPublicClient from "./DuPublicClient";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ export default async function DuPublicPage({ params }: { params: Promise<{ slug:
           modalite: j.modaliteSession ?? "PRESENTIEL",
           slots: parseSlots(j.programme).map((s) => ({
             heureDebut: s.heureDebut, heureFin: s.heureFin, titre: s.titre, type: s.type,
-            enseignantNom: s.enseignantId ? enseignantsById.get(s.enseignantId) ?? null : null,
+            enseignantNom: slotEnseignantIds(s).map((eid) => enseignantsById.get(eid)).filter((v): v is string => !!v).join(" & ") || null,
             lieuNom: s.lieuNom ?? null, salle: s.salle ?? null, enVisio: s.enVisio,
           })),
         })),

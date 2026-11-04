@@ -7,7 +7,8 @@ export type CursusSlot = {
   titre: string;
   description: string;
   type: string;
-  enseignantId: string | null; // CursusEnseignant.id
+  enseignantId: string | null; // CursusEnseignant.id — enseignant principal
+  coEnseignantIds?: string[] | null; // co-enseignant(s) quand le cours est donné en binôme/trinôme
   intervenantRaw?: string | null; // nom brut détecté (digitalisation), en attente de rattachement à un enseignant
   lieuNom?: string | null; // site (ex : Hôpital Saint-Antoine) — laisse vide pour reprendre le lieu de la journée
   salle?: string | null; // ex : "206"
@@ -80,6 +81,9 @@ export function parseSlots(programme: unknown): CursusSlot[] {
       description,
       type: (s.type as string) ?? "cours",
       enseignantId: (s.enseignantId as string) ?? null,
+      coEnseignantIds: Array.isArray(s.coEnseignantIds)
+        ? (s.coEnseignantIds as unknown[]).filter((v): v is string => typeof v === "string" && !!v)
+        : [],
       intervenantRaw,
       lieuNom: (s.lieuNom as string) ?? null,
       salle: (s.salle as string) ?? null,
@@ -100,6 +104,11 @@ export async function patchSlot(journeeId: string, slotId: string, patch: Partia
   slots[idx] = { ...slots[idx], ...patch };
   await prisma.formation.update({ where: { id: journeeId }, data: { programme: slots } });
   return true;
+}
+
+/** Tous les enseignants affectés à un créneau (principal + co-enseignants), sans doublon. */
+export function slotEnseignantIds(slot: CursusSlot): string[] {
+  return [...new Set([slot.enseignantId, ...(slot.coEnseignantIds ?? [])].filter((v): v is string => !!v))];
 }
 
 /** Préfixe un nom avec sa civilité (Dr./Pr.) si connue et pas déjà présente. */
@@ -217,17 +226,20 @@ export async function computeAlertes(cursusId: string) {
   for (const j of cursus.journees) {
     for (const slot of parseSlots(j.programme)) {
       if (slot.type === "pause") continue;
-      if (!slot.enseignantId) {
+      const idsAffectes = slotEnseignantIds(slot);
+      if (idsAffectes.length === 0) {
         creneauxSansEnseignant.push({ journeeId: j.id, date: j.date, slot });
         if (slot.intervenantRaw) intervenantsNonRattaches.push({ journeeId: j.id, date: j.date, slot });
       } else {
-        affectations.push({
-          enseignantId: slot.enseignantId,
-          date: j.date.toISOString().slice(0, 10),
-          debut: slot.heureDebut,
-          fin: slot.heureFin,
-          titre: slot.titre,
-        });
+        for (const enseignantId of idsAffectes) {
+          affectations.push({
+            enseignantId,
+            date: j.date.toISOString().slice(0, 10),
+            debut: slot.heureDebut,
+            fin: slot.heureFin,
+            titre: slot.titre,
+          });
+        }
         if (!supportsParSlot.has(`${j.id}:${slot.slotId}`)) {
           supportsManquants.push({ journeeId: j.id, date: j.date, slot });
         }
